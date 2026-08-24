@@ -1,0 +1,20 @@
+enum Role {
+  SUPERADMIN
+
+  @@map("roles")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  email    String @unique
+  password String
+
+  name   String
+  role   Role   @default(SUPERADMIN)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
