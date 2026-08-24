@@ -1,0 +1,29 @@
+enum PersonStatus {
+  GUEST
+  ATTENDEE
+  MEMBER
+
+  @@map("person_statuses")
+}
+
+model Person {
+  id String @id @default(uuid())
+
+  firstName String  @map("first_name")
+  lastName  String? @map("last_name")
+  birthDate DateTime? @map("birth_date") @db.Date
+
+  email String?
+  phone String?
+
+  status PersonStatus @default(GUEST)
+  joinedAt  DateTime? @map("joined_at")
+
+  notes     String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([lastName, firstName])
+  @@map("people")
+}

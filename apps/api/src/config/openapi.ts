@@ -1,6 +1,6 @@
-export const OPENAPI_TITLE = 'crm.dchurch API';
+export const OPENAPI_TITLE = 'D.Church CRM API';
 export const OPENAPI_DESCRIPTION = [
-  'REST API for the d.church CRM.',
+  'REST API for the D.Church CRM.',
   'Authentication uses JWT bearer tokens: send the access token as `Authorization: Bearer <token>`.',
 ].join('\n\n');
 export const OPENAPI_VERSION = '1.0.0';

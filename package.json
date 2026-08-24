@@ -8,8 +8,9 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "pnpm dev:api",
+    "dev": "concurrently -n api,client -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:client\"",
     "dev:api": "pnpm --filter api dev",
+    "dev:client": "pnpm --filter client dev",
     "dev:db": "docker compose up -d",
     "dev:db:down": "docker compose down",
     "build": "pnpm -r build",
@@ -20,7 +21,8 @@
     "db:view": "pnpm --filter api db:view",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "prepare": "husky",
-    "lint:api": "pnpm --filter api lint"
+    "lint:api": "pnpm --filter api lint",
+    "lint:client": "pnpm --filter client lint"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
@@ -34,6 +36,10 @@
     "apps/api/**/*.ts": [
       "prettier --write",
       "bash -c 'cd apps/api && ./node_modules/.bin/eslint --fix --no-warn-ignored \"$@\"' _"
+    ],
+    "apps/client/**/*.{ts,tsx}": [
+      "prettier --write",
+      "bash -c 'cd apps/client && ./node_modules/.bin/eslint --fix --no-warn-ignored \"$@\"' _"
     ],
     "packages/**/*.ts": "prettier --write"
   }

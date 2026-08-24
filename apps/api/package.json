@@ -1,7 +1,7 @@
 {
   "name": "api",
   "version": "0.0.1",
-  "description": "d.church CRM API (NestJS + Prisma)",
+  "description": "D.Church CRM API (NestJS + Prisma)",
   "author": "Yurii Khvyshchuk",
   "private": true,
   "license": "MIT",
