@@ -1,14 +1,27 @@
 import { PersonStatus } from '@/services';
 
-/** How each relationship stage reads in the UI, and how strongly it is highlighted. */
+/** Chip order on the people screen, mirroring the design canvas. */
+export const PERSON_STATUSES: PersonStatus[] = [
+  PersonStatus.MEMBER,
+  PersonStatus.SERVANT,
+  PersonStatus.NEW,
+  PersonStatus.GUEST,
+  PersonStatus.INACTIVE,
+];
+
 export const PERSON_STATUS_LABELS: Record<PersonStatus, string> = {
+  [PersonStatus.MEMBER]: 'Член',
+  [PersonStatus.SERVANT]: 'Служитель',
+  [PersonStatus.NEW]: 'Новий',
   [PersonStatus.GUEST]: 'Гість',
-  [PersonStatus.ATTENDEE]: 'Відвідувач',
-  [PersonStatus.MEMBER]: 'Член церкви',
+  [PersonStatus.INACTIVE]: 'Неактивний',
 };
 
-export const PERSON_STATUS_VARIANTS: Record<PersonStatus, 'default' | 'secondary' | 'outline'> = {
-  [PersonStatus.GUEST]: 'outline',
-  [PersonStatus.ATTENDEE]: 'secondary',
-  [PersonStatus.MEMBER]: 'default',
+/** Badge fills straight from the design — only the serving status is solid. */
+export const PERSON_STATUS_BADGES: Record<PersonStatus, string> = {
+  [PersonStatus.MEMBER]: 'bg-[#e3ece4] text-[#2b5c4a]',
+  [PersonStatus.SERVANT]: 'bg-[#2b5c4a] text-[#fffdf8]',
+  [PersonStatus.NEW]: 'bg-[#f5ead3] text-[#8a6a2a]',
+  [PersonStatus.GUEST]: 'bg-[#efece3] text-[#6f6c62]',
+  [PersonStatus.INACTIVE]: 'bg-[#f4f2ec] text-[#a29a8c]',
 };

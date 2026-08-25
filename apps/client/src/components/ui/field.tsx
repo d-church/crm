@@ -25,7 +25,7 @@ export const Field = ({
   const fieldId = id ?? name;
 
   return (
-    <div className={cn('grid gap-2', containerClassName)}>
+    <div className={cn('grid gap-1.5', containerClassName)}>
       <Label htmlFor={fieldId}>{label}</Label>
 
       <Input
@@ -37,11 +37,11 @@ export const Field = ({
       />
 
       {error ? (
-        <p id={`${fieldId}-error`} className="text-destructive text-xs">
+        <p id={`${fieldId}-error`} className="text-destructive text-[11.5px]">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-muted-foreground text-xs">{hint}</p>
+        <p className="text-ink-faint text-[11.5px]">{hint}</p>
       ) : null}
     </div>
   );

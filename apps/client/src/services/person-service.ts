@@ -6,8 +6,10 @@ class PersonServiceClass extends RestService<Person> {
 
 export const PersonStatus = {
   GUEST: 'GUEST',
-  ATTENDEE: 'ATTENDEE',
+  NEW: 'NEW',
   MEMBER: 'MEMBER',
+  SERVANT: 'SERVANT',
+  INACTIVE: 'INACTIVE',
 } as const;
 
 export type PersonStatus = (typeof PersonStatus)[keyof typeof PersonStatus];
@@ -18,9 +20,13 @@ export interface Person {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  city: string | null;
   status: PersonStatus;
+  smallGroup: string | null;
+  ministry: string | null;
   birthDate: string | null;
   joinedAt: string | null;
+  lastSeenAt: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

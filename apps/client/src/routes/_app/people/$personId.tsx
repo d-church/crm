@@ -3,18 +3,9 @@ import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/layout';
-import {
-  Avatar,
-  AvatarFallback,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui';
+import { Button, Card, CardContent } from '@/components/ui';
 import { formatDate, formatDateTime, getInitials } from '@/lib/format';
-import { PERSON_STATUS_LABELS, PERSON_STATUS_VARIANTS, personQueryOptions } from '@/modules/people';
+import { getPersonMeta, personQueryOptions, PersonStatusBadge } from '@/modules/people';
 import { getPersonName } from '@/services';
 
 export const Route = createFileRoute('/_app/people/$personId')({
@@ -26,12 +17,14 @@ export const Route = createFileRoute('/_app/people/$personId')({
 function PersonDetailPage() {
   const person = Route.useLoaderData();
   const name = getPersonName(person);
+  const meta = getPersonMeta(person);
 
   return (
     <>
       <PageHeader
+        eyebrow="Люди"
         title={name}
-        description={PERSON_STATUS_LABELS[person.status]}
+        description={meta || undefined}
         actions={
           <Button asChild variant="outline">
             <Link to="/people">
@@ -42,23 +35,28 @@ function PersonDetailPage() {
         }
       />
 
-      <Card className="max-w-2xl">
-        <CardHeader className="flex-row items-center gap-4">
-          <Avatar className="size-12">
-            <AvatarFallback>{getInitials(name)}</AvatarFallback>
-          </Avatar>
+      <Card className="max-w-2xl overflow-hidden">
+        <div className="border-border-muted flex items-center gap-4 border-b p-5">
+          <span className="grid size-12 place-items-center rounded-full bg-[#e6ece5] text-sm text-[#3f4a43]">
+            {getInitials(name)}
+          </span>
 
-          <div className="grid gap-1">
-            <CardTitle>{name}</CardTitle>
-            <Badge variant={PERSON_STATUS_VARIANTS[person.status]} className="w-fit">
-              {PERSON_STATUS_LABELS[person.status]}
-            </Badge>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-lg">{name}</span>
+            <PersonStatusBadge status={person.status} />
           </div>
-        </CardHeader>
+        </div>
 
-        <CardContent className="grid gap-0 divide-y">
-          <DetailRow label="Email" value={person.email ?? '—'} />
+        <CardContent className="divide-border-subtle grid gap-0 divide-y p-5">
           <DetailRow label="Телефон" value={person.phone ?? '—'} />
+          <DetailRow label="Email" value={person.email ?? '—'} />
+          <DetailRow label="Місто" value={person.city ?? '—'} />
+          <DetailRow label="Мала група" value={person.smallGroup ?? '—'} />
+          <DetailRow label="Служіння" value={person.ministry ?? '—'} />
+          <DetailRow
+            label="Остання зустріч"
+            value={person.lastSeenAt ? formatDate(person.lastSeenAt) : '—'}
+          />
           <DetailRow
             label="Дата народження"
             value={person.birthDate ? formatDate(person.birthDate) : '—'}
@@ -68,14 +66,13 @@ function PersonDetailPage() {
             value={person.joinedAt ? formatDate(person.joinedAt) : '—'}
           />
           <DetailRow label="Додано" value={formatDateTime(person.createdAt)} />
-          <DetailRow label="Оновлено" value={formatDateTime(person.updatedAt)} />
         </CardContent>
 
         {person.notes ? (
-          <CardContent className="border-t pt-6">
-            <p className="text-muted-foreground mb-2 text-sm">Нотатки</p>
-            <p className="text-sm whitespace-pre-wrap">{person.notes}</p>
-          </CardContent>
+          <div className="border-border-muted border-t p-5">
+            <p className="eyebrow text-muted-foreground mb-2">Нотатки</p>
+            <p className="text-[13.5px] whitespace-pre-wrap">{person.notes}</p>
+          </div>
         ) : null}
       </Card>
     </>
@@ -84,9 +81,9 @@ function PersonDetailPage() {
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3 text-sm">
+    <div className="flex items-center justify-between gap-4 py-2.5 text-[13.5px] first:pt-0 last:pb-0">
       <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-right font-medium">{value}</span>
+      <span className="min-w-0 truncate text-right">{value}</span>
     </div>
   );
 }

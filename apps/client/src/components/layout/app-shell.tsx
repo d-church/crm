@@ -4,27 +4,23 @@ import type { User } from '@/services';
 
 import { MobileNav } from './mobile-nav';
 import { Sidebar } from './sidebar';
-import { UserMenu } from './user-menu';
 
 type AppShellProps = {
   user: User;
+  peopleCount?: number;
   children: ReactNode;
 };
 
-export const AppShell = ({ user, children }: AppShellProps) => (
-  <div className="flex min-h-svh">
-    <Sidebar />
+export const AppShell = ({ user, peopleCount, children }: AppShellProps) => (
+  <div className="bg-background text-foreground grid min-h-screen md:grid-cols-[252px_1fr]">
+    <Sidebar user={user} peopleCount={peopleCount} />
 
-    <div className="flex min-w-0 flex-1 flex-col">
-      <header className="bg-background/80 sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b px-5 backdrop-blur">
-        <span className="font-semibold tracking-tight md:hidden">D.Church CRM</span>
-        <div className="flex-1" />
-        <UserMenu user={user} />
-      </header>
+    <div className="flex min-w-0 flex-col">
+      <MobileNav user={user} />
 
-      <MobileNav />
-
-      <main className="flex-1 p-5 md:p-8">{children}</main>
+      <main className="flex min-w-0 flex-1 flex-col gap-6 px-5 pt-6 pb-10 md:px-9 md:pt-8 md:pb-11">
+        {children}
+      </main>
     </div>
   </div>
 );

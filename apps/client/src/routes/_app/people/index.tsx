@@ -1,30 +1,24 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { Search } from 'lucide-react';
+import { createFileRoute } from '@tanstack/react-router';
 import { useMemo, useState } from 'react';
 
 import { PageHeader } from '@/components/layout';
-import {
-  Badge,
-  Card,
-  CardContent,
-  Input,
-  Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui';
+import { Button, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { formatDate } from '@/lib/format';
 import {
+  AddPersonDialog,
+  DEFAULT_FILTERS,
+  PeopleFilters,
+  PeopleStats,
+  PeopleTable,
   PERSON_STATUS_LABELS,
-  PERSON_STATUS_VARIANTS,
+  ANY,
+  collectOptions,
+  exportPeopleToCsv,
+  filterPeople,
   peopleQueryOptions,
   usePeople,
+  type PeopleFilterState,
 } from '@/modules/people';
-import { getPersonName } from '@/services';
 
 export const Route = createFileRoute('/_app/people/')({
   loader: ({ context }) => context.queryClient.ensureQueryData(peopleQueryOptions()),
@@ -33,99 +27,89 @@ export const Route = createFileRoute('/_app/people/')({
 
 function PeoplePage() {
   const { data: people, isPending, error } = usePeople();
-  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<PeopleFilterState>(DEFAULT_FILTERS);
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const list = people ?? [];
+  const all = useMemo(() => people ?? [], [people]);
+  const visible = useMemo(() => filterPeople(all, filters), [all, filters]);
 
-    if (!needle) return list;
+  const groupOptions = useMemo(() => collectOptions(all, 'smallGroup'), [all]);
+  const ministryOptions = useMemo(() => collectOptions(all, 'ministry'), [all]);
 
-    return list.filter((person) =>
-      [getPersonName(person), person.email, person.phone]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(needle)),
-    );
-  }, [people, query]);
+  const filterSummary =
+    [
+      filters.status === ANY ? null : PERSON_STATUS_LABELS[filters.status],
+      filters.group === ANY ? null : filters.group,
+      filters.ministry === ANY ? null : filters.ministry,
+    ]
+      .filter(Boolean)
+      .join(' · ') || 'Без додаткових фільтрів';
+
+  const patchFilters = (patch: Partial<PeopleFilterState>) =>
+    setFilters((current) => ({ ...current, ...patch }));
 
   return (
     <>
       <PageHeader
+        eyebrow="Спільнота"
         title="Люди"
-        description={
-          people?.length
-            ? `${people.length} у базі церкви — гості, відвідувачі та члени.`
-            : 'Гості, відвідувачі та члени церкви.'
-        }
         actions={
-          <div className="relative w-full sm:w-72">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Пошук за іменем, email або телефоном"
-              className="pl-9"
-              aria-label="Пошук людей"
-            />
-          </div>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => exportPeopleToCsv(visible)}
+              disabled={visible.length === 0}
+            >
+              Експорт
+            </Button>
+
+            <AddPersonDialog>
+              <Button>Додати людину</Button>
+            </AddPersonDialog>
+          </>
         }
       />
 
-      <Card className="py-0">
-        <CardContent className="px-0">
-          {error ? (
-            <p className="text-destructive p-6 text-sm">{getApiErrorMessage(error)}</p>
-          ) : isPending ? (
-            <div className="grid gap-2 p-6">
-              {Array.from({ length: 5 }, (_, index) => (
-                <Skeleton key={index} className="h-10" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground p-6 text-sm">
-              {query ? 'Нічого не знайдено.' : 'У базі ще нікого немає.'}
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Імʼя</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Телефон</TableHead>
-                  <TableHead>Статус</TableHead>
-                  <TableHead>Додано</TableHead>
-                </TableRow>
-              </TableHeader>
+      <PeopleStats people={all} />
 
-              <TableBody>
-                {filtered.map((person) => (
-                  <TableRow key={person.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        to="/people/$personId"
-                        params={{ personId: person.id }}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {getPersonName(person)}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{person.email ?? '—'}</TableCell>
-                    <TableCell className="text-muted-foreground">{person.phone ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={PERSON_STATUS_VARIANTS[person.status]}>
-                        {PERSON_STATUS_LABELS[person.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(person.createdAt)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <section className="bg-card border-border overflow-hidden rounded-xl border">
+        <PeopleFilters
+          filters={filters}
+          groupOptions={groupOptions}
+          ministryOptions={ministryOptions}
+          onChange={patchFilters}
+          onReset={() => setFilters(DEFAULT_FILTERS)}
+        />
+
+        <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-2.75">
+          <span className="text-ink-soft text-xs">
+            {visible.length} з {all.length} людей
+          </span>
+          <span className="text-ink-faint text-xs">{filterSummary}</span>
+        </div>
+
+        {error ? (
+          <p className="text-destructive p-6 text-sm">{getApiErrorMessage(error)}</p>
+        ) : isPending ? (
+          <div className="grid gap-2 p-5">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} className="h-10" />
+            ))}
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="flex flex-col gap-2 px-5 py-13.5 text-center">
+            <span className="text-[15px]">Нікого не знайдено</span>
+            <span className="text-ink-faint text-[13px]">
+              {all.length === 0
+                ? 'Додайте першу людину — і вона зʼявиться в цьому списку.'
+                : 'Спробуйте змінити фільтри або пошуковий запит.'}
+            </span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <PeopleTable people={visible} />
+          </div>
+        )}
+      </section>
     </>
   );
 }

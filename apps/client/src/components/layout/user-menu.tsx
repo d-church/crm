@@ -1,10 +1,8 @@
 import { useNavigate } from '@tanstack/react-router';
 import { LogOut } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import {
-  Avatar,
-  AvatarFallback,
-  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -12,11 +10,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui';
-import { getInitials } from '@/lib/format';
 import { useLogout } from '@/modules/auth';
 import type { User } from '@/services';
 
-export const UserMenu = ({ user }: { user: User }) => {
+export const UserMenu = ({ user, children }: { user: User; children: ReactNode }) => {
   const navigate = useNavigate();
   const { logout } = useLogout();
 
@@ -27,19 +24,13 @@ export const UserMenu = ({ user }: { user: User }) => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full" aria-label="Меню користувача">
-          <Avatar>
-            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="start" side="top" className="w-56">
         <DropdownMenuLabel>
           <div className="grid gap-0.5">
-            <span className="truncate text-sm font-medium">{user.name}</span>
-            <span className="text-muted-foreground truncate text-xs font-normal">{user.email}</span>
+            <span className="truncate text-[13px]">{user.name}</span>
+            <span className="text-ink-faint truncate text-[11.5px]">{user.email}</span>
           </div>
         </DropdownMenuLabel>
 

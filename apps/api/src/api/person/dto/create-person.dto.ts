@@ -37,6 +37,12 @@ export class CreatePersonDto {
   @MaxLength(30)
   phone?: string;
 
+  @ApiPropertyOptional({ example: 'Львів' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  city?: string;
+
   @ApiPropertyOptional({
     enum: PersonStatus,
     default: PersonStatus.GUEST,
@@ -45,6 +51,21 @@ export class CreatePersonDto {
   @IsOptional()
   @IsEnum(PersonStatus)
   status?: PersonStatus;
+
+  @ApiPropertyOptional({
+    example: 'Центр — четвер',
+    description: 'Small group the person belongs to.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  smallGroup?: string;
+
+  @ApiPropertyOptional({ example: 'Прославлення', description: 'Ministry the person serves in.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  ministry?: string;
 
   @ApiPropertyOptional({ example: '1990-12-10', description: 'Date of birth (ISO 8601).' })
   @IsOptional()
@@ -58,6 +79,14 @@ export class CreatePersonDto {
   @IsOptional()
   @IsDateString()
   joinedAt?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-08-24',
+    description: 'Last time the person was seen at a gathering (ISO 8601).',
+  })
+  @IsOptional()
+  @IsDateString()
+  lastSeenAt?: string;
 
   @ApiPropertyOptional({ example: 'Прийшла з молодіжної групи.' })
   @IsOptional()

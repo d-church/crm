@@ -1,67 +1,64 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
+/*
+ * Palette lifted from the "Люди — CRM v3" design canvas: warm paper background,
+ * near-black sidebar, deep green as the only accent.
+ */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.62 0.14 145);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.62 0.14 145);
+  --background: #f6f3ec;
+  --foreground: #23241f;
 
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-}
+  --card: #fffdf8;
+  --card-foreground: #23241f;
+  --popover: #fffdf8;
+  --popover-foreground: #23241f;
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.7 0.15 145);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 18%);
-  --ring: oklch(0.7 0.15 145);
+  --primary: #2b5c4a;
+  --primary-hover: #1c3f32;
+  --primary-foreground: #f6f3ec;
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 12%);
+  --secondary: #f6f2e9;
+  --secondary-foreground: #4f5048;
+  --muted: #f4f2ec;
+  --muted-foreground: #8f8778;
+  --accent: #faf7f0;
+  --accent-foreground: #23241f;
+
+  --destructive: #a8452f;
+  --destructive-foreground: #fffdf8;
+
+  /* Three steps of warmth for rules: outer border, section divider, row divider. */
+  --border: #e3ddd0;
+  --border-muted: #ece6da;
+  --border-subtle: #f2ede2;
+
+  --input: #faf8f2;
+  --input-border: #ddd6c8;
+  --ring: rgba(43, 92, 74, 0.35);
+
+  /* Body copy tints, from strongest to faintest. */
+  --ink-strong: #23241f;
+  --ink: #4f5048;
+  --ink-soft: #6f6c62;
+  --ink-faint: #a29a8c;
+
+  --sidebar: #23241f;
+  --sidebar-foreground: #f6f3ec;
+  --sidebar-muted: #8f8b7f;
+  --sidebar-label: #77736a;
+  --sidebar-item: #a8a49a;
+  --sidebar-hover: rgba(246, 243, 236, 0.09);
+  --sidebar-active: rgba(203, 220, 207, 0.16);
+  --sidebar-mark: #cbdccf;
+  --sidebar-avatar: #3b3c35;
 }
 
 @theme inline {
+  --font-sans: 'Poppins', Helvetica, Arial, sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -69,6 +66,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -78,28 +76,65 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
   --color-border: var(--border);
+  --color-border-muted: var(--border-muted);
+  --color-border-subtle: var(--border-subtle);
   --color-input: var(--input);
+  --color-input-border: var(--input-border);
   --color-ring: var(--ring);
+
+  --color-ink-strong: var(--ink-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-label: var(--sidebar-label);
+  --color-sidebar-item: var(--sidebar-item);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-mark: var(--sidebar-mark);
+  --color-sidebar-avatar: var(--sidebar-avatar);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground font-sans font-light antialiased;
   }
+
+  /* The design leans on Poppins 300/400 — headings never go heavier than 400. */
+  h1,
+  h2,
+  h3 {
+    @apply font-normal;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  ::placeholder {
+    color: var(--ink-faint);
+  }
+}
+
+/* Small-caps section labels used above headings, stat values and table columns. */
+@utility eyebrow {
+  @apply text-[10.5px] tracking-[0.16em] uppercase;
 }

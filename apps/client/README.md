@@ -36,7 +36,7 @@ src/
       people/        # Список людей і картка людини
   services/          # Транспорт до API (axios)
     abstracts/       # ApiService (інтерсептори, refresh), RestService, TokenStorage
-  modules/           # Фічі: queryOptions + хуки (auth, people)
+  modules/           # Фічі: queryOptions, хуки і компоненти екрана (auth, people)
   components/
     ui/              # shadcn-компоненти (Tailwind v4 + Radix)
     layout/          # AppShell, sidebar, mobile nav, user menu
@@ -47,11 +47,12 @@ src/
 ## Дві різні сутності
 
 - **User** — акаунт персоналу для входу в панель (`/auth/*`, `/user/*`). Має пароль і роль.
-- **Person** — людина, відома церкві: гість, відвідувач або член (`/people`). Пароля не має,
-  натомість має статус (`GUEST → ATTENDEE → MEMBER`), контакти, дату народження, нотатки.
+- **Person** — людина, відома церкві (`/people`). Пароля не має, натомість має статус
+  (`GUEST` / `NEW` / `MEMBER` / `SERVANT` / `INACTIVE`), контакти, місто, малу групу, служіння,
+  дату останньої зустрічі та нотатки.
 
-Розділ «Люди» показує саме `Person`. Мітки статусів і їх оформлення — у
-`src/modules/people/status.ts`.
+Розділ «Люди» показує саме `Person`. Мітки статусів і кольори бейджів — у
+`src/modules/people/status.ts`, логіка фільтрів і сортування — у `src/modules/people/filtering.ts`.
 
 ## Як це працює
 
@@ -65,8 +66,9 @@ src/
   вдався — сесія скидається і роутер веде на `/login`.
 - **Сервер-стан** — лише TanStack Query. Loader'и маршрутів прогрівають той самий кеш
   (`defaultPreloadStaleTime: 0`), тому дані не дублюються.
-- **Пошук** у списку людей — клієнтський, по імені, email і телефону. Коли база виросте,
-  його варто перенести на сервер (в API вже є `SearchPipe` і `PagePipe` під це).
+- **Фільтри** списку людей — клієнтські: пошук, мала група, служіння, статус, сортування.
+  Коли база виросте, їх варто перенести на сервер (в API вже є `SearchPipe` і `PagePipe` під це).
+- **Вигляд** зібраний за макетом «Люди — CRM v3» з Claude Design: тепле паперове тло, темний
+  сайдбар, глибокий зелений як єдиний акцент, Poppins 300/400. Токени — у `src/styles/globals.css`.
 - **Форми** — react-hook-form + zod; ліміти валідації дзеркалять DTO API.
-- **UI** — Tailwind CSS v4 (токени в `src/styles/globals.css`) + shadcn-компоненти. Тема темна
-  (`class="dark"` в `index.html`); світлі токени вже визначені для майбутнього переключення.
+- **UI** — Tailwind CSS v4 + shadcn-компоненти, перефарбовані під макет. Тема одна — світла.

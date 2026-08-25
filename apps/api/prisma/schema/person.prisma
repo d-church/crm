@@ -1,29 +1,42 @@
+/// Relationship stages used by the "Люди" screen: Гість → Новий → Член → Служитель, plus Неактивний.
 enum PersonStatus {
   GUEST
-  ATTENDEE
+  NEW
   MEMBER
+  SERVANT
+  INACTIVE
 
   @@map("person_statuses")
 }
 
+/// A person known to the church — a first-time guest, a newcomer, a member or a serving member.
 model Person {
   id String @id @default(uuid())
 
   firstName String  @map("first_name")
   lastName  String? @map("last_name")
-  birthDate DateTime? @map("birth_date") @db.Date
 
   email String?
   phone String?
+  city  String?
 
   status PersonStatus @default(GUEST)
-  joinedAt  DateTime? @map("joined_at")
 
-  notes     String?
+  /// Small group and ministry are free text until they become their own sections.
+  smallGroup String? @map("small_group")
+  ministry   String?
+
+  birthDate  DateTime? @map("birth_date") @db.Date
+  joinedAt   DateTime? @map("joined_at")
+  /// Last time the person was seen at a gathering — drives the "Остання зустріч" column.
+  lastSeenAt DateTime? @map("last_seen_at") @db.Date
+
+  notes String?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([lastName, firstName])
+  @@index([status])
   @@map("people")
 }
