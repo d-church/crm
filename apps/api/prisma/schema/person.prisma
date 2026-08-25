@@ -1,15 +1,26 @@
-/// Relationship stages used by the "Люди" screen: Гість → Новий → Член → Служитель, plus Неактивний.
+/// The church's own pipeline: перший візит → контакт → наступний крок → спільнота → служіння.
+/// CARE and INACTIVE sit outside the ladder — one needs attention, the other stopped coming.
 enum PersonStatus {
-  GUEST
   NEW
-  MEMBER
-  SERVANT
+  CONNECTED
+  NEXT_STEP
+  COMMUNITY
+  SERVING
+  CARE
   INACTIVE
 
   @@map("person_statuses")
 }
 
-/// A person known to the church — a first-time guest, a newcomer, a member or a serving member.
+enum FollowUpState {
+  NOT_DONE
+  PLANNED
+  DONE
+
+  @@map("follow_up_states")
+}
+
+/// A person known to the church, with the follow-up card the pastoral team keeps on them.
 model Person {
   id String @id @default(uuid())
 
@@ -20,18 +31,31 @@ model Person {
   phone String?
   city  String?
 
-  status PersonStatus @default(GUEST)
+  status PersonStatus @default(NEW)
 
-  /// Small group and ministry are free text until they become their own sections.
-  smallGroup String? @map("small_group")
-  ministry   String?
+  /// Перший візит — when the person first showed up.
+  firstVisitAt DateTime? @map("first_visit_at") @db.Date
+  /// Остання зустріч — last time they were seen at a gathering.
+  lastSeenAt   DateTime? @map("last_seen_at") @db.Date
 
-  birthDate  DateTime? @map("birth_date") @db.Date
-  joinedAt   DateTime? @map("joined_at")
-  /// Last time the person was seen at a gathering — drives the "Остання зустріч" column.
-  lastSeenAt DateTime? @map("last_seen_at") @db.Date
+  /// Connect — who from the team made contact. Free text until people can link to people.
+  connectedBy String?       @map("connected_by")
+  followUp    FollowUpState @default(NOT_DONE) @map("follow_up")
+  /// Next Step — the step they are going through, e.g. "зустріч для нових".
+  nextStep    String?       @map("next_step")
 
-  notes String?
+  /// Спільнота — the group they belong to; empty means "ще немає".
+  community String?
+  ministry  String?
+
+  /// Відповідальний — team member carrying this person.
+  responsible String?
+  /// Наступна дія — what to do next, and when.
+  nextAction   String?   @map("next_action")
+  nextActionAt DateTime? @map("next_action_at") @db.Date
+
+  birthDate DateTime? @map("birth_date") @db.Date
+  notes     String?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

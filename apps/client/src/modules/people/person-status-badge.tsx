@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import type { PersonStatus } from '@/services';
 
-import { PERSON_STATUS_BADGES, PERSON_STATUS_LABELS } from './status';
+import { PERSON_STATUS_BADGES, PERSON_STATUS_HINTS, PERSON_STATUS_LABELS } from './status';
 
 export const PersonStatusBadge = ({
   status,
@@ -11,6 +11,7 @@ export const PersonStatusBadge = ({
   className?: string;
 }) => (
   <span
+    title={PERSON_STATUS_HINTS[status]}
     className={cn(
       'inline-flex w-fit items-center rounded-full px-2.75 py-1 text-[11.5px] leading-none',
       PERSON_STATUS_BADGES[status],

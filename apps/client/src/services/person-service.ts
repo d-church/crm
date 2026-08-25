@@ -5,14 +5,24 @@ class PersonServiceClass extends RestService<Person> {
 }
 
 export const PersonStatus = {
-  GUEST: 'GUEST',
   NEW: 'NEW',
-  MEMBER: 'MEMBER',
-  SERVANT: 'SERVANT',
+  CONNECTED: 'CONNECTED',
+  NEXT_STEP: 'NEXT_STEP',
+  COMMUNITY: 'COMMUNITY',
+  SERVING: 'SERVING',
+  CARE: 'CARE',
   INACTIVE: 'INACTIVE',
 } as const;
 
 export type PersonStatus = (typeof PersonStatus)[keyof typeof PersonStatus];
+
+export const FollowUpState = {
+  NOT_DONE: 'NOT_DONE',
+  PLANNED: 'PLANNED',
+  DONE: 'DONE',
+} as const;
+
+export type FollowUpState = (typeof FollowUpState)[keyof typeof FollowUpState];
 
 export interface Person {
   id: string;
@@ -22,11 +32,17 @@ export interface Person {
   phone: string | null;
   city: string | null;
   status: PersonStatus;
-  smallGroup: string | null;
-  ministry: string | null;
-  birthDate: string | null;
-  joinedAt: string | null;
+  firstVisitAt: string | null;
   lastSeenAt: string | null;
+  connectedBy: string | null;
+  followUp: FollowUpState;
+  nextStep: string | null;
+  community: string | null;
+  ministry: string | null;
+  responsible: string | null;
+  nextAction: string | null;
+  nextActionAt: string | null;
+  birthDate: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

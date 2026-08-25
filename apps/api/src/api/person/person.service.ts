@@ -49,14 +49,16 @@ export class PersonService {
 /** Dates arrive as ISO strings from the DTO; Prisma wants `Date`. */
 const toPersonData = <T extends UpdatePersonDto>({
   birthDate,
-  joinedAt,
+  firstVisitAt,
   lastSeenAt,
+  nextActionAt,
   ...rest
 }: T) => ({
   ...rest,
   ...(birthDate === undefined ? {} : { birthDate: new Date(birthDate) }),
-  ...(joinedAt === undefined ? {} : { joinedAt: new Date(joinedAt) }),
+  ...(firstVisitAt === undefined ? {} : { firstVisitAt: new Date(firstVisitAt) }),
   ...(lastSeenAt === undefined ? {} : { lastSeenAt: new Date(lastSeenAt) }),
+  ...(nextActionAt === undefined ? {} : { nextActionAt: new Date(nextActionAt) }),
 });
 
 export type Person = PersonModel;

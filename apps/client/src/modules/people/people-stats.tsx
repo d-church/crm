@@ -1,4 +1,4 @@
-import { PersonStatus, type Person } from '@/services';
+import { FollowUpState, PersonStatus, type Person } from '@/services';
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -11,17 +11,20 @@ const buildStats = (people: Person[]): Stat[] => {
   ).length;
 
   return [
-    { label: 'Усього в базі', value: people.length, note: 'гості, члени та служителі' },
+    { label: 'Усього в базі', value: people.length, note: 'від гостей до служителів' },
     {
-      label: 'Активні члени',
-      value: count(PersonStatus.MEMBER) + count(PersonStatus.SERVANT),
+      label: 'У спільноті',
+      value: count(PersonStatus.COMMUNITY) + count(PersonStatus.SERVING),
       note: 'включно зі служителями',
     },
     { label: 'Нові за місяць', value: recentlyAdded, note: 'потребують контакту' },
     {
-      label: 'Без групи',
-      value: people.filter((person) => !person.smallGroup).length,
-      note: 'запросити в малу групу',
+      label: 'Потребують дії',
+      value: people.filter(
+        (person) =>
+          person.status === PersonStatus.CARE || person.followUp === FollowUpState.NOT_DONE,
+      ).length,
+      note: 'опіка або follow-up',
     },
   ];
 };

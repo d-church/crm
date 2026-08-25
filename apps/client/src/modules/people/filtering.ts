@@ -66,7 +66,7 @@ export const filterPeople = (people: Person[], filters: PeopleFilterState): Pers
     (person) =>
       (!query || matchesQuery(person, query)) &&
       (filters.status === ANY || person.status === filters.status) &&
-      (filters.group === ANY || (person.smallGroup ?? '') === filters.group) &&
+      (filters.group === ANY || (person.community ?? '') === filters.group) &&
       (filters.ministry === ANY || (person.ministry ?? '') === filters.ministry),
   );
 
@@ -82,8 +82,8 @@ export const filterPeople = (people: Person[], filters: PeopleFilterState): Pers
   }
 };
 
-/** Distinct, sorted values for the small-group and ministry dropdowns. */
-export const collectOptions = (people: Person[], key: 'smallGroup' | 'ministry'): string[] =>
+/** Distinct, sorted values for the community and ministry dropdowns. */
+export const collectOptions = (people: Person[], key: 'community' | 'ministry'): string[] =>
   [
     ...new Set(
       people.map((person) => person[key]).filter((value): value is string => Boolean(value)),

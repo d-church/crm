@@ -20,10 +20,16 @@ import {
   Textarea,
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { PersonStatus } from '@/services';
+import { FollowUpState, PersonStatus } from '@/services';
 
 import { useCreatePerson } from './hooks';
-import { PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
+import {
+  FOLLOW_UP_LABELS,
+  FOLLOW_UP_STATES,
+  PERSON_STATUSES,
+  PERSON_STATUS_HINTS,
+  PERSON_STATUS_LABELS,
+} from './status';
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
@@ -33,16 +39,16 @@ const personSchema = z.object({
   phone: optionalText(30),
   email: z.union([z.literal(''), z.string().email('Некоректний email')]).optional(),
   city: optionalText(80),
-  status: z.enum([
-    PersonStatus.GUEST,
-    PersonStatus.NEW,
-    PersonStatus.MEMBER,
-    PersonStatus.SERVANT,
-    PersonStatus.INACTIVE,
-  ]),
-  smallGroup: optionalText(80),
+  status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]),
+  firstVisitAt: optionalText(10),
+  connectedBy: optionalText(80),
+  followUp: z.enum(FOLLOW_UP_STATES as [FollowUpState, ...FollowUpState[]]),
+  nextStep: optionalText(120),
+  community: optionalText(80),
   ministry: optionalText(80),
-  lastSeenAt: optionalText(10),
+  responsible: optionalText(80),
+  nextAction: optionalText(200),
+  nextActionAt: optionalText(10),
   notes: optionalText(2000),
 });
 
@@ -54,10 +60,16 @@ const EMPTY: PersonValues = {
   phone: '',
   email: '',
   city: '',
-  status: PersonStatus.GUEST,
-  smallGroup: '',
+  status: PersonStatus.NEW,
+  firstVisitAt: '',
+  connectedBy: '',
+  followUp: FollowUpState.NOT_DONE,
+  nextStep: '',
+  community: '',
   ministry: '',
-  lastSeenAt: '',
+  responsible: '',
+  nextAction: '',
+  nextActionAt: '',
   notes: '',
 };
 
@@ -121,21 +133,45 @@ export const AddPersonDialog = ({ children }: { children: ReactNode }) => {
               {...register('email')}
             />
             <Field label="Місто" {...register('city')} />
+            <Field label="Перший візит" type="date" {...register('firstVisitAt')} />
 
             <div className="grid gap-1.5">
               <Label htmlFor="status">Статус</Label>
               <Select id="status" {...register('status')}>
                 {PERSON_STATUSES.map((status) => (
                   <option key={status} value={status}>
-                    {PERSON_STATUS_LABELS[status]}
+                    {PERSON_STATUS_LABELS[status]} — {PERSON_STATUS_HINTS[status]}
                   </option>
                 ))}
               </Select>
             </div>
 
-            <Field label="Мала група" {...register('smallGroup')} />
+            <div className="grid gap-1.5">
+              <Label htmlFor="followUp">Follow-up</Label>
+              <Select id="followUp" {...register('followUp')}>
+                {FOLLOW_UP_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {FOLLOW_UP_LABELS[state]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <Field
+              label="Connect"
+              placeholder="хто вийшов на контакт"
+              {...register('connectedBy')}
+            />
+            <Field label="Next Step" placeholder="зустріч для нових" {...register('nextStep')} />
+            <Field label="Спільнота" placeholder="ще немає" {...register('community')} />
             <Field label="Служіння" {...register('ministry')} />
-            <Field label="Остання зустріч" type="date" {...register('lastSeenAt')} />
+            <Field label="Відповідальний" {...register('responsible')} />
+            <Field
+              label="Наступна дія"
+              placeholder="запросити на зустріч"
+              {...register('nextAction')}
+            />
+            <Field label="Коли зробити" type="date" {...register('nextActionAt')} />
           </div>
 
           <div className="grid gap-1.5">

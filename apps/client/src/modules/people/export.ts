@@ -1,14 +1,20 @@
 import { formatDate } from '@/lib/format';
 import { getPersonName, type Person } from '@/services';
 
-import { PERSON_STATUS_LABELS } from './status';
+import { FOLLOW_UP_LABELS, PERSON_STATUS_LABELS } from './status';
 
 const COLUMNS = [
   'Імʼя',
   'Статус',
-  'Мала група',
+  'Перший візит',
+  'Connect',
+  'Follow-up',
+  'Next Step',
+  'Спільнота',
   'Служіння',
-  'Остання зустріч',
+  'Відповідальний',
+  'Наступна дія',
+  'Коли',
   'Телефон',
   'Email',
   'Місто',
@@ -21,9 +27,15 @@ const toRow = (person: Person) =>
   [
     getPersonName(person),
     PERSON_STATUS_LABELS[person.status],
-    person.smallGroup ?? '',
+    person.firstVisitAt ? formatDate(person.firstVisitAt) : '',
+    person.connectedBy ?? '',
+    FOLLOW_UP_LABELS[person.followUp],
+    person.nextStep ?? '',
+    person.community ?? '',
     person.ministry ?? '',
-    person.lastSeenAt ? formatDate(person.lastSeenAt) : '',
+    person.responsible ?? '',
+    person.nextAction ?? '',
+    person.nextActionAt ? formatDate(person.nextActionAt) : '',
     person.phone ?? '',
     person.email ?? '',
     person.city ?? '',

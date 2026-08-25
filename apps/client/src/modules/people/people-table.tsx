@@ -14,7 +14,7 @@ export const PeopleTable = ({ people }: { people: Person[] }) => (
     <div className={`${COLUMNS} eyebrow text-muted-foreground border-border-muted border-b py-3`}>
       <span>Імʼя</span>
       <span>Статус</span>
-      <span>Мала група</span>
+      <span>Спільнота</span>
       <span>Служіння</span>
       <span>Остання зустріч</span>
       <span className="text-right">Контакт</span>
@@ -48,7 +48,7 @@ export const PeopleTable = ({ people }: { people: Person[] }) => (
 
           <PersonStatusBadge status={person.status} className="justify-self-start" />
 
-          <span className="text-ink truncate text-[13px]">{person.smallGroup ?? '—'}</span>
+          <span className="text-ink truncate text-[13px]">{person.community ?? 'ще немає'}</span>
           <span className="text-ink truncate text-[13px]">{person.ministry ?? '—'}</span>
           <span className="text-ink-soft text-[13px] tabular-nums">
             {person.lastSeenAt ? formatDayMonth(person.lastSeenAt) : '—'}

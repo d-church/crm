@@ -32,7 +32,7 @@ function PeoplePage() {
   const all = useMemo(() => people ?? [], [people]);
   const visible = useMemo(() => filterPeople(all, filters), [all, filters]);
 
-  const groupOptions = useMemo(() => collectOptions(all, 'smallGroup'), [all]);
+  const groupOptions = useMemo(() => collectOptions(all, 'community'), [all]);
   const ministryOptions = useMemo(() => collectOptions(all, 'ministry'), [all]);
 
   const filterSummary =
