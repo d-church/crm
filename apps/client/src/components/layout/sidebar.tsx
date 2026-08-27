@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router';
+
 import logoMark from '@/assets/brand/logo-main.svg';
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
@@ -13,13 +15,17 @@ type SidebarProps = {
 
 export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
   <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen flex-col gap-8 px-4.5 pt-6.5 pb-5.5 md:flex">
-    <div className="flex items-center gap-3">
+    {/* Negative margin cancels the padding, so the hover area grows without moving the logo. */}
+    <Link
+      to="/"
+      className="hover:bg-sidebar-hover -m-2 flex items-center gap-3 rounded-xl p-2 transition-colors"
+    >
       <img src={logoMark} alt="" aria-hidden className="size-9.5 shrink-0" />
       <div className="flex flex-col gap-0.5">
         <span className="text-[13px]">D.Church</span>
         <span className="eyebrow text-sidebar-muted">CRM церкви</span>
       </div>
-    </div>
+    </Link>
 
     <NavSection title="Основне" items={NAV_ITEMS} counts={{ Люди: peopleCount }} />
 

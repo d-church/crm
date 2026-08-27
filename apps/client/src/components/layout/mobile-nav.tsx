@@ -11,10 +11,11 @@ import { UserMenu } from './user-menu';
 export const MobileNav = ({ user }: { user: User }) => (
   <div className="bg-sidebar text-sidebar-foreground sticky top-0 z-20 md:hidden">
     <div className="flex items-center justify-between gap-3 px-5 py-3.5">
-      <div className="flex items-center gap-2.5">
+      {/* -m-2/p-2 keeps the row height while giving the link a 44px tap target. */}
+      <Link to="/" className="-m-2 flex items-center gap-2.5 rounded-xl p-2">
         <img src={logoMark} alt="" aria-hidden className="size-7 shrink-0" />
         <span className="text-[13px]">D.Church</span>
-      </div>
+      </Link>
 
       <UserMenu user={user}>
         <button
