@@ -15,7 +15,15 @@ async function bootstrap() {
   const port = getPort();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      // Query params arrive as strings; `@Type(() => Number)` only applies when
+      // the pipe is allowed to hand back the transformed instance.
+      transform: true,
+    }),
+  );
   app.useGlobalFilters(new ExceptionsFilter());
 
   app.enableCors({

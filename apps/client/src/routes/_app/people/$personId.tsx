@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { PageHeader } from '@/components/layout';
@@ -7,11 +7,14 @@ import { Button, Card, CardContent } from '@/components/ui';
 import { formatDate, formatDateTime, formatDayMonth, getInitials } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import {
+  DeletePersonDialog,
   FOLLOW_UP_LABELS,
   getPersonMeta,
   personQueryOptions,
+  PersonDialog,
   PersonStatusBadge,
   PERSON_STATUS_HINTS,
+  usePerson,
 } from '@/modules/people';
 import { getPersonName } from '@/services';
 
@@ -22,7 +25,13 @@ export const Route = createFileRoute('/_app/people/$personId')({
 });
 
 function PersonDetailPage() {
-  const person = Route.useLoaderData();
+  const { personId } = Route.useParams();
+  const navigate = useNavigate();
+
+  // Read through the query, not the loader data, so saving an edit re-renders here.
+  const { data: person } = usePerson(personId);
+  if (!person) return null;
+
   const name = getPersonName(person);
   const meta = getPersonMeta(person);
 
@@ -43,12 +52,28 @@ function PersonDetailPage() {
         title={name}
         description={meta || undefined}
         actions={
-          <Button asChild variant="outline">
-            <Link to="/people">
-              <ArrowLeft />
-              До списку
-            </Link>
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link to="/people">
+                <ArrowLeft />
+                До списку
+              </Link>
+            </Button>
+
+            <PersonDialog person={person}>
+              <Button variant="outline">
+                <Pencil />
+                Редагувати
+              </Button>
+            </PersonDialog>
+
+            <DeletePersonDialog person={person} onDeleted={() => void navigate({ to: '/people' })}>
+              <Button variant="outline" className="text-destructive">
+                <Trash2 />
+                Видалити
+              </Button>
+            </DeletePersonDialog>
+          </>
         }
       />
 

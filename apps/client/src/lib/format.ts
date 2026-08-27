@@ -43,3 +43,10 @@ export const getAge = (birthDate: string | null): number | null => {
 
   return hadBirthday ? age : age - 1;
 };
+
+/**
+ * "1998-05-05" for `<input type="date">`. Dates come back from the API as
+ * UTC-midnight ISO strings, so the first 10 characters are already the right
+ * day — parsing them would risk a timezone shift.
+ */
+export const toDateInputValue = (value: string | null) => value?.slice(0, 10) ?? '';

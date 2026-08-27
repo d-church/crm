@@ -1,33 +1,56 @@
+import { z } from 'zod';
+
 import { getAge } from '@/lib/format';
-import { getPersonName, type Person, type PersonStatus } from '@/services';
+import {
+  PEOPLE_SORTS,
+  type PeopleQuery,
+  type PeopleSort,
+  type Person,
+  type PersonStatus,
+} from '@/services';
 
 import { PERSON_STATUSES } from './status';
 
+/** Sentinel for the "no filter" choice in the dropdowns and status pills. */
 export const ANY = 'ANY';
 
-export type PeopleSort = 'lastSeen' | 'name' | 'status';
+export const PAGE_SIZE = 25;
 
-export type PeopleFilterState = {
-  query: string;
-  status: PersonStatus | typeof ANY;
-  group: string;
-  ministry: string;
-  sort: PeopleSort;
-};
-
-export const DEFAULT_FILTERS: PeopleFilterState = {
-  query: '',
-  status: ANY,
-  group: ANY,
-  ministry: ANY,
-  sort: 'lastSeen',
-};
+export const DEFAULT_SORT: PeopleSort = 'createdAt';
 
 export const SORT_LABELS: Record<PeopleSort, string> = {
-  lastSeen: 'За останньою зустріччю',
+  createdAt: 'За датою додавання',
+  lastSeenAt: 'За останньою зустріччю',
   name: 'За іменем',
   status: 'За статусом',
 };
+
+/**
+ * Filters live in the URL, so a filtered list can be shared, bookmarked and
+ * walked with the back button. Everything is optional — defaults stay out of the
+ * URL instead of cluttering it.
+ */
+export const peopleSearchSchema = z.object({
+  page: z.coerce.number().int().min(1).optional(),
+  q: z.string().trim().max(100).optional(),
+  status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]).optional(),
+  community: z.string().max(80).optional(),
+  ministry: z.string().max(80).optional(),
+  sort: z.enum([...PEOPLE_SORTS]).optional(),
+});
+
+export type PeopleSearch = z.infer<typeof peopleSearchSchema>;
+
+/** URL search params → the query the API expects. */
+export const toPeopleQuery = (search: PeopleSearch): PeopleQuery => ({
+  page: search.page ?? 1,
+  limit: PAGE_SIZE,
+  sort: search.sort ?? DEFAULT_SORT,
+  ...(search.q ? { search: search.q } : {}),
+  ...(search.status ? { status: search.status } : {}),
+  ...(search.community ? { community: search.community } : {}),
+  ...(search.ministry ? { ministry: search.ministry } : {}),
+});
 
 /** Second line under the name: "45 р. · Львів", skipping whatever is missing. */
 export const getPersonMeta = (person: Person) => {
@@ -35,57 +58,3 @@ export const getPersonMeta = (person: Person) => {
 
   return [age === null ? null : `${age} р.`, person.city].filter(Boolean).join(' · ');
 };
-
-const matchesQuery = (person: Person, query: string) => {
-  const haystack = [
-    getPersonName(person),
-    person.phone,
-    person.email,
-    person.city,
-    getPersonMeta(person),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  return haystack.includes(query);
-};
-
-const byLastSeen = (a: Person, b: Person) => {
-  // People never seen sink to the bottom rather than sorting as the epoch.
-  const left = a.lastSeenAt ? Date.parse(a.lastSeenAt) : -Infinity;
-  const right = b.lastSeenAt ? Date.parse(b.lastSeenAt) : -Infinity;
-
-  return right - left;
-};
-
-export const filterPeople = (people: Person[], filters: PeopleFilterState): Person[] => {
-  const query = filters.query.trim().toLowerCase();
-
-  const list = people.filter(
-    (person) =>
-      (!query || matchesQuery(person, query)) &&
-      (filters.status === ANY || person.status === filters.status) &&
-      (filters.group === ANY || (person.community ?? '') === filters.group) &&
-      (filters.ministry === ANY || (person.ministry ?? '') === filters.ministry),
-  );
-
-  switch (filters.sort) {
-    case 'name':
-      return list.sort((a, b) => getPersonName(a).localeCompare(getPersonName(b), 'uk'));
-    case 'status':
-      return list.sort(
-        (a, b) => PERSON_STATUSES.indexOf(a.status) - PERSON_STATUSES.indexOf(b.status),
-      );
-    default:
-      return list.sort(byLastSeen);
-  }
-};
-
-/** Distinct, sorted values for the community and ministry dropdowns. */
-export const collectOptions = (people: Person[], key: 'community' | 'ministry'): string[] =>
-  [
-    ...new Set(
-      people.map((person) => person[key]).filter((value): value is string => Boolean(value)),
-    ),
-  ].sort((a, b) => a.localeCompare(b, 'uk'));

@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
 
 import { CreatePersonDto } from './dto/create-person.dto';
+import { FindPeopleDto } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { PersonService } from './person.service';
 
@@ -13,10 +14,10 @@ export class PersonController {
   constructor(private readonly personService: PersonService) {}
 
   @Authorization()
-  @ApiOperation({ summary: 'List everyone known to the church' })
+  @ApiOperation({ summary: 'List people — filtered, sorted and paginated' })
   @Get()
-  public findAll() {
-    return this.personService.findAll();
+  public findAll(@Query() query: FindPeopleDto) {
+    return this.personService.findAll(query);
   }
 
   @Authorization()
@@ -24,6 +25,21 @@ export class PersonController {
   @Post()
   public create(@Body() createPersonDto: CreatePersonDto) {
     return this.personService.create(createPersonDto);
+  }
+
+  // Both of these must stay above `:id`, or that route swallows them.
+  @Authorization()
+  @ApiOperation({ summary: 'Totals for the whole base, ignoring filters' })
+  @Get('stats')
+  public stats() {
+    return this.personService.stats();
+  }
+
+  @Authorization()
+  @ApiOperation({ summary: 'Distinct communities and ministries for the filter dropdowns' })
+  @Get('options')
+  public options() {
+    return this.personService.options();
   }
 
   @Authorization()

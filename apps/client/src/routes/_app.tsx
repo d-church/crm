@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 import { AppShell } from '@/components/layout';
 import { meQueryOptions } from '@/modules/auth';
-import { peopleQueryOptions } from '@/modules/people';
+import { peopleStatsQueryOptions } from '@/modules/people';
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context, location }) => {
@@ -24,11 +24,11 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   const { user } = Route.useRouteContext();
-  // Shares the cache with the people screen — the sidebar count costs no extra request.
-  const { data: people } = useQuery(peopleQueryOptions());
+  // Shares the stats cache with the people screen — no extra request for the count.
+  const { data: stats } = useQuery(peopleStatsQueryOptions());
 
   return (
-    <AppShell user={user} peopleCount={people?.length}>
+    <AppShell user={user} peopleCount={stats?.total}>
       <Outlet />
     </AppShell>
   );
