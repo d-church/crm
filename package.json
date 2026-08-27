@@ -14,6 +14,7 @@
     "dev:db": "docker compose up -d",
     "dev:db:down": "docker compose down",
     "build": "pnpm -r build",
+    "start:prod": "pnpm --filter api start:prod",
     "lint": "pnpm -r lint",
     "test": "pnpm --filter api test",
     "db:generate": "pnpm --filter api db:generate",

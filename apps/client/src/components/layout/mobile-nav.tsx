@@ -3,10 +3,8 @@ import { Link } from '@tanstack/react-router';
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
-import { NAV_PRIMARY, NAV_SECONDARY } from './nav-items';
+import { NAV_ITEMS } from './nav-items';
 import { UserMenu } from './user-menu';
-
-const ALL_ITEMS = [...NAV_PRIMARY, ...NAV_SECONDARY];
 
 /** Below `md` the sidebar collapses into a header plus a scrollable nav strip. */
 export const MobileNav = ({ user }: { user: User }) => (
@@ -31,26 +29,16 @@ export const MobileNav = ({ user }: { user: User }) => (
     </div>
 
     <nav className="flex gap-1 overflow-x-auto px-4 pb-3">
-      {ALL_ITEMS.map((item) =>
-        item.to ? (
-          <Link
-            key={item.label}
-            to={item.to}
-            className="text-sidebar-item shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-light"
-            activeProps={{ className: 'bg-sidebar-active text-[#fffdf8]' }}
-          >
-            {item.label}
-          </Link>
-        ) : (
-          <span
-            key={item.label}
-            title="Розділ ще не реалізований"
-            className="text-sidebar-item/60 shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-light"
-          >
-            {item.label}
-          </span>
-        ),
-      )}
+      {NAV_ITEMS.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          className="text-sidebar-item shrink-0 rounded-full px-3 py-1.5 text-[12.5px] font-light"
+          activeProps={{ className: 'bg-sidebar-active text-[#fffdf8]' }}
+        >
+          {item.label}
+        </Link>
+      ))}
     </nav>
   </div>
 );

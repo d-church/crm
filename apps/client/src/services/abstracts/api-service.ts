@@ -3,7 +3,12 @@ import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
 import { TokenStorage } from './token-storage';
 
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+/**
+ * Always relative: in production the API serves this build, and in dev Vite
+ * proxies /api to the API port. VITE_API_URL only exists to point a local build
+ * at a remote API.
+ */
+export const API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 export abstract class ApiService {
   protected static readonly tokenStorage = new TokenStorage();

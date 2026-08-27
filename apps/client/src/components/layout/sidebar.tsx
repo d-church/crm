@@ -1,7 +1,7 @@
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
-import { NAV_PRIMARY, NAV_SECONDARY } from './nav-items';
+import { NAV_ITEMS } from './nav-items';
 import { NavSection } from './nav-section';
 import { UserMenu } from './user-menu';
 
@@ -22,8 +22,7 @@ export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
       </div>
     </div>
 
-    <NavSection title="Основне" items={NAV_PRIMARY} counts={{ Люди: peopleCount }} />
-    <NavSection title="Спільнота" items={NAV_SECONDARY} />
+    <NavSection title="Основне" items={NAV_ITEMS} counts={{ Люди: peopleCount }} />
 
     <div className="mt-auto">
       <UserMenu user={user}>
