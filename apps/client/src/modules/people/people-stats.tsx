@@ -1,4 +1,4 @@
-import { FollowUpState, PersonStatus, type Person } from '@/services';
+import { PersonStatus, type Person } from '@/services';
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -22,9 +22,10 @@ const buildStats = (people: Person[]): Stat[] => {
       label: 'Потребують дії',
       value: people.filter(
         (person) =>
-          person.status === PersonStatus.CARE || person.followUp === FollowUpState.NOT_DONE,
+          person.status === PersonStatus.CARE ||
+          (person.nextActionAt !== null && Date.parse(person.nextActionAt) <= Date.now()),
       ).length,
-      note: 'опіка або follow-up',
+      note: 'опіка або протермінована дія',
     },
   ];
 };

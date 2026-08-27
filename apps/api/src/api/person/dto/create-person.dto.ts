@@ -37,11 +37,47 @@ export class CreatePersonDto {
   @MaxLength(30)
   phone?: string;
 
+  @ApiPropertyOptional({ example: '272-27-98', description: 'Домашній телефон.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  homePhone?: string;
+
+  @ApiPropertyOptional({ example: '032 123 45 67', description: 'Робочий телефон.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  workPhone?: string;
+
   @ApiPropertyOptional({ example: 'Львів' })
   @IsOptional()
   @IsString()
   @MaxLength(80)
   city?: string;
+
+  @ApiPropertyOptional({ example: 'вул. Б. Хмельницького 23/5а' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  address?: string;
+
+  @ApiPropertyOptional({ example: '79019' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  postalCode?: string;
+
+  @ApiPropertyOptional({ example: 'Пустомитівський' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  district?: string;
+
+  @ApiPropertyOptional({ example: 'Львівська' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  region?: string;
 
   @ApiPropertyOptional({
     enum: PersonStatus,
@@ -116,6 +152,21 @@ export class CreatePersonDto {
   @IsOptional()
   @IsDateString()
   birthDate?: string;
+
+  @ApiPropertyOptional({ example: '1998-07-27', description: 'Водне хрещення (ISO 8601).' })
+  @IsOptional()
+  @IsDateString()
+  baptizedAt?: string;
+
+  @ApiPropertyOptional({ example: '2005-01-24', description: 'Став членом церкви (ISO 8601).' })
+  @IsOptional()
+  @IsDateString()
+  memberSince?: string;
+
+  @ApiPropertyOptional({ example: '2024-03-01', description: 'Вибув з членства (ISO 8601).' })
+  @IsOptional()
+  @IsDateString()
+  leftAt?: string;
 
   @ApiPropertyOptional({ example: 'Прийшов з молодіжної групи.' })
   @IsOptional()

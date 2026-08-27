@@ -29,7 +29,15 @@ model Person {
 
   email String?
   phone String?
-  city  String?
+  /** Home and work numbers carried over from the old Access database. */
+  homePhone String? @map("home_phone")
+  workPhone String? @map("work_phone")
+
+  city       String?
+  address    String?
+  postalCode String? @map("postal_code")
+  district   String?
+  region     String?
 
   status PersonStatus @default(NEW)
 
@@ -55,7 +63,17 @@ model Person {
   nextActionAt DateTime? @map("next_action_at") @db.Date
 
   birthDate DateTime? @map("birth_date") @db.Date
-  notes     String?
+  /// Водне хрещення.
+  baptizedAt DateTime? @map("baptized_at") @db.Date
+  /// Став членом церкви.
+  memberSince DateTime? @map("member_since") @db.Date
+  /// Вибув з членства.
+  leftAt DateTime? @map("left_at") @db.Date
+
+  notes String?
+
+  /// Код_ЧлениЦеркви from the imported Access database — keeps the import idempotent.
+  legacyId Int? @unique @map("legacy_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

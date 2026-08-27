@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, CardContent } from '@/components/ui';
 import { formatDate, formatDateTime, formatDayMonth, getInitials } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import {
   FOLLOW_UP_LABELS,
   getPersonMeta,
@@ -29,6 +30,11 @@ function PersonDetailPage() {
   const nextAction = [person.nextAction, person.nextActionAt && formatDayMonth(person.nextActionAt)]
     .filter(Boolean)
     .join(' · ');
+
+  // Місто вже показане окремо в шапці, тут — решта поштової адреси.
+  const address = [person.postalCode, person.city, person.district, person.region, person.address]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <>
@@ -60,7 +66,7 @@ function PersonDetailPage() {
           </div>
 
           {/* Order mirrors the card the pastoral team already keeps by hand. */}
-          <CardContent className="divide-border-subtle grid gap-0 divide-y p-5">
+          <CardContent className="divide-border-subtle grid grid-cols-1 gap-0 divide-y p-5">
             <DetailRow label="Статус" value={PERSON_STATUS_HINTS[person.status]} />
             <DetailRow
               label="Перший візит"
@@ -81,10 +87,12 @@ function PersonDetailPage() {
             <span className="eyebrow text-muted-foreground">Контакти й дати</span>
           </div>
 
-          <CardContent className="divide-border-subtle grid gap-0 divide-y p-5">
+          <CardContent className="divide-border-subtle grid grid-cols-1 gap-0 divide-y p-5">
             <DetailRow label="Телефон" value={person.phone ?? '—'} />
+            {person.homePhone ? <DetailRow label="Домашній" value={person.homePhone} /> : null}
+            {person.workPhone ? <DetailRow label="Робочий" value={person.workPhone} /> : null}
             <DetailRow label="Email" value={person.email ?? '—'} />
-            <DetailRow label="Місто" value={person.city ?? '—'} />
+            <DetailRow label="Адреса" value={address || '—'} multiline />
             <DetailRow
               label="Остання зустріч"
               value={person.lastSeenAt ? formatDate(person.lastSeenAt) : '—'}
@@ -93,6 +101,15 @@ function PersonDetailPage() {
               label="Дата народження"
               value={person.birthDate ? formatDate(person.birthDate) : '—'}
             />
+            {person.baptizedAt ? (
+              <DetailRow label="Водне хрещення" value={formatDate(person.baptizedAt)} />
+            ) : null}
+            {person.memberSince ? (
+              <DetailRow label="Член церкви з" value={formatDate(person.memberSince)} />
+            ) : null}
+            {person.leftAt ? (
+              <DetailRow label="Вибув з членства" value={formatDate(person.leftAt)} />
+            ) : null}
             <DetailRow label="Додано" value={formatDateTime(person.createdAt)} />
           </CardContent>
 
@@ -108,11 +125,22 @@ function PersonDetailPage() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: ReactNode }) {
+function DetailRow({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value: ReactNode;
+  /** Wraps instead of truncating — for values worth reading in full, like an address. */
+  multiline?: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5 text-[13.5px] first:pt-0 last:pb-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-right">{value}</span>
+    <div className="flex items-baseline justify-between gap-4 py-2.5 text-[13.5px] first:pt-0 last:pb-0">
+      <span className="text-muted-foreground shrink-0">{label}</span>
+      <span className={cn('min-w-0 text-right', multiline ? 'break-words' : 'truncate')}>
+        {value}
+      </span>
     </div>
   );
 }

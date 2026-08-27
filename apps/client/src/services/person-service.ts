@@ -30,7 +30,13 @@ export interface Person {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  homePhone: string | null;
+  workPhone: string | null;
   city: string | null;
+  address: string | null;
+  postalCode: string | null;
+  district: string | null;
+  region: string | null;
   status: PersonStatus;
   firstVisitAt: string | null;
   lastSeenAt: string | null;
@@ -43,6 +49,11 @@ export interface Person {
   nextAction: string | null;
   nextActionAt: string | null;
   birthDate: string | null;
+  baptizedAt: string | null;
+  memberSince: string | null;
+  leftAt: string | null;
+  /** Код_ЧлениЦеркви зі старої бази Access, якщо людина прийшла звідти. */
+  legacyId: number | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
