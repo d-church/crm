@@ -1,3 +1,4 @@
+import logoMark from '@/assets/brand/logo-main.svg';
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
@@ -13,9 +14,7 @@ type SidebarProps = {
 export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
   <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-screen flex-col gap-8 px-4.5 pt-6.5 pb-5.5 md:flex">
     <div className="flex items-center gap-3">
-      <div className="bg-sidebar-mark text-sidebar grid size-9.5 place-items-center rounded-full text-base">
-        D
-      </div>
+      <img src={logoMark} alt="" aria-hidden className="size-9.5 shrink-0" />
       <div className="flex flex-col gap-0.5">
         <span className="text-[13px]">D.Church</span>
         <span className="eyebrow text-sidebar-muted">CRM церкви</span>

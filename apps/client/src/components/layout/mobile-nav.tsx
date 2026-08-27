@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 
+import logoMark from '@/assets/brand/logo-main.svg';
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
@@ -11,9 +12,7 @@ export const MobileNav = ({ user }: { user: User }) => (
   <div className="bg-sidebar text-sidebar-foreground sticky top-0 z-20 md:hidden">
     <div className="flex items-center justify-between gap-3 px-5 py-3.5">
       <div className="flex items-center gap-2.5">
-        <span className="bg-sidebar-mark text-sidebar grid size-7 place-items-center rounded-full text-[13px]">
-          D
-        </span>
+        <img src={logoMark} alt="" aria-hidden className="size-7 shrink-0" />
         <span className="text-[13px]">D.Church</span>
       </div>
 
