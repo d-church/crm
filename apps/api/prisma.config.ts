@@ -8,6 +8,8 @@ export default defineConfig({
     seed: 'ts-node prisma/seed.ts',
   },
   datasource: {
-    url: process.env['DATABASE_URL'],
+    // Migrations and Studio go through the session-mode pooler; the app itself
+    // talks to the transaction-mode pooler via DATABASE_URL.
+    url: process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'],
   },
 });

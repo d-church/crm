@@ -9,11 +9,8 @@ export class RedisService implements OnModuleDestroy {
   private readonly redisClient: Redis;
 
   constructor(private readonly configService: ConfigService) {
-    this.redisClient = new Redis({
-      host: this.configService.getOrThrow<string>('REDIS_HOST'),
-      port: Number(this.configService.getOrThrow<string>('REDIS_PORT')),
-      password: this.configService.get<string>('REDIS_PASSWORD') || undefined,
-    });
+    // A single URL keeps TLS in one place: `rediss://` turns it on, `redis://` does not.
+    this.redisClient = new Redis(this.configService.getOrThrow<string>('REDIS_URL'));
 
     this.redisClient.on('error', (error: unknown) => {
       this.logger.error('Redis connection error', error);

@@ -11,8 +11,6 @@
     "dev": "concurrently -n api,client -c cyan,magenta \"pnpm dev:api\" \"pnpm dev:client\"",
     "dev:api": "pnpm --filter api dev",
     "dev:client": "pnpm --filter client dev",
-    "dev:db": "docker compose up -d",
-    "dev:db:down": "docker compose down",
     "build": "pnpm -r build",
     "start:prod": "pnpm --filter api start:prod",
     "lint": "pnpm -r lint",
