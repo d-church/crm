@@ -12,6 +12,7 @@ class UserServiceClass extends RestService<User> {
 
 export const UserRole = {
   SUPERADMIN: 'SUPERADMIN',
+  ADMIN: 'ADMIN',
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
