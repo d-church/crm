@@ -48,7 +48,15 @@ function PersonDetailPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Люди"
+        eyebrow={
+          <Link
+            to="/people"
+            className="eyebrow text-muted-foreground inline-flex w-fit rounded-sm py-1 pr-2 transition-colors hover:text-foreground hover:underline"
+            aria-label="Повернутися до списку людей"
+          >
+            Люди
+          </Link>
+        }
         title={name}
         description={meta || undefined}
         actions={
