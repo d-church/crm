@@ -82,10 +82,14 @@ export abstract class ApiService {
         ApiService.tokenStorage.setTokens(data.accessToken, data.refreshToken);
 
         return data.accessToken;
-      } catch {
-        ApiService.tokenStorage.clearTokens();
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          ApiService.tokenStorage.clearTokens();
 
-        return null;
+          return null;
+        }
+
+        throw error;
       }
     })().finally(() => {
       ApiService.refreshing = null;

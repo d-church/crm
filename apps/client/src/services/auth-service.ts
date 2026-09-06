@@ -27,15 +27,9 @@ class AuthServiceClass extends ApiService {
       return null;
     }
 
-    try {
-      const response = await this.api.get<User>('/auth/me');
+    const response = await this.api.get<User>('/auth/me');
 
-      return response.data;
-    } catch {
-      this.logout();
-
-      return null;
-    }
+    return response.data;
   }
 
   public isAuthenticated(): boolean {

@@ -51,7 +51,7 @@ function PersonDetailPage() {
         eyebrow={
           <Link
             to="/people"
-            className="eyebrow text-muted-foreground inline-flex w-fit rounded-sm py-1 pr-2 transition-colors hover:text-foreground hover:underline"
+            className="rounded-sm transition-colors hover:text-foreground hover:underline"
             aria-label="Повернутися до списку людей"
           >
             Люди

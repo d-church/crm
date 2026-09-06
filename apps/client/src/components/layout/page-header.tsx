@@ -10,11 +10,11 @@ type PageHeaderProps = {
 export const PageHeader = ({ eyebrow, title, description, actions }: PageHeaderProps) => (
   <header className="flex flex-wrap items-end justify-between gap-6">
     <div className="flex flex-col gap-1.5">
-      {typeof eyebrow === 'string' ? (
-        <span className="eyebrow text-muted-foreground">{eyebrow}</span>
-      ) : (
-        eyebrow
-      )}
+      {eyebrow ? (
+        <div className="eyebrow text-muted-foreground inline-flex min-h-5 w-fit items-center">
+          {eyebrow}
+        </div>
+      ) : null}
       <h1 className="text-[32px] leading-none font-light tracking-[-0.01em]">{title}</h1>
       {description ? <p className="text-ink-faint text-[13px]">{description}</p> : null}
     </div>
