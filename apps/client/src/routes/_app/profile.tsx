@@ -230,15 +230,13 @@ function PasswordForm() {
 
       <form onSubmit={onSubmit} noValidate>
         <CardContent className="grid gap-4">
-          <div className="max-w-[520px]">
-            <Field
-              label="Поточний пароль"
-              type="password"
-              autoComplete="current-password"
-              error={errors.currentPassword?.message}
-              {...register('currentPassword')}
-            />
-          </div>
+          <Field
+            label="Поточний пароль"
+            type="password"
+            autoComplete="current-password"
+            error={errors.currentPassword?.message}
+            {...register('currentPassword')}
+          />
 
           <div className="grid items-start gap-4 sm:grid-cols-2">
             <Field
