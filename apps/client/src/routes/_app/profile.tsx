@@ -164,7 +164,7 @@ function ProfileForm({ user }: { user: User }) {
 
       <form onSubmit={onSubmit} noValidate>
         <CardContent className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
             <Field
               label="Імʼя"
               autoComplete="given-name"
@@ -240,7 +240,7 @@ function PasswordForm() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
             <Field
               label="Новий пароль"
               type="password"
