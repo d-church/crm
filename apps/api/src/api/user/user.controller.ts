@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization, CurrentUser } from '@/common/decorators';
 
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserService } from './user.service';
 
@@ -19,13 +20,24 @@ export class UserController {
   }
 
   @Authorization()
-  @ApiOperation({ summary: "Update the current user's display name" })
+  @ApiOperation({ summary: "Update the current user's profile" })
   @Patch('me')
   public updateProfile(
     @CurrentUser('id') userId: string,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
     return this.userService.updateProfile(userId, updateProfileDto);
+  }
+
+  @Authorization()
+  @ApiOperation({ summary: "Change the current user's password" })
+  @Patch('me/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(userId, changePasswordDto);
   }
 
   @Authorization()

@@ -17,7 +17,8 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { meQueryOptions, useRegister } from '@/modules/auth';
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Мінімум 2 символи').max(20, 'Максимум 20 символів'),
+  firstName: z.string().min(2, 'Мінімум 2 символи').max(20, 'Максимум 20 символів'),
+  lastName: z.string().min(2, 'Мінімум 2 символи').max(20, 'Максимум 20 символів'),
   email: z.string().min(1, 'Вкажіть email').email('Некоректний email'),
   password: z.string().min(8, 'Мінімум 8 символів'),
 });
@@ -45,7 +46,7 @@ function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '' },
+    defaultValues: { firstName: '', lastName: '', email: '', password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -70,10 +71,18 @@ function RegisterPage() {
           <form onSubmit={onSubmit} className="grid gap-4" noValidate>
             <Field
               label="Імʼя"
-              autoComplete="name"
-              placeholder="Ада Лавлейс"
-              error={errors.name?.message}
-              {...register('name')}
+              autoComplete="given-name"
+              placeholder="Ада"
+              error={errors.firstName?.message}
+              {...register('firstName')}
+            />
+
+            <Field
+              label="Прізвище"
+              autoComplete="family-name"
+              placeholder="Лавлейс"
+              error={errors.lastName?.message}
+              {...register('lastName')}
             />
 
             <Field

@@ -55,7 +55,8 @@ export interface LoginCredentials {
 }
 
 export interface RegisterCredentials extends LoginCredentials {
-  name: string;
+  firstName: string;
+  lastName: string;
 }
 
 type AuthResponse = {

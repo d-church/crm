@@ -1,5 +1,5 @@
-import { useNavigate } from '@tanstack/react-router';
-import { LogOut } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { LogOut, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import {
@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui';
+import { getFullName } from '@/lib/format';
 import { useLogout } from '@/modules/auth';
 import type { User } from '@/services';
 
@@ -29,12 +30,19 @@ export const UserMenu = ({ user, children }: { user: User; children: ReactNode }
       <DropdownMenuContent align="start" side="top" className="w-56">
         <DropdownMenuLabel>
           <div className="grid gap-0.5">
-            <span className="truncate text-[13px]">{user.name}</span>
+            <span className="truncate text-[13px]">{getFullName(user)}</span>
             <span className="text-ink-faint truncate text-[11.5px]">{user.email}</span>
           </div>
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />
+
+        <DropdownMenuItem asChild>
+          <Link to="/profile">
+            <UserRound />
+            Профіль
+          </Link>
+        </DropdownMenuItem>
 
         <DropdownMenuItem variant="destructive" onSelect={handleLogout}>
           <LogOut />

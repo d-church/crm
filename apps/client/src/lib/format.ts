@@ -16,13 +16,24 @@ export const formatDateTime = (value: string | Date) => dateTimeFormatter.format
 
 export const formatDate = (value: string | Date) => dateFormatter.format(new Date(value));
 
-export const getInitials = (name: string) =>
-  name
+type NamedPerson = {
+  firstName: string;
+  lastName: string;
+};
+
+export const getFullName = ({ firstName, lastName }: NamedPerson) =>
+  [firstName, lastName].filter(Boolean).join(' ');
+
+export const getInitials = (name: string | NamedPerson) => {
+  const fullName = typeof name === 'string' ? name : getFullName(name);
+
+  return fullName
     .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
+};
 
 const dayMonthFormatter = new Intl.DateTimeFormat('uk-UA', { day: '2-digit', month: '2-digit' });
 

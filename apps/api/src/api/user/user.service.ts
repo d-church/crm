@@ -1,8 +1,15 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { hash, verify } from 'argon2';
 
 import { PrismaService, UserModel } from '@/infra/prisma/prisma.service';
 import { RedisService } from '@/infra/redis/redis.service';
 
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -69,16 +76,40 @@ export class UserService {
     return toSafeUser(user);
   }
 
-  public async updateProfile(id: string, { name }: UpdateProfileDto): Promise<User> {
+  public async updateProfile(id: string, { firstName, lastName }: UpdateProfileDto): Promise<User> {
     const user = await this.prismaService.user.update({
       where: { id },
-      data: { name },
+      data: { firstName, lastName },
       select: userSelect,
     });
 
     await this.redisService.del(`user:id:${id}`);
 
     return user;
+  }
+
+  public async changePassword(
+    id: string,
+    { currentPassword, newPassword, confirmPassword }: ChangePasswordDto,
+  ): Promise<void> {
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('Нові паролі не збігаються');
+    }
+
+    const user = await this.findById(id);
+    const passwordValid = await verify(user.password, currentPassword);
+
+    if (!passwordValid) {
+      throw new BadRequestException('Поточний пароль неправильний');
+    }
+
+    await this.prismaService.user.update({
+      where: { id },
+      data: { password: await hash(newPassword) },
+      select: { id: true },
+    });
+
+    await this.redisService.del(`user:id:${id}`);
   }
 
   public async findByIdForAuth(id: string): Promise<User> {
@@ -103,7 +134,8 @@ export class UserService {
 const userSelect = {
   id: true,
   email: true,
-  name: true,
+  firstName: true,
+  lastName: true,
   role: true,
   createdAt: true,
   updatedAt: true,
@@ -116,7 +148,8 @@ export function toSafeUser(user: UserWithPassword): User {
   return {
     id: user.id,
     email: user.email,
-    name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

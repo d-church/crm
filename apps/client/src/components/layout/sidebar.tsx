@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router';
+import { MoreHorizontal } from 'lucide-react';
 
 import logoMark from '@/assets/brand/logo-main.svg';
-import { getInitials } from '@/lib/format';
+import { getFullName, getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
 import { NAV_ITEMS } from './nav-items';
@@ -29,19 +30,28 @@ export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
 
     <NavSection title="Основне" items={NAV_ITEMS} counts={{ Люди: peopleCount }} />
 
-    <div className="mt-auto">
+    <div className="mt-auto flex items-center gap-1.5">
+      <Link
+        to="/profile"
+        className="hover:bg-sidebar-hover -ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors"
+        activeProps={{ className: 'bg-sidebar-active text-[#fffdf8]' }}
+      >
+        <span className="bg-sidebar-avatar grid size-7.5 shrink-0 place-items-center rounded-full text-[11.5px]">
+          {getInitials(user)}
+        </span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-[12.5px]">{getFullName(user)}</span>
+          <span className="text-sidebar-muted text-[10.5px]">Адміністратор</span>
+        </span>
+      </Link>
+
       <UserMenu user={user}>
         <button
           type="button"
-          className="hover:bg-sidebar-hover -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors"
+          className="hover:bg-sidebar-hover grid size-8 shrink-0 place-items-center rounded-lg text-sidebar-muted transition-colors hover:text-sidebar-foreground"
+          aria-label="Меню користувача"
         >
-          <span className="bg-sidebar-avatar grid size-7.5 shrink-0 place-items-center rounded-full text-[11.5px]">
-            {getInitials(user.name)}
-          </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-[12.5px]">{user.name}</span>
-            <span className="text-sidebar-muted text-[10.5px]">Адміністратор</span>
-          </span>
+          <MoreHorizontal className="size-4" />
         </button>
       </UserMenu>
     </div>

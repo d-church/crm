@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 
 import { AppShell } from '@/components/layout';
-import { meQueryOptions } from '@/modules/auth';
+import { meQueryOptions, useAuth } from '@/modules/auth';
 import { peopleStatsQueryOptions } from '@/modules/people';
 
 export const Route = createFileRoute('/_app')({
@@ -23,7 +23,10 @@ export const Route = createFileRoute('/_app')({
 });
 
 function AppLayout() {
-  const { user } = Route.useRouteContext();
+  const { user: routeUser } = Route.useRouteContext();
+  const { user: currentUser } = useAuth();
+  const user = currentUser ?? routeUser;
+
   // Shares the stats cache with the people screen — no extra request for the count.
   const { data: stats } = useQuery(peopleStatsQueryOptions());
 

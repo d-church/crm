@@ -11,9 +11,9 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const SEED_PASSWORD = process.env.SEED_PASSWORD ?? '123456';
 
 const ACCOUNTS = [
-  { email: 'igornovoseltsev91@gmail.com', name: 'Ігор Новосельцев' },
-  { email: 'a.tata4.26@gmail.com', name: 'Андрій Татач' },
-  { email: 'owngameplay@gmail.com', name: 'Юрій Хвищук' },
+  { email: 'igornovoseltsev91@gmail.com', firstName: 'Ігор', lastName: 'Новосельцев' },
+  { email: 'a.tata4.26@gmail.com', firstName: 'Андрій', lastName: 'Татач' },
+  { email: 'owngameplay@gmail.com', firstName: 'Юрій', lastName: 'Хвищук' },
 ];
 
 const seed = async () => {
@@ -32,7 +32,7 @@ const seed = async () => {
       data: { ...account, password: await hash(SEED_PASSWORD) },
     });
 
-    console.log(`   ✚ ${account.email} — ${account.name}`);
+    console.log(`   ✚ ${account.email} — ${account.firstName} ${account.lastName}`);
   }
 
   const users = await prisma.user.count();

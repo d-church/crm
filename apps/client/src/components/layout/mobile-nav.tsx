@@ -23,7 +23,7 @@ export const MobileNav = ({ user }: { user: User }) => (
           className="bg-sidebar-avatar grid size-8 place-items-center rounded-full text-[11.5px]"
           aria-label="Меню користувача"
         >
-          {getInitials(user.name)}
+          {getInitials(user)}
         </button>
       </UserMenu>
     </div>

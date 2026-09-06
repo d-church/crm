@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppPeoplePersonIdRouteImport } from './routes/_app/people/$personId'
 
@@ -35,6 +36,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -50,12 +56,14 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/profile': typeof AppProfileRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/profile': typeof AppProfileRoute
   '/': typeof AppIndexRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/people': typeof AppPeopleIndexRoute
@@ -65,20 +73,24 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/_app/profile': typeof AppProfileRoute
   '/_app/': typeof AppIndexRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
   '/_app/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/people/$personId' | '/people/'
+  fullPaths:
+    '/' | '/login' | '/register' | '/profile' | '/people/$personId' | '/people/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/register' | '/' | '/people/$personId' | '/people'
+  to:
+    '/login' | '/register' | '/profile' | '/' | '/people/$personId' | '/people'
   id:
     | '__root__'
     | '/_app'
     | '/login'
     | '/register'
+    | '/_app/profile'
     | '/_app/'
     | '/_app/people/$personId'
     | '/_app/people/'
@@ -120,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/people/': {
       id: '/_app/people/'
       path: '/people'
@@ -138,12 +157,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppProfileRoute: typeof AppProfileRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppProfileRoute: AppProfileRoute,
   AppIndexRoute: AppIndexRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
