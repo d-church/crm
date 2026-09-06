@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -119,11 +120,10 @@ export class CreatePersonDto {
   @MaxLength(120)
   nextStep?: string;
 
-  @ApiPropertyOptional({ example: 'Молодь — пʼятниця', description: 'Спільнота / мала група.' })
+  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  community?: string;
+  @IsUUID()
+  communityId?: string;
 
   @ApiPropertyOptional({ example: 'Прославлення', description: 'Служіння.' })
   @IsOptional()

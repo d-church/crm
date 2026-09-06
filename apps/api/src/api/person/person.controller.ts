@@ -36,7 +36,7 @@ export class PersonController {
   }
 
   @Authorization()
-  @ApiOperation({ summary: 'Distinct communities and ministries for the filter dropdowns' })
+  @ApiOperation({ summary: 'Distinct ministries for the filter dropdown' })
   @Get('options')
   public options() {
     return this.personService.options();

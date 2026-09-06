@@ -1,6 +1,6 @@
 import { Input, Select } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import type { PeopleSort, PersonStatus } from '@/services';
+import type { Community, PeopleSort, PersonStatus } from '@/services';
 
 import { ANY, DEFAULT_SORT, SORT_LABELS, type PeopleSearch } from './filtering';
 import { PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
@@ -9,7 +9,7 @@ type PeopleFiltersProps = {
   filters: PeopleSearch;
   /** Local, so typing stays responsive while the request is debounced. */
   query: string;
-  groupOptions: string[];
+  communityOptions: Community[];
   ministryOptions: string[];
   onQueryChange: (query: string) => void;
   onChange: (patch: Partial<PeopleSearch>) => void;
@@ -19,7 +19,7 @@ type PeopleFiltersProps = {
 export const PeopleFilters = ({
   filters,
   query,
-  groupOptions,
+  communityOptions,
   ministryOptions,
   onQueryChange,
   onChange,
@@ -36,18 +36,18 @@ export const PeopleFilters = ({
       />
 
       <Select
-        value={filters.community ?? ANY}
+        value={filters.communityId ?? ANY}
         onChange={(event) =>
           onChange({
-            community: event.target.value === ANY ? undefined : event.target.value,
+            communityId: event.target.value === ANY ? undefined : event.target.value,
           })
         }
-        aria-label="Мала група"
+        aria-label="Спільнота"
       >
-        <option value={ANY}>Усі групи</option>
-        {groupOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        <option value={ANY}>Усі спільноти</option>
+        {communityOptions.map((community) => (
+          <option key={community.id} value={community.id}>
+            {community.name}
           </option>
         ))}
       </Select>

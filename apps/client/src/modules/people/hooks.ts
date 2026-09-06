@@ -13,7 +13,7 @@ import {
   personQueryOptions,
 } from './queries';
 
-export type PersonPayload = Writable<Person>;
+export type PersonPayload = Omit<Writable<Person>, 'community'>;
 
 export const usePeople = (query: PeopleQuery) => useQuery(peopleQueryOptions(query));
 

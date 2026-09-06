@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 import { PersonStatus } from '@/infra/prisma/prisma.service';
 
@@ -43,11 +43,10 @@ export class FindPeopleDto {
   @IsIn(Object.values(PersonStatus))
   status?: PersonStatus;
 
-  @ApiPropertyOptional({ example: 'Молодь — пʼятниця' })
+  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  community?: string;
+  @IsUUID()
+  communityId?: string;
 
   @ApiPropertyOptional({ example: 'Прославлення' })
   @IsOptional()

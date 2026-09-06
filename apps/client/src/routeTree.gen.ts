@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppPeoplePersonIdRouteImport } from './routes/_app/people/$personId'
 
@@ -41,6 +42,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommunitiesIndexRoute = AppCommunitiesIndexRouteImport.update({
+  id: '/communities/',
+  path: '/communities/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/profile': typeof AppProfileRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
+  '/communities/': typeof AppCommunitiesIndexRoute
   '/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/': typeof AppIndexRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
+  '/communities': typeof AppCommunitiesIndexRoute
   '/people': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesById {
@@ -76,15 +84,28 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/': typeof AppIndexRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
+  '/_app/communities/': typeof AppCommunitiesIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/register' | '/profile' | '/people/$personId' | '/people/'
+    | '/'
+    | '/login'
+    | '/register'
+    | '/profile'
+    | '/people/$personId'
+    | '/communities/'
+    | '/people/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/login' | '/register' | '/profile' | '/' | '/people/$personId' | '/people'
+    | '/login'
+    | '/register'
+    | '/profile'
+    | '/'
+    | '/people/$personId'
+    | '/communities'
+    | '/people'
   id:
     | '__root__'
     | '/_app'
@@ -93,6 +114,7 @@ export interface FileRouteTypes {
     | '/_app/profile'
     | '/_app/'
     | '/_app/people/$personId'
+    | '/_app/communities/'
     | '/_app/people/'
   fileRoutesById: FileRoutesById
 }
@@ -139,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/communities/': {
+      id: '/_app/communities/'
+      path: '/communities'
+      fullPath: '/communities/'
+      preLoaderRoute: typeof AppCommunitiesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/people/': {
       id: '/_app/people/'
       path: '/people'
@@ -160,6 +189,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppIndexRoute: typeof AppIndexRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
+  AppCommunitiesIndexRoute: typeof AppCommunitiesIndexRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
@@ -167,6 +197,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppIndexRoute: AppIndexRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,
+  AppCommunitiesIndexRoute: AppCommunitiesIndexRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
 }
 

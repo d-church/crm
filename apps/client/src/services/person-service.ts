@@ -1,4 +1,5 @@
 import { RestService } from './abstracts/rest-service';
+import type { Community } from './community-service';
 
 export const PEOPLE_SORTS = ['createdAt', 'lastSeenAt', 'name', 'status'] as const;
 
@@ -10,7 +11,7 @@ export type PeopleQuery = {
   limit?: number;
   search?: string;
   status?: PersonStatus;
-  community?: string;
+  communityId?: string;
   ministry?: string;
   sort?: PeopleSort;
 };
@@ -30,7 +31,7 @@ export type PeopleStats = {
   needsAction: number;
 };
 
-export type PeopleOptions = { communities: string[]; ministries: string[] };
+export type PeopleOptions = { ministries: string[] };
 
 /** The API caps a page at 200; the CSV export pages through instead of asking for more. */
 export const MAX_PAGE_SIZE = 200;
@@ -116,7 +117,8 @@ export interface Person {
   connectedBy: string | null;
   followUp: FollowUpState;
   nextStep: string | null;
-  community: string | null;
+  communityId: string | null;
+  community: Pick<Community, 'id' | 'name'> | null;
   ministry: string | null;
   responsible: string | null;
   nextAction: string | null;

@@ -48,7 +48,9 @@ export const PeopleTable = ({ people }: { people: Person[] }) => (
 
           <PersonStatusBadge status={person.status} className="justify-self-start" />
 
-          <span className="text-ink truncate text-[13px]">{person.community ?? 'ще немає'}</span>
+          <span className="text-ink truncate text-[13px]">
+            {person.community?.name ?? 'ще немає'}
+          </span>
           <span className="text-ink truncate text-[13px]">{person.ministry ?? '—'}</span>
           <span className="text-ink-soft text-[13px] tabular-nums">
             {person.lastSeenAt ? formatDayMonth(person.lastSeenAt) : '—'}

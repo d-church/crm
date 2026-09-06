@@ -1,0 +1,13 @@
+/// A church community. One community can include many people.
+model Community {
+  id String @id @default(uuid())
+
+  name String @unique
+
+  people Person[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("communities")
+}

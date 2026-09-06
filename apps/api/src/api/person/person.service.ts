@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
-import { PrismaService, PersonModel, PersonStatus } from '@/infra/prisma/prisma.service';
+import { PrismaService, PersonStatus } from '@/infra/prisma/prisma.service';
 
 import { CreatePersonDto } from './dto/create-person.dto';
 import {
@@ -13,6 +13,8 @@ import {
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 
+const PERSON_INCLUDE = { community: true } as const satisfies Prisma.PersonInclude;
+
 @Injectable()
 export class PersonService {
   constructor(private readonly prismaService: PrismaService) {}
@@ -20,6 +22,7 @@ export class PersonService {
   public async create(createPersonDto: CreatePersonDto): Promise<Person> {
     return this.prismaService.person.create({
       data: toPersonData(createPersonDto),
+      include: PERSON_INCLUDE,
     });
   }
 
@@ -36,6 +39,7 @@ export class PersonService {
         orderBy: [...SORT_ORDERS[query.sort ?? DEFAULT_SORT], { id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
+        include: PERSON_INCLUDE,
       }),
       this.prismaService.person.count({ where }),
     ]);
@@ -51,7 +55,7 @@ export class PersonService {
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
       this.prismaService.person.count(),
       this.prismaService.person.count({
-        where: { status: { in: [PersonStatus.COMMUNITY, PersonStatus.SERVING] } },
+        where: { communityId: { not: null } },
       }),
       this.prismaService.person.count({ where: { createdAt: { gte: monthAgo } } }),
       this.prismaService.person.count({
@@ -62,21 +66,20 @@ export class PersonService {
     return { total, inCommunity, newThisMonth, needsAction };
   }
 
-  /** Distinct values behind the community and ministry dropdowns. */
+  /** Distinct values behind the ministry dropdown. */
   public async options(): Promise<PeopleOptions> {
-    const [communities, ministries] = await Promise.all([
-      this.prismaService.person.groupBy({ by: ['community'] }),
-      this.prismaService.person.groupBy({ by: ['ministry'] }),
-    ]);
+    const ministries = await this.prismaService.person.groupBy({ by: ['ministry'] });
 
     return {
-      communities: toSortedValues(communities.map(({ community }) => community)),
       ministries: toSortedValues(ministries.map(({ ministry }) => ministry)),
     };
   }
 
   public async findOne(id: string): Promise<Person> {
-    const person = await this.prismaService.person.findUnique({ where: { id } });
+    const person = await this.prismaService.person.findUnique({
+      where: { id },
+      include: PERSON_INCLUDE,
+    });
     if (!person) {
       throw new NotFoundException('Person not found');
     }
@@ -90,13 +93,14 @@ export class PersonService {
     return this.prismaService.person.update({
       where: { id },
       data: toPersonData(updatePersonDto),
+      include: PERSON_INCLUDE,
     });
   }
 
   public async remove(id: string): Promise<Person> {
     await this.findOne(id);
 
-    return this.prismaService.person.delete({ where: { id } });
+    return this.prismaService.person.delete({ where: { id }, include: PERSON_INCLUDE });
   }
 }
 
@@ -135,7 +139,7 @@ const toPersonData = <T extends PersonInput>({
 
 export { toPersonData };
 
-export type Person = PersonModel;
+export type Person = Prisma.PersonGetPayload<{ include: typeof PERSON_INCLUDE }>;
 
 export type PaginatedPeople = {
   items: Person[];
@@ -152,7 +156,7 @@ export type PeopleStats = {
   needsAction: number;
 };
 
-export type PeopleOptions = { communities: string[]; ministries: string[] };
+export type PeopleOptions = { ministries: string[] };
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -182,14 +186,14 @@ const SORT_ORDERS: Record<PeopleSort, Prisma.PersonOrderByWithRelationInput[]> =
 export const buildPeopleWhere = ({
   search,
   status,
-  community,
+  communityId,
   ministry,
 }: FindPeopleDto): Prisma.PersonWhereInput => {
   const terms = search?.trim().split(/\s+/).filter(Boolean) ?? [];
 
   return {
     ...(status === undefined ? {} : { status }),
-    ...(community === undefined ? {} : { community }),
+    ...(communityId === undefined ? {} : { communityId }),
     ...(ministry === undefined ? {} : { ministry }),
     ...(terms.length === 0
       ? {}

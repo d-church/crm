@@ -7,6 +7,7 @@ import { Button, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
+import { useCommunities } from '@/modules/communities';
 import {
   PeopleFilters,
   PeoplePagination,
@@ -54,6 +55,7 @@ function PeoplePage() {
   const { data: page, isPending, isFetching, error } = usePeople(query);
   const { data: stats } = usePeopleStats();
   const { data: options } = usePeopleOptions();
+  const { data: communities = [] } = useCommunities();
 
   // The input is local and the request is debounced, so typing stays smooth.
   const [queryText, setQueryText] = useState(search.q ?? '');
@@ -84,8 +86,9 @@ function PeoplePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
+  const selectedCommunity = communities.find(({ id }) => id === search.communityId)?.name;
   const filterSummary =
-    [search.status ? PERSON_STATUS_LABELS[search.status] : null, search.community, search.ministry]
+    [search.status ? PERSON_STATUS_LABELS[search.status] : null, selectedCommunity, search.ministry]
       .filter(Boolean)
       .join(' · ') || 'Без додаткових фільтрів';
 
@@ -132,7 +135,7 @@ function PeoplePage() {
         <PeopleFilters
           filters={search}
           query={queryText}
-          groupOptions={options?.communities ?? []}
+          communityOptions={communities}
           ministryOptions={options?.ministries ?? []}
           onQueryChange={setQueryText}
           onChange={patchSearch}

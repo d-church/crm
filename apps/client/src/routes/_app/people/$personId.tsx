@@ -108,7 +108,22 @@ function PersonDetailPage() {
             <DetailRow label="Connect" value={person.connectedBy ?? '—'} />
             <DetailRow label="Follow-up" value={FOLLOW_UP_LABELS[person.followUp]} />
             <DetailRow label="Next Step" value={person.nextStep ?? '—'} />
-            <DetailRow label="Спільнота" value={person.community ?? 'ще немає'} />
+            <DetailRow
+              label="Спільнота"
+              value={
+                person.community ? (
+                  <Link
+                    to="/people"
+                    search={{ communityId: person.community.id }}
+                    className="underline-offset-3 hover:underline"
+                  >
+                    {person.community.name}
+                  </Link>
+                ) : (
+                  'ще немає'
+                )
+              }
+            />
             <DetailRow label="Служіння" value={person.ministry ?? '—'} />
             <DetailRow label="Відповідальний" value={person.responsible ?? '—'} />
             <DetailRow label="Наступна дія" value={nextAction || '—'} />

@@ -50,14 +50,18 @@ describe('buildPeopleWhere', () => {
     expect(buildPeopleWhere({})).toEqual({});
   });
 
-  it('matches a status, community and ministry exactly', () => {
+  it('matches a status, community id and ministry exactly', () => {
     expect(
       buildPeopleWhere({
         status: PersonStatus.SERVING,
-        community: 'Молодь',
+        communityId: '00000000-0000-4000-8000-000000000001',
         ministry: 'Прославлення',
       }),
-    ).toEqual({ status: PersonStatus.SERVING, community: 'Молодь', ministry: 'Прославлення' });
+    ).toEqual({
+      status: PersonStatus.SERVING,
+      communityId: '00000000-0000-4000-8000-000000000001',
+      ministry: 'Прославлення',
+    });
   });
 
   it('searches every field case-insensitively', () => {

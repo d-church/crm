@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { toDateInputValue } from '@/lib/format';
+import { useCommunities } from '@/modules/communities';
 import { FollowUpState, PersonStatus, type Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson, type PersonPayload } from './hooks';
@@ -55,7 +56,7 @@ const personSchema = z.object({
   lastSeenAt: optionalText(10),
   connectedBy: optionalText(80),
   nextStep: optionalText(120),
-  community: optionalText(80),
+  communityId: z.union([z.literal(''), z.string().uuid()]).optional(),
   ministry: optionalText(80),
   responsible: optionalText(80),
   nextAction: optionalText(200),
@@ -89,7 +90,7 @@ const EMPTY: PersonValues = {
   lastSeenAt: '',
   connectedBy: '',
   nextStep: '',
-  community: '',
+  communityId: '',
   ministry: '',
   responsible: '',
   nextAction: '',
@@ -150,6 +151,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { createPerson, isPending: isCreating } = useCreatePerson();
   const { updatePerson, isPending: isUpdating } = useUpdatePerson(person?.id ?? '');
+  const { data: communities = [] } = useCommunities();
   const isPending = isCreating || isUpdating;
 
   const {
@@ -261,7 +263,17 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               {...register('connectedBy')}
             />
             <Field label="Next Step" placeholder="зустріч для нових" {...register('nextStep')} />
-            <Field label="Спільнота" placeholder="ще немає" {...register('community')} />
+            <div className="grid gap-1.5">
+              <Label htmlFor="communityId">Спільнота</Label>
+              <Select id="communityId" {...register('communityId')}>
+                <option value="">Ще немає</option>
+                {communities.map((community) => (
+                  <option key={community.id} value={community.id}>
+                    {community.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <Field label="Служіння" {...register('ministry')} />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field

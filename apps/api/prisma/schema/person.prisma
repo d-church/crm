@@ -28,9 +28,11 @@ model Person {
   firstName String  @map("first_name")
   lastName  String? @map("last_name")
 
-  email String?
-  phone String?
-  /** Home and work numbers carried over from the old Access database. */
+  email     String?
+  phone     String?
+  /**
+   * Home and work numbers carried over from the old Access database.
+   */
   homePhone String? @map("home_phone")
   workPhone String? @map("work_phone")
 
@@ -53,23 +55,24 @@ model Person {
   /// Next Step — the step they are going through, e.g. "зустріч для нових".
   nextStep    String?       @map("next_step")
 
-  /// Спільнота — the group they belong to; empty means "ще немає".
-  community String?
-  ministry  String?
+  /// Спільнота — one community can include many people; empty means "ще немає".
+  communityId String?    @map("community_id")
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  ministry    String?
 
   /// Відповідальний — team member carrying this person.
-  responsible String?
+  responsible  String?
   /// Наступна дія — what to do next, and when.
   nextAction   String?   @map("next_action")
   nextActionAt DateTime? @map("next_action_at") @db.Date
 
-  birthDate DateTime? @map("birth_date") @db.Date
+  birthDate   DateTime? @map("birth_date") @db.Date
   /// Водне хрещення.
-  baptizedAt DateTime? @map("baptized_at") @db.Date
+  baptizedAt  DateTime? @map("baptized_at") @db.Date
   /// Став членом церкви.
   memberSince DateTime? @map("member_since") @db.Date
   /// Вибув з членства.
-  leftAt DateTime? @map("left_at") @db.Date
+  leftAt      DateTime? @map("left_at") @db.Date
 
   notes String?
 
@@ -81,5 +84,6 @@ model Person {
 
   @@index([lastName, firstName])
   @@index([status])
+  @@index([communityId])
   @@map("people")
 }
