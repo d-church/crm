@@ -8,6 +8,7 @@ export const PERSON_STATUSES: PersonStatus[] = [
   PersonStatus.COMMUNITY,
   PersonStatus.SERVING,
   PersonStatus.CARE,
+  PersonStatus.ABROAD,
   PersonStatus.INACTIVE,
 ];
 
@@ -18,6 +19,7 @@ export const PERSON_STATUS_LABELS: Record<PersonStatus, string> = {
   [PersonStatus.COMMUNITY]: 'У спільноті',
   [PersonStatus.SERVING]: 'Служить',
   [PersonStatus.CARE]: 'Потребує опіки',
+  [PersonStatus.ABROAD]: 'За кордоном',
   [PersonStatus.INACTIVE]: 'Неактивний',
 };
 
@@ -29,6 +31,7 @@ export const PERSON_STATUS_HINTS: Record<PersonStatus, string> = {
   [PersonStatus.COMMUNITY]: 'включений у спільноту',
   [PersonStatus.SERVING]: 'служить',
   [PersonStatus.CARE]: 'потребує пасторської опіки',
+  [PersonStatus.ABROAD]: 'перебуває за кордоном',
   [PersonStatus.INACTIVE]: 'перестав приходити',
 };
 
@@ -43,6 +46,7 @@ export const PERSON_STATUS_BADGES: Record<PersonStatus, string> = {
   [PersonStatus.COMMUNITY]: 'bg-[#e8e0f0] text-[#5c4a76]',
   [PersonStatus.SERVING]: 'bg-[#f7e2cf] text-[#8c5423]',
   [PersonStatus.CARE]: 'bg-[#f5dcd6] text-[#9a4030]',
+  [PersonStatus.ABROAD]: 'bg-[#dce9e6] text-[#2f675e]',
   [PersonStatus.INACTIVE]: 'bg-[#e6e3dc] text-[#5b584f]',
 };
 
@@ -54,6 +58,7 @@ export const PERSON_STATUS_DOTS: Record<PersonStatus, string> = {
   [PersonStatus.COMMUNITY]: 'bg-[#8a6bb1]',
   [PersonStatus.SERVING]: 'bg-[#d2803a]',
   [PersonStatus.CARE]: 'bg-[#c04a36]',
+  [PersonStatus.ABROAD]: 'bg-[#3d8b7b]',
   [PersonStatus.INACTIVE]: 'bg-[#3b3c35]',
 };
 

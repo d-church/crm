@@ -1,5 +1,5 @@
 /// The church's own pipeline: перший візит → контакт → наступний крок → спільнота → служіння.
-/// CARE and INACTIVE sit outside the ladder — one needs attention, the other stopped coming.
+/// CARE, ABROAD and INACTIVE sit outside the ladder — they describe special care/status states.
 enum PersonStatus {
   NEW
   CONNECTED
@@ -7,6 +7,7 @@ enum PersonStatus {
   COMMUNITY
   SERVING
   CARE
+  ABROAD
   INACTIVE
 
   @@map("person_statuses")

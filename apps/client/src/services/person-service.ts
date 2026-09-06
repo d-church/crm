@@ -83,6 +83,7 @@ export const PersonStatus = {
   COMMUNITY: 'COMMUNITY',
   SERVING: 'SERVING',
   CARE: 'CARE',
+  ABROAD: 'ABROAD',
   INACTIVE: 'INACTIVE',
 } as const;
 
