@@ -77,7 +77,7 @@ function PeoplePage() {
     });
 
   useEffect(() => {
-    const next = debouncedQuery.trim();
+    const next = (debouncedQuery ?? '').trim();
 
     if (next === (search.q ?? '')) return;
 
