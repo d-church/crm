@@ -4,6 +4,7 @@ import { toDateInputValue } from '@/lib/format';
 import { FollowUpState, PersonStatus, type Person, type Writable } from '@/services';
 
 import { FOLLOW_UP_STATES, PERSON_STATUSES } from './status';
+import { databaseUuidSchema } from './uuid';
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
 
@@ -28,7 +29,7 @@ export const personSchema = z.object({
   lastSeenAt: optionalText(10),
   connectedBy: optionalText(80),
   nextStep: optionalText(120),
-  communityIds: z.array(z.string().uuid()),
+  communityIds: z.array(databaseUuidSchema),
   ministry: optionalText(80),
   responsible: optionalText(80),
   nextAction: optionalText(200),

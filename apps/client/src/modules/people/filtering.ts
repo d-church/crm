@@ -10,6 +10,7 @@ import {
 } from '@/services';
 
 import { PERSON_STATUSES } from './status';
+import { databaseUuidSchema } from './uuid';
 
 /** Sentinel for the "no filter" choice in the dropdowns and status pills. */
 export const ANY = 'ANY';
@@ -34,7 +35,7 @@ export const peopleSearchSchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   q: z.string().trim().max(100).optional(),
   status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]).optional(),
-  communityId: z.string().uuid().optional(),
+  communityId: databaseUuidSchema.optional(),
   ministry: z.string().max(80).optional(),
   sort: z.enum([...PEOPLE_SORTS]).optional(),
 });

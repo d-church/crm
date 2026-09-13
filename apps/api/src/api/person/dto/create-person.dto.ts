@@ -8,12 +8,13 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
+  Matches,
   MinLength,
 } from 'class-validator';
 
 import { FollowUpState, PersonStatus } from '@/infra/prisma/prisma.service';
+import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 
 export class CreatePersonDto {
   @ApiProperty({ example: 'Ігор', description: 'Given name.' })
@@ -129,7 +130,10 @@ export class CreatePersonDto {
   @IsOptional()
   @IsArray()
   @ArrayUnique()
-  @IsUUID('4', { each: true })
+  @Matches(DATABASE_UUID_PATTERN, {
+    each: true,
+    message: 'each value in communityIds must be a UUID',
+  })
   communityIds?: string[];
 
   @ApiPropertyOptional({ example: 'Прославлення', description: 'Служіння.' })

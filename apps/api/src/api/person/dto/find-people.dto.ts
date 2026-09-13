@@ -1,7 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
 
+import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 import { PersonStatus } from '@/infra/prisma/prisma.service';
 
 export const PEOPLE_SORTS = ['createdAt', 'lastSeenAt', 'name', 'status'] as const;
@@ -45,7 +46,7 @@ export class FindPeopleDto {
 
   @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
-  @IsUUID()
+  @Matches(DATABASE_UUID_PATTERN, { message: 'communityId must be a UUID' })
   communityId?: string;
 
   @ApiPropertyOptional({ example: 'Прославлення' })
