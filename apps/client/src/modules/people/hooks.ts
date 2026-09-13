@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import { PersonService, type PeopleQuery, type Person, type Writable } from '@/services';
+import { PersonService, type PeopleQuery } from '@/services';
 
 import {
   PEOPLE_LIST_KEY,
@@ -12,8 +12,9 @@ import {
   peopleStatsQueryOptions,
   personQueryOptions,
 } from './queries';
+import type { PersonPayload } from './person-form';
 
-export type PersonPayload = Omit<Writable<Person>, 'community'>;
+export type { PersonPayload } from './person-form';
 
 export const usePeople = (query: PeopleQuery) => useQuery(peopleQueryOptions(query));
 

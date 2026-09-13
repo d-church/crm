@@ -7,6 +7,7 @@ export * from './people-pagination';
 export * from './people-stats';
 export * from './people-table';
 export * from './person-dialog';
+export * from './person-inline-sections';
 export * from './person-status-badge';
 export * from './queries';
 export * from './status';

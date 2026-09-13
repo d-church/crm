@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 import {
   Button,
@@ -20,11 +19,17 @@ import {
   Textarea,
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { toDateInputValue } from '@/lib/format';
 import { useCommunities } from '@/modules/communities';
-import { FollowUpState, PersonStatus, type Person } from '@/services';
+import type { Person } from '@/services';
 
-import { useCreatePerson, useUpdatePerson, type PersonPayload } from './hooks';
+import { useCreatePerson, useUpdatePerson } from './hooks';
+import {
+  EMPTY_PERSON_VALUES,
+  personSchema,
+  toPersonPayload,
+  toPersonValues,
+  type PersonValues,
+} from './person-form';
 import {
   FOLLOW_UP_LABELS,
   FOLLOW_UP_STATES,
@@ -32,111 +37,6 @@ import {
   PERSON_STATUS_HINTS,
   PERSON_STATUS_LABELS,
 } from './status';
-
-const optionalText = (max: number) => z.string().trim().max(max).optional();
-
-const personSchema = z.object({
-  firstName: z.string().trim().min(2, 'Мінімум 2 символи').max(50, 'Максимум 50 символів'),
-  lastName: optionalText(50),
-  status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]),
-  followUp: z.enum(FOLLOW_UP_STATES as [FollowUpState, ...FollowUpState[]]),
-
-  phone: optionalText(30),
-  homePhone: optionalText(30),
-  workPhone: optionalText(30),
-  email: z.union([z.literal(''), z.string().email('Некоректний email')]).optional(),
-
-  city: optionalText(80),
-  address: optionalText(200),
-  postalCode: optionalText(10),
-  district: optionalText(80),
-  region: optionalText(80),
-
-  firstVisitAt: optionalText(10),
-  lastSeenAt: optionalText(10),
-  connectedBy: optionalText(80),
-  nextStep: optionalText(120),
-  communityId: z.union([z.literal(''), z.string().uuid()]).optional(),
-  ministry: optionalText(80),
-  responsible: optionalText(80),
-  nextAction: optionalText(200),
-  nextActionAt: optionalText(10),
-
-  birthDate: optionalText(10),
-  baptizedAt: optionalText(10),
-  memberSince: optionalText(10),
-  leftAt: optionalText(10),
-
-  notes: optionalText(2000),
-});
-
-type PersonValues = z.infer<typeof personSchema>;
-
-const EMPTY: PersonValues = {
-  firstName: '',
-  lastName: '',
-  status: PersonStatus.NEW,
-  followUp: FollowUpState.NOT_DONE,
-  phone: '',
-  homePhone: '',
-  workPhone: '',
-  email: '',
-  city: '',
-  address: '',
-  postalCode: '',
-  district: '',
-  region: '',
-  firstVisitAt: '',
-  lastSeenAt: '',
-  connectedBy: '',
-  nextStep: '',
-  communityId: '',
-  ministry: '',
-  responsible: '',
-  nextAction: '',
-  nextActionAt: '',
-  birthDate: '',
-  baptizedAt: '',
-  memberSince: '',
-  leftAt: '',
-  notes: '',
-};
-
-const DATE_KEYS = [
-  'firstVisitAt',
-  'lastSeenAt',
-  'nextActionAt',
-  'birthDate',
-  'baptizedAt',
-  'memberSince',
-  'leftAt',
-] as const satisfies readonly (keyof PersonValues)[];
-
-const DATE_KEY_SET = new Set<string>(DATE_KEYS);
-
-/** Every text input needs a string, and every date input needs `YYYY-MM-DD`. */
-const toValues = (person: Person): PersonValues =>
-  Object.fromEntries(
-    Object.entries(EMPTY).map(([key, fallback]) => {
-      const value = person[key as keyof Person];
-
-      if (value == null) return [key, fallback];
-
-      return [key, DATE_KEY_SET.has(key) ? toDateInputValue(String(value)) : String(value)];
-    }),
-  ) as PersonValues;
-
-/**
- * On create the API rejects empty strings (`email: ''` is not an email), so blanks
- * are dropped. On edit they have to be sent as `null` instead — dropping them
- * would silently keep the old value when someone deliberately cleared a field.
- */
-const toPayload = (values: PersonValues, isEdit: boolean): PersonPayload =>
-  Object.fromEntries(
-    Object.entries(values)
-      .map(([key, value]) => [key, value === '' ? null : value])
-      .filter(([, value]) => isEdit || value !== null),
-  );
 
 type PersonDialogProps = {
   /** Omit to add someone new; pass a person to edit them. */
@@ -146,7 +46,7 @@ type PersonDialogProps = {
 
 export const PersonDialog = ({ person, children }: PersonDialogProps) => {
   const isEdit = person !== undefined;
-  const initial = person ? toValues(person) : EMPTY;
+  const initial = person ? toPersonValues(person) : EMPTY_PERSON_VALUES;
 
   const [isOpen, setIsOpen] = useState(false);
   const { createPerson, isPending: isCreating } = useCreatePerson();
@@ -166,7 +66,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      const payload = toPayload(values, isEdit);
+      const payload = toPersonPayload(values, isEdit);
 
       if (isEdit) {
         await updatePerson(payload);
@@ -174,7 +74,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
       } else {
         await createPerson(payload);
         toast.success('Людину додано');
-        reset(EMPTY);
+        reset(EMPTY_PERSON_VALUES);
       }
 
       setIsOpen(false);
