@@ -1,6 +1,17 @@
 name: dchurch-crm
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    image: dchurch-crm:migrate
+    command: ['pnpm', 'db:deploy']
+    env_file:
+      - .env
+    restart: 'no'
+
   crm:
     build:
       context: .
@@ -13,6 +24,9 @@ services:
       - .env
     environment:
       NODE_ENV: production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - uploads:/usr/src/app/apps/api/uploads
     restart: unless-stopped

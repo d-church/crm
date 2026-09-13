@@ -31,7 +31,8 @@
     "prepare": "node -e \"if (process.env.HUSKY !== '0' && process.env.NODE_ENV !== 'production') require('child_process').execFileSync('husky', { stdio: 'inherit' })\"",
     "lint:api": "pnpm --filter api lint",
     "lint:client": "pnpm --filter client lint",
-    "ssh": "ssh root@185.233.116.174"
+    "ssh": "ssh root@185.233.116.174",
+    "prod:logs": "docker logs -f --tail 200 dchurch-crm-crm-1"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
