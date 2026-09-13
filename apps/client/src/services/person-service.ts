@@ -117,8 +117,7 @@ export interface Person {
   connectedBy: string | null;
   followUp: FollowUpState;
   nextStep: string | null;
-  communityId: string | null;
-  community: Pick<Community, 'id' | 'name'> | null;
+  communities: Pick<Community, 'id' | 'name'>[];
   ministry: string | null;
   responsible: string | null;
   nextAction: string | null;

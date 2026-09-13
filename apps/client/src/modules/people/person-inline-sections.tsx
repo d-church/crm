@@ -11,6 +11,7 @@ import { useCommunities } from '@/modules/communities';
 import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
+import { CommunityCheckboxes } from './community-checkboxes';
 import {
   personSchema,
   pickPersonValues,
@@ -51,7 +52,7 @@ const JOURNEY_FIELDS = [
   'lastSeenAt',
   'connectedBy',
   'nextStep',
-  'communityId',
+  'communityIds',
   'ministry',
   'responsible',
   'nextAction',
@@ -188,17 +189,11 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
               />
               <Field label="Next Step" error={errors.nextStep?.message} {...register('nextStep')} />
 
-              <div className="grid gap-1.5">
-                <Label htmlFor="communityId">Спільнота</Label>
-                <Select id="communityId" {...register('communityId')}>
-                  <option value="">Ще немає</option>
-                  {communities.map((community) => (
-                    <option key={community.id} value={community.id}>
-                      {community.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <CommunityCheckboxes
+                communities={communities}
+                register={register}
+                error={errors.communityIds?.message}
+              />
 
               <Field label="Служіння" error={errors.ministry?.message} {...register('ministry')} />
               <Field

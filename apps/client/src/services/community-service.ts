@@ -14,6 +14,14 @@ class CommunityServiceClass extends RestService<Community> {
   public createCommunity(data: Pick<Writable<Community>, 'name'>): Promise<Community> {
     return this.create(data);
   }
+
+  public updateCommunity(id: string, data: Pick<Writable<Community>, 'name'>): Promise<Community> {
+    return this.update(id, data);
+  }
+
+  public deleteCommunity(id: string): Promise<Community> {
+    return this.delete(id);
+  }
 }
 
 export const CommunityService = new CommunityServiceClass();

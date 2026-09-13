@@ -28,7 +28,7 @@ export const personSchema = z.object({
   lastSeenAt: optionalText(10),
   connectedBy: optionalText(80),
   nextStep: optionalText(120),
-  communityId: z.union([z.literal(''), z.string().uuid()]).optional(),
+  communityIds: z.array(z.string().uuid()),
   ministry: optionalText(80),
   responsible: optionalText(80),
   nextAction: optionalText(200),
@@ -44,7 +44,9 @@ export const personSchema = z.object({
 
 export type PersonValues = z.infer<typeof personSchema>;
 export type PersonField = keyof PersonValues;
-export type PersonPayload = Omit<Writable<Person>, 'community'>;
+export type PersonPayload = Omit<Writable<Person>, 'communities'> & {
+  communityIds?: string[] | null;
+};
 
 export const EMPTY_PERSON_VALUES: PersonValues = {
   firstName: '',
@@ -64,7 +66,7 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
   lastSeenAt: '',
   connectedBy: '',
   nextStep: '',
-  communityId: '',
+  communityIds: [],
   ministry: '',
   responsible: '',
   nextAction: '',
@@ -92,6 +94,8 @@ const DATE_KEY_SET = new Set<PersonField>(DATE_KEYS);
 export const toPersonValues = (person: Person): PersonValues =>
   Object.fromEntries(
     Object.entries(EMPTY_PERSON_VALUES).map(([key, fallback]) => {
+      if (key === 'communityIds') return [key, person.communities.map(({ id }) => id)];
+
       const value = person[key as keyof Person];
 
       if (value == null) return [key, fallback];

@@ -1,4 +1,6 @@
-import { PersonStatus } from '@/infra/prisma/prisma.service';
+import { PersonService } from './person.service';
+
+import { PersonStatus, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { buildPeopleWhere, toPersonData } from './person.service';
 
@@ -43,6 +45,28 @@ describe('toPersonData', () => {
   it('leaves non-date fields alone', () => {
     expect(toPersonData({ notes: null, city: 'Львів' })).toEqual({ notes: null, city: 'Львів' });
   });
+
+  it('replaces the complete community set', () => {
+    expect(
+      toPersonData({
+        communityIds: [
+          '00000000-0000-4000-8000-000000000001',
+          '00000000-0000-4000-8000-000000000002',
+        ],
+      }),
+    ).toEqual({
+      communities: {
+        set: [
+          { id: '00000000-0000-4000-8000-000000000001' },
+          { id: '00000000-0000-4000-8000-000000000002' },
+        ],
+      },
+    });
+  });
+
+  it('clears all communities when an empty set is sent', () => {
+    expect(toPersonData({ communityIds: [] })).toEqual({ communities: { set: [] } });
+  });
 });
 
 describe('buildPeopleWhere', () => {
@@ -50,7 +74,7 @@ describe('buildPeopleWhere', () => {
     expect(buildPeopleWhere({})).toEqual({});
   });
 
-  it('matches a status, community id and ministry exactly', () => {
+  it('matches a status, community membership and ministry exactly', () => {
     expect(
       buildPeopleWhere({
         status: PersonStatus.SERVING,
@@ -59,7 +83,7 @@ describe('buildPeopleWhere', () => {
       }),
     ).toEqual({
       status: PersonStatus.SERVING,
-      communityId: '00000000-0000-4000-8000-000000000001',
+      communities: { some: { id: '00000000-0000-4000-8000-000000000001' } },
       ministry: 'Прославлення',
     });
   });
@@ -103,5 +127,25 @@ describe('buildPeopleWhere', () => {
 
     expect(where.status).toBe(PersonStatus.NEW);
     expect(where.AND).toHaveLength(1);
+  });
+});
+
+describe('PersonService stats', () => {
+  it('counts people who belong to at least one community', async () => {
+    const count = jest
+      .fn()
+      .mockResolvedValueOnce(10)
+      .mockResolvedValueOnce(4)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
+    const service = new PersonService({ person: { count } } as unknown as PrismaService);
+
+    await expect(service.stats()).resolves.toMatchObject({
+      total: 10,
+      inCommunity: 4,
+      newThisMonth: 2,
+      needsAction: 1,
+    });
+    expect(count).toHaveBeenNthCalledWith(2, { where: { communities: { some: {} } } });
   });
 });

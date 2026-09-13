@@ -55,9 +55,8 @@ model Person {
   /// Next Step — the step they are going through, e.g. "зустріч для нових".
   nextStep    String?       @map("next_step")
 
-  /// Спільнота — one community can include many people; empty means "ще немає".
-  communityId String?    @map("community_id")
-  community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  /// Спільноти — a person can participate in any number of communities.
+  communities Community[]
   ministry    String?
 
   /// Відповідальний — team member carrying this person.
@@ -84,6 +83,5 @@ model Person {
 
   @@index([lastName, firstName])
   @@index([status])
-  @@index([communityId])
   @@map("people")
 }

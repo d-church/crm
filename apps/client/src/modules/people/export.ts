@@ -31,7 +31,7 @@ const toRow = (person: Person) =>
     person.connectedBy ?? '',
     FOLLOW_UP_LABELS[person.followUp],
     person.nextStep ?? '',
-    person.community?.name ?? '',
+    person.communities.map(({ name }) => name).join(', '),
     person.ministry ?? '',
     person.responsible ?? '',
     person.nextAction ?? '',

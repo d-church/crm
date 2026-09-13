@@ -2,7 +2,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { z } from 'zod';
 
 import {
   Button,
@@ -19,12 +18,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api-error';
 
 import { useCreateCommunity } from './hooks';
-
-const communitySchema = z.object({
-  name: z.string().trim().min(2, 'Мінімум 2 символи').max(80, 'Максимум 80 символів'),
-});
-
-type CommunityValues = z.infer<typeof communitySchema>;
+import { communitySchema, type CommunityValues } from './community-form';
 
 export const CommunityDialog = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);

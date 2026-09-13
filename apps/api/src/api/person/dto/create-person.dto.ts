@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayUnique,
+  IsArray,
   IsDateString,
   IsEmail,
   IsEnum,
@@ -120,10 +122,15 @@ export class CreatePersonDto {
   @MaxLength(120)
   nextStep?: string;
 
-  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
+  @ApiPropertyOptional({
+    example: ['00000000-0000-4000-8000-000000000001'],
+    description: 'Повний набір спільнот людини.',
+  })
   @IsOptional()
-  @IsUUID()
-  communityId?: string;
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  communityIds?: string[];
 
   @ApiPropertyOptional({ example: 'Прославлення', description: 'Служіння.' })
   @IsOptional()

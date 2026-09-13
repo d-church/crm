@@ -1,4 +1,4 @@
-/// A church community. One community can include many people.
+/// A church community. People may belong to more than one community.
 model Community {
   id String @id @default(uuid())
 

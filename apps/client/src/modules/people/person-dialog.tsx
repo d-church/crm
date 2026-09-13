@@ -23,6 +23,7 @@ import { useCommunities } from '@/modules/communities';
 import type { Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson } from './hooks';
+import { CommunityCheckboxes } from './community-checkboxes';
 import {
   EMPTY_PERSON_VALUES,
   personSchema,
@@ -163,17 +164,11 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               {...register('connectedBy')}
             />
             <Field label="Next Step" placeholder="зустріч для нових" {...register('nextStep')} />
-            <div className="grid gap-1.5">
-              <Label htmlFor="communityId">Спільнота</Label>
-              <Select id="communityId" {...register('communityId')}>
-                <option value="">Ще немає</option>
-                {communities.map((community) => (
-                  <option key={community.id} value={community.id}>
-                    {community.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <CommunityCheckboxes
+              communities={communities}
+              register={register}
+              error={errors.communityIds?.message}
+            />
             <Field label="Служіння" {...register('ministry')} />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field

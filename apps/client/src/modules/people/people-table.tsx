@@ -48,9 +48,22 @@ export const PeopleTable = ({ people }: { people: Person[] }) => (
 
           <PersonStatusBadge status={person.status} className="justify-self-start" />
 
-          <span className="text-ink truncate text-[13px]">
-            {person.community?.name ?? 'ще немає'}
-          </span>
+          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-[13px]">
+            {person.communities.length === 0 ? (
+              <span className="text-ink">ще немає</span>
+            ) : (
+              person.communities.map((community) => (
+                <Link
+                  key={community.id}
+                  to="/communities/$communityId"
+                  params={{ communityId: community.id }}
+                  className="text-ink truncate underline-offset-3 hover:underline"
+                >
+                  {community.name}
+                </Link>
+              ))
+            )}
+          </div>
           <span className="text-ink truncate text-[13px]">{person.ministry ?? '—'}</span>
           <span className="text-ink-soft text-[13px] tabular-nums">
             {person.lastSeenAt ? formatDayMonth(person.lastSeenAt) : '—'}

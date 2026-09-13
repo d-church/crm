@@ -15,6 +15,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
+import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppPeoplePersonIdRouteImport } from './routes/_app/people/$personId'
 
@@ -47,6 +48,12 @@ const AppCommunitiesIndexRoute = AppCommunitiesIndexRouteImport.update({
   path: '/communities/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCommunitiesCommunityIdRoute =
+  AppCommunitiesCommunityIdRouteImport.update({
+    id: '/communities/$communityId',
+    path: '/communities/$communityId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/profile': typeof AppProfileRoute
+  '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/communities/': typeof AppCommunitiesIndexRoute
   '/people/': typeof AppPeopleIndexRoute
@@ -72,6 +80,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/profile': typeof AppProfileRoute
   '/': typeof AppIndexRoute
+  '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/communities': typeof AppCommunitiesIndexRoute
   '/people': typeof AppPeopleIndexRoute
@@ -83,6 +92,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
   '/_app/communities/': typeof AppCommunitiesIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/profile'
+    | '/communities/$communityId'
     | '/people/$personId'
     | '/communities/'
     | '/people/'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/profile'
     | '/'
+    | '/communities/$communityId'
     | '/people/$personId'
     | '/communities'
     | '/people'
@@ -113,6 +125,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/_app/profile'
     | '/_app/'
+    | '/_app/communities/$communityId'
     | '/_app/people/$personId'
     | '/_app/communities/'
     | '/_app/people/'
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCommunitiesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/communities/$communityId': {
+      id: '/_app/communities/$communityId'
+      path: '/communities/$communityId'
+      fullPath: '/communities/$communityId'
+      preLoaderRoute: typeof AppCommunitiesCommunityIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/people/': {
       id: '/_app/people/'
       path: '/people'
@@ -188,6 +208,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
   AppCommunitiesIndexRoute: typeof AppCommunitiesIndexRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
@@ -196,6 +217,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppIndexRoute: AppIndexRoute,
+  AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,
   AppCommunitiesIndexRoute: AppCommunitiesIndexRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,

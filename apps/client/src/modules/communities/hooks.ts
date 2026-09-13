@@ -1,10 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { CommunityService } from '@/services';
+import { CommunityService, type Writable } from '@/services';
 
-import { COMMUNITIES_QUERY_KEY, communitiesQueryOptions } from './queries';
+import {
+  COMMUNITIES_QUERY_KEY,
+  COMMUNITY_KEY,
+  communitiesQueryOptions,
+  communityQueryOptions,
+} from './queries';
 
 export const useCommunities = () => useQuery(communitiesQueryOptions());
+
+export const useCommunity = (id: string) => useQuery(communityQueryOptions(id));
 
 export const useCreateCommunity = () => {
   const queryClient = useQueryClient();
@@ -19,4 +26,45 @@ export const useCreateCommunity = () => {
   });
 
   return { createCommunity, isPending, error };
+};
+
+export const useUpdateCommunity = (id: string) => {
+  const queryClient = useQueryClient();
+
+  const {
+    mutateAsync: updateCommunity,
+    isPending,
+    error,
+  } = useMutation({
+    mutationFn: (data: Pick<Writable<{ name: string }>, 'name'>) =>
+      CommunityService.updateCommunity(id, data),
+    onSuccess: async (community) => {
+      queryClient.setQueryData([...COMMUNITY_KEY, id], community);
+      await queryClient.invalidateQueries({ queryKey: COMMUNITIES_QUERY_KEY });
+    },
+  });
+
+  return { updateCommunity, isPending, error };
+};
+
+export const useDeleteCommunity = () => {
+  const queryClient = useQueryClient();
+
+  const {
+    mutateAsync: deleteCommunity,
+    isPending,
+    error,
+  } = useMutation({
+    mutationFn: (id: string) => CommunityService.deleteCommunity(id),
+    onSuccess: async (_community, id) => {
+      queryClient.removeQueries({ queryKey: [...COMMUNITY_KEY, id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: COMMUNITIES_QUERY_KEY }),
+        // Removing memberships also changes people rows and the "у спільноті" total.
+        queryClient.invalidateQueries({ queryKey: ['people'] }),
+      ]);
+    },
+  });
+
+  return { deleteCommunity, isPending, error };
 };

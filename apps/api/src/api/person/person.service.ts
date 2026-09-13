@@ -13,7 +13,7 @@ import {
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 
-const PERSON_INCLUDE = { community: true } as const satisfies Prisma.PersonInclude;
+const PERSON_INCLUDE = { communities: true } as const satisfies Prisma.PersonInclude;
 
 @Injectable()
 export class PersonService {
@@ -21,7 +21,7 @@ export class PersonService {
 
   public async create(createPersonDto: CreatePersonDto): Promise<Person> {
     return this.prismaService.person.create({
-      data: toPersonData(createPersonDto),
+      data: toPersonCreateData(createPersonDto),
       include: PERSON_INCLUDE,
     });
   }
@@ -55,7 +55,7 @@ export class PersonService {
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
       this.prismaService.person.count(),
       this.prismaService.person.count({
-        where: { communityId: { not: null } },
+        where: { communities: { some: {} } },
       }),
       this.prismaService.person.count({ where: { createdAt: { gte: monthAgo } } }),
       this.prismaService.person.count({
@@ -117,7 +117,14 @@ type PersonInput = { [K in keyof UpdatePersonDto]?: UpdatePersonDto[K] | null };
  */
 const toDate = (value: string | null) => (value === null ? null : new Date(value));
 
-const toPersonData = <T extends PersonInput>({
+const toPersonData = <T extends PersonInput>({ communityIds, ...personDto }: T) => ({
+  ...toPersonFields(personDto),
+  ...(communityIds === undefined
+    ? {}
+    : { communities: { set: (communityIds ?? []).map((id) => ({ id })) } }),
+});
+
+const toPersonFields = <T extends PersonInput>({
   birthDate,
   firstVisitAt,
   lastSeenAt,
@@ -138,6 +145,17 @@ const toPersonData = <T extends PersonInput>({
 });
 
 export { toPersonData };
+
+const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
+  const { communityIds, ...personDto } = createPersonDto;
+
+  return {
+    ...toPersonFields(personDto),
+    ...(communityIds === undefined
+      ? {}
+      : { communities: { connect: (communityIds ?? []).map((id) => ({ id })) } }),
+  };
+};
 
 export type Person = Prisma.PersonGetPayload<{ include: typeof PERSON_INCLUDE }>;
 
@@ -193,7 +211,7 @@ export const buildPeopleWhere = ({
 
   return {
     ...(status === undefined ? {} : { status }),
-    ...(communityId === undefined ? {} : { communityId }),
+    ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(ministry === undefined ? {} : { ministry }),
     ...(terms.length === 0
       ? {}

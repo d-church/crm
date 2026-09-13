@@ -57,8 +57,8 @@ function CommunitiesPage() {
             {communities.map((community) => (
               <Link
                 key={community.id}
-                to="/people"
-                search={{ communityId: community.id }}
+                to="/communities/$communityId"
+                params={{ communityId: community.id }}
                 className="hover:bg-accent grid grid-cols-[1fr_auto_auto] items-center gap-6 px-5 py-3.5 transition-colors"
               >
                 <div className="flex min-w-0 items-center gap-3">
