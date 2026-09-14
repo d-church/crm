@@ -57,6 +57,11 @@ model Person {
 
   /// Спільноти — a person can participate in any number of communities.
   communities Community[]
+  /// A person can belong to at most one home group.
+  homeGroupId String?    @map("home_group_id")
+  homeGroup   HomeGroup? @relation("HomeGroupMembers", fields: [homeGroupId], references: [id], onDelete: SetNull)
+  /// A leader may lead several home groups without being a member of them.
+  leadingHomeGroups HomeGroup[] @relation("HomeGroupLeader")
   ministry    String?
 
   /// Відповідальний — team member carrying this person.
@@ -83,5 +88,6 @@ model Person {
 
   @@index([lastName, firstName])
   @@index([status])
+  @@index([homeGroupId])
   @@map("people")
 }

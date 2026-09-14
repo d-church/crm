@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
+import { useHomeGroups } from '@/modules/home-groups';
 import {
   PeopleFilters,
   PeoplePagination,
@@ -56,6 +57,7 @@ function PeoplePage() {
   const { data: stats } = usePeopleStats();
   const { data: options } = usePeopleOptions();
   const { data: communities = [] } = useCommunities();
+  const { data: homeGroups = [] } = useHomeGroups();
 
   // The input is local and the request is debounced, so typing stays smooth.
   const [queryText, setQueryText] = useState(search.q ?? '');
@@ -87,8 +89,14 @@ function PeoplePage() {
   }, [debouncedQuery]);
 
   const selectedCommunity = communities.find(({ id }) => id === search.communityId)?.name;
+  const selectedHomeGroup = homeGroups.find(({ id }) => id === search.homeGroupId)?.name;
   const filterSummary =
-    [search.status ? PERSON_STATUS_LABELS[search.status] : null, selectedCommunity, search.ministry]
+    [
+      search.status ? PERSON_STATUS_LABELS[search.status] : null,
+      selectedCommunity,
+      selectedHomeGroup,
+      search.ministry,
+    ]
       .filter(Boolean)
       .join(' · ') || 'Без додаткових фільтрів';
 
@@ -136,6 +144,7 @@ function PeoplePage() {
           filters={search}
           query={queryText}
           communityOptions={communities}
+          homeGroupOptions={homeGroups}
           ministryOptions={options?.ministries ?? []}
           onQueryChange={setQueryText}
           onChange={patchSearch}

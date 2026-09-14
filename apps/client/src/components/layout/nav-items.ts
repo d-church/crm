@@ -8,4 +8,5 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Люди', to: '/people' },
   { label: 'Спільноти', to: '/communities' },
+  { label: 'Домашні групи', to: '/home-groups' },
 ];

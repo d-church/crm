@@ -36,6 +36,7 @@ export const peopleSearchSchema = z.object({
   q: z.string().trim().max(100).optional(),
   status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]).optional(),
   communityId: databaseUuidSchema.optional(),
+  homeGroupId: databaseUuidSchema.optional(),
   ministry: z.string().max(80).optional(),
   sort: z.enum([...PEOPLE_SORTS]).optional(),
 });
@@ -50,6 +51,7 @@ export const toPeopleQuery = (search: PeopleSearch): PeopleQuery => ({
   ...(search.q ? { search: search.q } : {}),
   ...(search.status ? { status: search.status } : {}),
   ...(search.communityId ? { communityId: search.communityId } : {}),
+  ...(search.homeGroupId ? { homeGroupId: search.homeGroupId } : {}),
   ...(search.ministry ? { ministry: search.ministry } : {}),
 });
 

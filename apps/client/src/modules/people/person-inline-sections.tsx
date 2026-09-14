@@ -8,6 +8,7 @@ import { Button, Card, CardContent, Field, Label, Select, Textarea } from '@/com
 import { getApiErrorMessage } from '@/lib/api-error';
 import { formatDateTime } from '@/lib/format';
 import { useCommunities } from '@/modules/communities';
+import { useHomeGroups } from '@/modules/home-groups';
 import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
@@ -53,6 +54,7 @@ const JOURNEY_FIELDS = [
   'connectedBy',
   'nextStep',
   'communityIds',
+  'homeGroupId',
   'ministry',
   'responsible',
   'nextAction',
@@ -132,6 +134,7 @@ const InlinePersonSection = ({ person, title, fields, children }: InlinePersonSe
 
 export const PersonInlineSections = ({ person }: { person: Person }) => {
   const { data: communities = [] } = useCommunities();
+  const { data: homeGroups = [] } = useHomeGroups();
 
   return (
     <div className="grid max-w-5xl gap-5 lg:grid-cols-2 lg:items-start">
@@ -194,6 +197,17 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 register={register}
                 error={errors.communityIds?.message}
               />
+              <div className="grid gap-1.5">
+                <Label htmlFor="homeGroupId">Домашня група</Label>
+                <Select id="homeGroupId" {...register('homeGroupId')}>
+                  <option value="">Немає</option>
+                  {homeGroups.map((homeGroup) => (
+                    <option key={homeGroup.id} value={homeGroup.id}>
+                      {homeGroup.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
               <Field label="Служіння" error={errors.ministry?.message} {...register('ministry')} />
               <Field

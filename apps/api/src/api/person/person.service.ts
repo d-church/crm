@@ -13,7 +13,10 @@ import {
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 
-const PERSON_INCLUDE = { communities: true } as const satisfies Prisma.PersonInclude;
+const PERSON_INCLUDE = {
+  communities: true,
+  homeGroup: { select: { id: true, name: true } },
+} as const satisfies Prisma.PersonInclude;
 
 @Injectable()
 export class PersonService {
@@ -75,6 +78,14 @@ export class PersonService {
     };
   }
 
+  /** Small relation-picker payload — avoids loading full person cards for a select. */
+  public async choices(): Promise<PersonChoice[]> {
+    return this.prismaService.person.findMany({
+      select: { id: true, firstName: true, lastName: true },
+      orderBy: [{ lastName: { sort: 'asc', nulls: 'last' } }, { firstName: 'asc' }],
+    });
+  }
+
   public async findOne(id: string): Promise<Person> {
     const person = await this.prismaService.person.findUnique({
       where: { id },
@@ -117,11 +128,12 @@ type PersonInput = { [K in keyof UpdatePersonDto]?: UpdatePersonDto[K] | null };
  */
 const toDate = (value: string | null) => (value === null ? null : new Date(value));
 
-const toPersonData = <T extends PersonInput>({ communityIds, ...personDto }: T) => ({
+const toPersonData = <T extends PersonInput>({ communityIds, homeGroupId, ...personDto }: T) => ({
   ...toPersonFields(personDto),
   ...(communityIds === undefined
     ? {}
     : { communities: { set: (communityIds ?? []).map((id) => ({ id })) } }),
+  ...(homeGroupId === undefined ? {} : { homeGroupId }),
 });
 
 const toPersonFields = <T extends PersonInput>({
@@ -147,13 +159,14 @@ const toPersonFields = <T extends PersonInput>({
 export { toPersonData };
 
 const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
-  const { communityIds, ...personDto } = createPersonDto;
+  const { communityIds, homeGroupId, ...personDto } = createPersonDto;
 
   return {
     ...toPersonFields(personDto),
     ...(communityIds === undefined
       ? {}
       : { communities: { connect: (communityIds ?? []).map((id) => ({ id })) } }),
+    ...(homeGroupId === undefined ? {} : { homeGroupId }),
   };
 };
 
@@ -175,6 +188,8 @@ export type PeopleStats = {
 };
 
 export type PeopleOptions = { ministries: string[] };
+
+export type PersonChoice = { id: string; firstName: string; lastName: string | null };
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -205,6 +220,7 @@ export const buildPeopleWhere = ({
   search,
   status,
   communityId,
+  homeGroupId,
   ministry,
 }: FindPeopleDto): Prisma.PersonWhereInput => {
   const terms = search?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -212,6 +228,7 @@ export const buildPeopleWhere = ({
   return {
     ...(status === undefined ? {} : { status }),
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
+    ...(homeGroupId === undefined ? {} : { homeGroupId }),
     ...(ministry === undefined ? {} : { ministry }),
     ...(terms.length === 0
       ? {}

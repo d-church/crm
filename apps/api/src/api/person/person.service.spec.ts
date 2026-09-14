@@ -67,6 +67,13 @@ describe('toPersonData', () => {
   it('clears all communities when an empty set is sent', () => {
     expect(toPersonData({ communityIds: [] })).toEqual({ communities: { set: [] } });
   });
+
+  it('sets and clears the optional home group', () => {
+    const homeGroupId = '00000000-0000-4000-8000-000000000010';
+
+    expect(toPersonData({ homeGroupId })).toEqual({ homeGroupId });
+    expect(toPersonData({ homeGroupId: null })).toEqual({ homeGroupId: null });
+  });
 });
 
 describe('buildPeopleWhere', () => {
@@ -85,6 +92,12 @@ describe('buildPeopleWhere', () => {
       status: PersonStatus.SERVING,
       communities: { some: { id: '00000000-0000-4000-8000-000000000001' } },
       ministry: 'Прославлення',
+    });
+  });
+
+  it('matches a home group exactly', () => {
+    expect(buildPeopleWhere({ homeGroupId: '00000000-0000-4000-8000-000000000010' })).toEqual({
+      homeGroupId: '00000000-0000-4000-8000-000000000010',
     });
   });
 

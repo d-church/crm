@@ -1,5 +1,6 @@
 import { RestService } from './abstracts/rest-service';
 import type { Community } from './community-service';
+import type { HomeGroup } from './home-group-service';
 
 export const PEOPLE_SORTS = ['createdAt', 'lastSeenAt', 'name', 'status'] as const;
 
@@ -12,6 +13,7 @@ export type PeopleQuery = {
   search?: string;
   status?: PersonStatus;
   communityId?: string;
+  homeGroupId?: string;
   ministry?: string;
   sort?: PeopleSort;
 };
@@ -33,6 +35,8 @@ export type PeopleStats = {
 
 export type PeopleOptions = { ministries: string[] };
 
+export type PersonChoice = { id: string; firstName: string; lastName: string | null };
+
 /** The API caps a page at 200; the CSV export pages through instead of asking for more. */
 export const MAX_PAGE_SIZE = 200;
 
@@ -53,6 +57,12 @@ class PersonServiceClass extends RestService<Person> {
 
   public async options(): Promise<PeopleOptions> {
     const response = await this.api.get<PeopleOptions>(`${this.anchor}/options`);
+
+    return response.data;
+  }
+
+  public async choices(): Promise<PersonChoice[]> {
+    const response = await this.api.get<PersonChoice[]>(`${this.anchor}/choices`);
 
     return response.data;
   }
@@ -118,6 +128,7 @@ export interface Person {
   followUp: FollowUpState;
   nextStep: string | null;
   communities: Pick<Community, 'id' | 'name'>[];
+  homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
   ministry: string | null;
   responsible: string | null;
   nextAction: string | null;
@@ -133,7 +144,7 @@ export interface Person {
   updatedAt: string;
 }
 
-export const getPersonName = ({ firstName, lastName }: Person) =>
+export const getPersonName = ({ firstName, lastName }: Pick<Person, 'firstName' | 'lastName'>) =>
   [firstName, lastName].filter(Boolean).join(' ');
 
 export const PersonService = new PersonServiceClass();

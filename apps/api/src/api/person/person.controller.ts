@@ -43,6 +43,13 @@ export class PersonController {
   }
 
   @Authorization()
+  @ApiOperation({ summary: 'Slim list of people for relation pickers' })
+  @Get('choices')
+  public choices() {
+    return this.personService.choices();
+  }
+
+  @Authorization()
   @ApiOperation({ summary: 'Get a single person by id' })
   @Get(':id')
   public findOne(@Param('id') id: string) {

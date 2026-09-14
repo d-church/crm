@@ -136,6 +136,14 @@ export class CreatePersonDto {
   })
   communityIds?: string[];
 
+  @ApiPropertyOptional({
+    example: '00000000-0000-4000-8000-000000000001',
+    description: 'Домашня група людини.',
+  })
+  @IsOptional()
+  @Matches(DATABASE_UUID_PATTERN, { message: 'homeGroupId must be a UUID' })
+  homeGroupId?: string;
+
   @ApiPropertyOptional({ example: 'Прославлення', description: 'Служіння.' })
   @IsOptional()
   @IsString()

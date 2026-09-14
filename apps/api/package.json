@@ -12,7 +12,7 @@
     "start:prod": "node dist/src/main",
     "db:generate": "prisma generate",
     "db:view": "prisma studio",
-    "db:migrate": "prisma migrate dev --name",
+    "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "test": "jest",
     "test:watch": "jest --watch",

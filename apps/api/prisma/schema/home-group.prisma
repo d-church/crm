@@ -1,0 +1,18 @@
+/// A home group has one optional leader and any number of members.
+model HomeGroup {
+  id String @id @default(uuid())
+
+  name String @unique
+  /// Where the group gathers. Kept as free text without geodata.
+  address String?
+
+  leaderId String? @map("leader_id")
+  leader   Person? @relation("HomeGroupLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  people   Person[] @relation("HomeGroupMembers")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([leaderId])
+  @@map("home_groups")
+}

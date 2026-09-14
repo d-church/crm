@@ -1,6 +1,6 @@
 import { Input, Select } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import type { Community, PeopleSort, PersonStatus } from '@/services';
+import type { Community, HomeGroup, PeopleSort, PersonStatus } from '@/services';
 
 import { ANY, DEFAULT_SORT, SORT_LABELS, type PeopleSearch } from './filtering';
 import { PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
@@ -10,6 +10,7 @@ type PeopleFiltersProps = {
   /** Local, so typing stays responsive while the request is debounced. */
   query: string;
   communityOptions: Community[];
+  homeGroupOptions: HomeGroup[];
   ministryOptions: string[];
   onQueryChange: (query: string) => void;
   onChange: (patch: Partial<PeopleSearch>) => void;
@@ -20,6 +21,7 @@ export const PeopleFilters = ({
   filters,
   query,
   communityOptions,
+  homeGroupOptions,
   ministryOptions,
   onQueryChange,
   onChange,
@@ -48,6 +50,21 @@ export const PeopleFilters = ({
         {communityOptions.map((community) => (
           <option key={community.id} value={community.id}>
             {community.name}
+          </option>
+        ))}
+      </Select>
+
+      <Select
+        value={filters.homeGroupId ?? ANY}
+        onChange={(event) =>
+          onChange({ homeGroupId: event.target.value === ANY ? undefined : event.target.value })
+        }
+        aria-label="Домашня група"
+      >
+        <option value={ANY}>Усі домашні групи</option>
+        {homeGroupOptions.map((homeGroup) => (
+          <option key={homeGroup.id} value={homeGroup.id}>
+            {homeGroup.name}
           </option>
         ))}
       </Select>

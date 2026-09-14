@@ -20,6 +20,7 @@ import {
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
+import { useHomeGroups } from '@/modules/home-groups';
 import type { Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson } from './hooks';
@@ -53,6 +54,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
   const { createPerson, isPending: isCreating } = useCreatePerson();
   const { updatePerson, isPending: isUpdating } = useUpdatePerson(person?.id ?? '');
   const { data: communities = [] } = useCommunities();
+  const { data: homeGroups = [] } = useHomeGroups();
   const isPending = isCreating || isUpdating;
 
   const {
@@ -169,6 +171,17 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               register={register}
               error={errors.communityIds?.message}
             />
+            <div className="grid gap-1.5">
+              <Label htmlFor="homeGroupId">Домашня група</Label>
+              <Select id="homeGroupId" {...register('homeGroupId')}>
+                <option value="">Немає</option>
+                {homeGroups.map((homeGroup) => (
+                  <option key={homeGroup.id} value={homeGroup.id}>
+                    {homeGroup.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <Field label="Служіння" {...register('ministry')} />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field
