@@ -37,6 +37,35 @@ export const PeopleFilters = ({
         className="min-w-[250px] flex-1"
       />
 
+      <div className="flex items-center gap-1.5" role="group" aria-label="Вік">
+        <span className="text-ink-soft text-[12.5px]">Вік</span>
+        <Input
+          type="number"
+          min={0}
+          max={filters.maxAge ?? 130}
+          value={filters.minAge ?? ''}
+          placeholder="від"
+          aria-label="Вік від"
+          className="w-20"
+          onChange={(event) =>
+            onChange({ minAge: event.target.value === '' ? undefined : Number(event.target.value) })
+          }
+        />
+        <span className="text-muted-foreground">—</span>
+        <Input
+          type="number"
+          min={filters.minAge ?? 0}
+          max={130}
+          value={filters.maxAge ?? ''}
+          placeholder="до"
+          aria-label="Вік до"
+          className="w-20"
+          onChange={(event) =>
+            onChange({ maxAge: event.target.value === '' ? undefined : Number(event.target.value) })
+          }
+        />
+      </div>
+
       <Select
         value={filters.communityId ?? ANY}
         onChange={(event) =>

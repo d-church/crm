@@ -44,6 +44,22 @@ export class FindPeopleDto {
   @IsIn(Object.values(PersonStatus))
   status?: PersonStatus;
 
+  @ApiPropertyOptional({ description: 'Minimum age in completed years', minimum: 0, maximum: 130 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(130)
+  minAge?: number;
+
+  @ApiPropertyOptional({ description: 'Maximum age in completed years', minimum: 0, maximum: 130 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(130)
+  maxAge?: number;
+
   @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'communityId must be a UUID' })

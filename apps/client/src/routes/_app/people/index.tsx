@@ -90,11 +90,20 @@ function PeoplePage() {
 
   const selectedCommunity = communities.find(({ id }) => id === search.communityId)?.name;
   const selectedHomeGroup = homeGroups.find(({ id }) => id === search.homeGroupId)?.name;
+  const ageRange =
+    search.minAge === undefined && search.maxAge === undefined
+      ? null
+      : search.minAge !== undefined && search.maxAge !== undefined
+        ? `${search.minAge}–${search.maxAge} р.`
+        : search.minAge !== undefined
+          ? `від ${search.minAge} р.`
+          : `до ${search.maxAge} р.`;
   const filterSummary =
     [
       search.status ? PERSON_STATUS_LABELS[search.status] : null,
       selectedCommunity,
       selectedHomeGroup,
+      ageRange,
       search.ministry,
     ]
       .filter(Boolean)
@@ -181,7 +190,14 @@ function PeoplePage() {
           <div className="flex flex-col gap-2 px-5 py-13.5 text-center">
             <span className="text-[15px]">Нікого не знайдено</span>
             <span className="text-ink-faint text-[13px]">
-              {page.total === 0 && !search.q && !search.status
+              {page.total === 0 &&
+              !search.q &&
+              !search.status &&
+              !search.communityId &&
+              !search.homeGroupId &&
+              !search.ministry &&
+              search.minAge === undefined &&
+              search.maxAge === undefined
                 ? 'Додайте першу людину — і вона зʼявиться в цьому списку.'
                 : 'Спробуйте змінити фільтри або пошуковий запит.'}
             </span>

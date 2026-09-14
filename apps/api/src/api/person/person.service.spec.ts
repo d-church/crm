@@ -101,6 +101,16 @@ describe('buildPeopleWhere', () => {
     });
   });
 
+  it('filters by completed age and excludes people without a birth date', () => {
+    const now = new Date('2026-09-14T12:00:00.000Z');
+    const where = buildPeopleWhere({ minAge: 18, maxAge: 30 }, now);
+    const birthDate = where.birthDate as { not: null; lte: Date; gt: Date };
+
+    expect(birthDate.not).toBeNull();
+    expect(birthDate.lte).toEqual(new Date('2008-09-14T12:00:00.000Z'));
+    expect(birthDate.gt).toEqual(new Date('1995-09-14T12:00:00.000Z'));
+  });
+
   it('searches every field case-insensitively', () => {
     const where = buildPeopleWhere({ search: 'петр' });
 

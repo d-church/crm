@@ -216,17 +216,15 @@ const SORT_ORDERS: Record<PeopleSort, Prisma.PersonOrderByWithRelationInput[]> =
  * Every search term has to match some field, so "Іван Петренко" finds the person
  * even though no single column holds the full name.
  */
-export const buildPeopleWhere = ({
-  search,
-  status,
-  communityId,
-  homeGroupId,
-  ministry,
-}: FindPeopleDto): Prisma.PersonWhereInput => {
+export const buildPeopleWhere = (
+  { search, status, minAge, maxAge, communityId, homeGroupId, ministry }: FindPeopleDto,
+  now = new Date(),
+): Prisma.PersonWhereInput => {
   const terms = search?.trim().split(/\s+/).filter(Boolean) ?? [];
 
   return {
     ...(status === undefined ? {} : { status }),
+    ...toAgeWhere(minAge, maxAge, now),
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
     ...(ministry === undefined ? {} : { ministry }),
@@ -240,6 +238,30 @@ export const buildPeopleWhere = ({
           })),
         }),
   };
+};
+
+/**
+ * An age range translates to a birth-date interval as of today. Comparisons on
+ * birthDate also intentionally exclude people whose date of birth is unknown.
+ */
+const toAgeWhere = (minAge: number | undefined, maxAge: number | undefined, now: Date) => {
+  if (minAge === undefined && maxAge === undefined) return {};
+
+  return {
+    birthDate: {
+      not: null,
+      ...(minAge === undefined ? {} : { lte: yearsAgo(now, minAge) }),
+      ...(maxAge === undefined ? {} : { gt: yearsAgo(now, maxAge + 1) }),
+    },
+  };
+};
+
+const yearsAgo = (date: Date, years: number) => {
+  const result = new Date(date);
+
+  result.setFullYear(result.getFullYear() - years);
+
+  return result;
 };
 
 const toSortedValues = (values: (string | null)[]): string[] =>

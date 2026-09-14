@@ -12,6 +12,8 @@ export type PeopleQuery = {
   limit?: number;
   search?: string;
   status?: PersonStatus;
+  minAge?: number;
+  maxAge?: number;
   communityId?: string;
   homeGroupId?: string;
   ministry?: string;
