@@ -1,8 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
+import { HomeGroupCategory } from '@/infra/prisma/prisma.service';
 
 const trimString = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
@@ -15,6 +24,10 @@ export class CreateHomeGroupDto {
   @MinLength(2)
   @MaxLength(80)
   name: string;
+
+  @ApiProperty({ enum: HomeGroupCategory, example: HomeGroupCategory.YOUTH })
+  @IsEnum(HomeGroupCategory)
+  category: HomeGroupCategory;
 
   @ApiPropertyOptional({ example: 'вул. Шевченка, 12, Винники' })
   @Transform(trimString)

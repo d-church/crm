@@ -1,14 +1,14 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { HomeGroupService } from '@/services';
+import { HomeGroupService, type HomeGroupsQuery } from '@/services';
 
 export const HOME_GROUPS_QUERY_KEY = ['home-groups'] as const;
 export const HOME_GROUP_KEY = [...HOME_GROUPS_QUERY_KEY, 'detail'] as const;
 
-export const homeGroupsQueryOptions = () =>
+export const homeGroupsQueryOptions = (query: HomeGroupsQuery = {}) =>
   queryOptions({
-    queryKey: HOME_GROUPS_QUERY_KEY,
-    queryFn: () => HomeGroupService.getAll(),
+    queryKey: [...HOME_GROUPS_QUERY_KEY, 'list', query],
+    queryFn: () => HomeGroupService.list(query),
   });
 
 export const homeGroupQueryOptions = (id: string) =>

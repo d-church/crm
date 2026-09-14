@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { HomeGroupService } from '@/services';
+import { HomeGroupService, type HomeGroupCategory, type HomeGroupsQuery } from '@/services';
 
 import {
   HOME_GROUP_KEY,
@@ -9,14 +9,15 @@ import {
   homeGroupsQueryOptions,
 } from './queries';
 
-export const useHomeGroups = () => useQuery(homeGroupsQueryOptions());
+export const useHomeGroups = (query: HomeGroupsQuery = {}) =>
+  useQuery(homeGroupsQueryOptions(query));
 
 export const useHomeGroup = (id: string) => useQuery(homeGroupQueryOptions(id));
 
 export const useCreateHomeGroup = () => {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (data: { name: string; address: string | null }) =>
+    mutationFn: (data: { name: string; category: HomeGroupCategory; address: string | null }) =>
       HomeGroupService.createHomeGroup(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: HOME_GROUPS_QUERY_KEY }),
   });
@@ -31,8 +32,12 @@ export const useCreateHomeGroup = () => {
 export const useUpdateHomeGroup = (id: string) => {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (data: { name: string; address: string | null; leaderId: string | null }) =>
-      HomeGroupService.updateHomeGroup(id, data),
+    mutationFn: (data: {
+      name: string;
+      category: HomeGroupCategory;
+      address: string | null;
+      leaderId: string | null;
+    }) => HomeGroupService.updateHomeGroup(id, data),
     onSuccess: async (homeGroup) => {
       queryClient.setQueryData([...HOME_GROUP_KEY, id], homeGroup);
       await Promise.all([

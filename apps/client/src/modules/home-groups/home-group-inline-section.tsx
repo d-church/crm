@@ -4,13 +4,14 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { Button, Card, CardContent, Field } from '@/components/ui';
+import { Button, Card, CardContent, Field, Label, Select } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { HomeGroup } from '@/services';
 import { usePersonChoices } from '@/modules/people';
 
 import { homeGroupSchema, type HomeGroupValues } from './home-group-form';
 import { useUpdateHomeGroup } from './hooks';
+import { HOME_GROUP_CATEGORIES, HOME_GROUP_CATEGORY_LABELS } from './category';
 import { LeaderCombobox } from './leader-combobox';
 
 export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) => {
@@ -26,6 +27,7 @@ export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) 
     resolver: zodResolver(homeGroupSchema),
     defaultValues: {
       name: homeGroup.name,
+      category: homeGroup.category,
       address: homeGroup.address ?? '',
       leaderId: homeGroup.leader?.id ?? '',
     },
@@ -37,21 +39,24 @@ export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) 
     if (!isDirty) {
       reset({
         name: homeGroup.name,
+        category: homeGroup.category,
         address: homeGroup.address ?? '',
         leaderId: homeGroup.leader?.id ?? '',
       });
     }
-  }, [homeGroup.address, homeGroup.leader?.id, homeGroup.name, isDirty, reset]);
+  }, [homeGroup.address, homeGroup.category, homeGroup.leader?.id, homeGroup.name, isDirty, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       const updatedHomeGroup = await updateHomeGroup({
         name: values.name,
+        category: values.category,
         address: values.address || null,
         leaderId: values.leaderId || null,
       });
       reset({
         name: updatedHomeGroup.name,
+        category: updatedHomeGroup.category,
         address: updatedHomeGroup.address ?? '',
         leaderId: updatedHomeGroup.leader?.id ?? '',
       });
@@ -73,6 +78,16 @@ export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) 
         </div>
         <CardContent className="grid gap-4 p-5">
           <Field label="Назва" error={errors.name?.message} {...register('name')} />
+          <div className="grid gap-1.5">
+            <Label htmlFor="category">Категорія</Label>
+            <Select id="category" {...register('category')}>
+              {HOME_GROUP_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {HOME_GROUP_CATEGORY_LABELS[category]}
+                </option>
+              ))}
+            </Select>
+          </div>
           <Field label="Адреса" error={errors.address?.message} {...register('address')} />
           <Controller
             control={control}

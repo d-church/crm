@@ -1,9 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
 
 import { CreateHomeGroupDto } from './dto/create-home-group.dto';
+import { FindHomeGroupsDto } from './dto/find-home-groups.dto';
 import { UpdateHomeGroupDto } from './dto/update-home-group.dto';
 import { HomeGroupService } from './home-group.service';
 
@@ -15,8 +16,8 @@ export class HomeGroupController {
   @Authorization()
   @ApiOperation({ summary: 'List home groups with their people counts and leaders' })
   @Get()
-  public findAll() {
-    return this.homeGroupService.findAll();
+  public findAll(@Query() query: FindHomeGroupsDto) {
+    return this.homeGroupService.findAll(query);
   }
 
   @Authorization()

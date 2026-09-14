@@ -1,8 +1,18 @@
+enum HomeGroupCategory {
+  YOUTH
+  FAMILY
+  SENIORS
+  FRIENDS
+
+  @@map("home_group_categories")
+}
+
 /// A home group has one optional leader and any number of members.
 model HomeGroup {
   id String @id @default(uuid())
 
   name String @unique
+  category HomeGroupCategory @default(YOUTH)
   /// Where the group gathers. Kept as free text without geodata.
   address String?
 

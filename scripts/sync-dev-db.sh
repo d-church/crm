@@ -115,4 +115,7 @@ printf 'Replacing local database...\n'
   psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -U "$LOCAL_POSTGRES_USER" -d "$LOCAL_POSTGRES_DB" \
   <"$DUMP_FILE" >/dev/null
 
+printf 'Applying local migrations...\n'
+(cd "$PROJECT_ROOT" && pnpm db:deploy)
+
 printf 'Local database is synchronized.\n'

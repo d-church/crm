@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { HomeGroupCategory, PrismaService } from '@/infra/prisma/prisma.service';
 
 import { CreateHomeGroupDto } from './dto/create-home-group.dto';
+import { FindHomeGroupsDto } from './dto/find-home-groups.dto';
 import { UpdateHomeGroupDto } from './dto/update-home-group.dto';
 
 const HOME_GROUP_INCLUDE = {
@@ -15,8 +16,9 @@ const HOME_GROUP_INCLUDE = {
 export class HomeGroupService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  public async findAll(): Promise<HomeGroup[]> {
+  public async findAll({ category }: FindHomeGroupsDto = {}): Promise<HomeGroup[]> {
     const homeGroups = await this.prismaService.homeGroup.findMany({
+      where: category === undefined ? {} : { category },
       orderBy: { name: 'asc' },
       include: HOME_GROUP_INCLUDE,
     });
@@ -67,16 +69,23 @@ export class HomeGroupService {
   }
 }
 
-type HomeGroupInput = { name?: string | null; address?: string | null; leaderId?: string | null };
+type HomeGroupInput = {
+  name?: string | null;
+  category?: HomeGroupCategory;
+  address?: string | null;
+  leaderId?: string | null;
+};
 
-const toHomeGroupCreateData = ({ name, address, leaderId }: CreateHomeGroupDto) => ({
+const toHomeGroupCreateData = ({ name, category, address, leaderId }: CreateHomeGroupDto) => ({
   name: name.trim(),
+  category,
   address: toNullableString(address),
   ...(leaderId ? { leader: { connect: { id: leaderId } } } : {}),
 });
 
-const toHomeGroupUpdateData = ({ name, address, leaderId }: HomeGroupInput) => ({
+const toHomeGroupUpdateData = ({ name, category, address, leaderId }: HomeGroupInput) => ({
   ...(name == null ? {} : { name: name.trim() }),
+  ...(category === undefined ? {} : { category }),
   ...(address === undefined ? {} : { address: toNullableString(address) }),
   ...(leaderId === undefined
     ? {}
@@ -99,6 +108,7 @@ type HomeGroupWithRelations = Prisma.HomeGroupGetPayload<{ include: typeof HOME_
 export type HomeGroup = {
   id: string;
   name: string;
+  category: HomeGroupCategory;
   address: string | null;
   leader: { id: string; firstName: string; lastName: string | null } | null;
   peopleCount: number;
