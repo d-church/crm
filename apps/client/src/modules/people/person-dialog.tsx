@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, type ReactNode } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import {
@@ -59,6 +59,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -171,17 +172,30 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               register={register}
               error={errors.communityIds?.message}
             />
-            <div className="grid gap-1.5">
-              <Label htmlFor="homeGroupId">Домашня група</Label>
-              <Select id="homeGroupId" {...register('homeGroupId')}>
-                <option value="">Немає</option>
-                {homeGroups.map((homeGroup) => (
-                  <option key={homeGroup.id} value={homeGroup.id}>
-                    {homeGroup.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <Controller
+              control={control}
+              name="homeGroupId"
+              render={({ field }) => (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="homeGroupId">Домашня група</Label>
+                  <Select
+                    id="homeGroupId"
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ''}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                  >
+                    <option value="">Немає</option>
+                    {homeGroups.map((homeGroup) => (
+                      <option key={homeGroup.id} value={homeGroup.id}>
+                        {homeGroup.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+            />
             <Field label="Служіння" {...register('ministry')} />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field

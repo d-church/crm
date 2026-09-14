@@ -1,7 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Save } from 'lucide-react';
 import { useEffect, useMemo, type ReactNode } from 'react';
-import { useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+} from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { Button, Card, CardContent, Field, Label, Select, Textarea } from '@/components/ui';
@@ -71,6 +77,7 @@ const DATE_FIELDS = [
 const NOTE_FIELDS = ['notes'] as const satisfies readonly PersonField[];
 
 type SectionFields = {
+  control: Control<PersonValues>;
   register: UseFormRegister<PersonValues>;
   errors: FieldErrors<PersonValues>;
 };
@@ -86,6 +93,7 @@ const InlinePersonSection = ({ person, title, fields, children }: InlinePersonSe
   const initialValues = useMemo(() => toPersonValues(person), [person]);
   const { updatePerson, isPending } = useUpdatePerson(person.id);
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -126,7 +134,7 @@ const InlinePersonSection = ({ person, title, fields, children }: InlinePersonSe
           </Button>
         </div>
 
-        <CardContent className="p-5">{children({ register, errors })}</CardContent>
+        <CardContent className="p-5">{children({ control, register, errors })}</CardContent>
       </form>
     </Card>
   );
@@ -171,7 +179,7 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
         </InlinePersonSection>
 
         <InlinePersonSection person={person} title="Шлях у церкві" fields={JOURNEY_FIELDS}>
-          {({ register, errors }) => (
+          {({ control, register, errors }) => (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label="Перший візит"
@@ -197,17 +205,30 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 register={register}
                 error={errors.communityIds?.message}
               />
-              <div className="grid gap-1.5">
-                <Label htmlFor="homeGroupId">Домашня група</Label>
-                <Select id="homeGroupId" {...register('homeGroupId')}>
-                  <option value="">Немає</option>
-                  {homeGroups.map((homeGroup) => (
-                    <option key={homeGroup.id} value={homeGroup.id}>
-                      {homeGroup.name}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <Controller
+                control={control}
+                name="homeGroupId"
+                render={({ field }) => (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="homeGroupId">Домашня група</Label>
+                    <Select
+                      id="homeGroupId"
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value ?? ''}
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                    >
+                      <option value="">Немає</option>
+                      {homeGroups.map((homeGroup) => (
+                        <option key={homeGroup.id} value={homeGroup.id}>
+                          {homeGroup.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+              />
 
               <Field label="Служіння" error={errors.ministry?.message} {...register('ministry')} />
               <Field
