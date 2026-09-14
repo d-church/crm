@@ -6,6 +6,7 @@ import { Button, Skeleton } from '@/components/ui';
 import { formatDate } from '@/lib/format';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { communitiesQueryOptions, CommunityDialog, useCommunities } from '@/modules/communities';
+import { getPersonName } from '@/services';
 
 export const Route = createFileRoute('/_app/communities/')({
   loader: ({ context }) => {
@@ -32,9 +33,10 @@ function CommunitiesPage() {
         }
       />
 
-      <section className="bg-card border-border max-w-4xl overflow-hidden rounded-xl border">
-        <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[1fr_auto_auto] gap-6 border-b px-5 py-3">
+      <section className="bg-card border-border max-w-5xl overflow-hidden rounded-xl border">
+        <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[1fr_1fr_auto_auto] gap-6 border-b px-5 py-3">
           <span>Назва</span>
+          <span>Лідер</span>
           <span className="w-24 text-right">Людей</span>
           <span className="w-28 text-right">Створено</span>
         </div>
@@ -59,7 +61,7 @@ function CommunitiesPage() {
                 key={community.id}
                 to="/communities/$communityId"
                 params={{ communityId: community.id }}
-                className="hover:bg-accent grid grid-cols-[1fr_auto_auto] items-center gap-6 px-5 py-3.5 transition-colors"
+                className="hover:bg-accent grid grid-cols-[1fr_1fr_auto_auto] items-center gap-6 px-5 py-3.5 transition-colors"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="bg-secondary text-primary grid size-8 shrink-0 place-items-center rounded-full">
@@ -67,6 +69,9 @@ function CommunitiesPage() {
                   </span>
                   <span className="truncate text-[13.5px]">{community.name}</span>
                 </div>
+                <span className="text-ink-soft truncate text-[13px]">
+                  {community.leader ? getPersonName(community.leader) : 'Не призначено'}
+                </span>
                 <span className="text-ink-soft w-24 text-right text-[13px] tabular-nums">
                   {community.peopleCount}
                 </span>

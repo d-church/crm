@@ -62,6 +62,8 @@ model Person {
   homeGroup   HomeGroup? @relation("HomeGroupMembers", fields: [homeGroupId], references: [id], onDelete: SetNull)
   /// A leader may lead several home groups without being a member of them.
   leadingHomeGroups HomeGroup[] @relation("HomeGroupLeader")
+  /// A leader may lead several communities without being a member of them.
+  leadingCommunities Community[] @relation("CommunityLeader")
   ministry    String?
 
   /// Відповідальний — team member carrying this person.

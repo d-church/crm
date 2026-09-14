@@ -30,7 +30,7 @@ export const CommunityDialog = ({ children }: { children: ReactNode }) => {
     formState: { errors },
   } = useForm<CommunityValues>({
     resolver: zodResolver(communitySchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: '', leaderId: '' },
   });
 
   const onSubmit = handleSubmit(async ({ name }) => {

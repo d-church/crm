@@ -36,7 +36,7 @@ export const useUpdateCommunity = (id: string) => {
     isPending,
     error,
   } = useMutation({
-    mutationFn: (data: Pick<Writable<{ name: string }>, 'name'>) =>
+    mutationFn: (data: Pick<Writable<{ name: string }>, 'name'> & { leaderId: string | null }) =>
       CommunityService.updateCommunity(id, data),
     onSuccess: async (community) => {
       queryClient.setQueryData([...COMMUNITY_KEY, id], community);

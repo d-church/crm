@@ -7,6 +7,7 @@ import { CommunityService } from './community.service';
 const community = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'D.Youth',
+  leader: { id: '00000000-0000-4000-8000-000000000002', firstName: 'Ірина', lastName: 'Коваль' },
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
   _count: { people: 2 },
@@ -34,7 +35,10 @@ describe('CommunityService', () => {
     });
     expect(findUnique).toHaveBeenCalledWith({
       where: { id: community.id },
-      include: { _count: { select: { people: true } } },
+      include: {
+        leader: { select: { id: true, firstName: true, lastName: true } },
+        _count: { select: { people: true } },
+      },
     });
   });
 
@@ -55,8 +59,33 @@ describe('CommunityService', () => {
     expect(update).toHaveBeenCalledWith({
       where: { id: community.id },
       data: { name: 'D.Family' },
-      include: { _count: { select: { people: true } } },
+      include: {
+        leader: { select: { id: true, firstName: true, lastName: true } },
+        _count: { select: { people: true } },
+      },
     });
+  });
+
+  it('allows assigning a leader who is not a member', async () => {
+    findUnique.mockResolvedValue(community);
+    update.mockResolvedValue(community);
+
+    await service.update(community.id, { leaderId: community.leader.id });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { leader: { connect: { id: community.leader.id } } } }),
+    );
+  });
+
+  it('clears a leader without deleting the community', async () => {
+    findUnique.mockResolvedValue(community);
+    update.mockResolvedValue({ ...community, leader: null });
+
+    await service.update(community.id, { leaderId: null } as never);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { leader: { disconnect: true } } }),
+    );
   });
 
   it('passes a duplicate-name constraint failure through to the API filter', async () => {
@@ -79,7 +108,10 @@ describe('CommunityService', () => {
     });
     expect(remove).toHaveBeenCalledWith({
       where: { id: community.id },
-      include: { _count: { select: { people: true } } },
+      include: {
+        leader: { select: { id: true, firstName: true, lastName: true } },
+        _count: { select: { people: true } },
+      },
     });
   });
 });

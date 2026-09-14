@@ -6,8 +6,13 @@ model Community {
 
   people Person[]
 
+  /// A leader can lead several communities without being a member of them.
+  leaderId String? @map("leader_id")
+  leader   Person? @relation("CommunityLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([leaderId])
   @@map("communities")
 }
