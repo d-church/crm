@@ -62,7 +62,7 @@ export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) 
   });
 
   return (
-    <Card className="max-w-xl overflow-hidden">
+    <Card className="max-w-xl">
       <form onSubmit={onSubmit} noValidate>
         <div className="border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
           <span className="eyebrow text-muted-foreground">Основне</span>
