@@ -24,7 +24,7 @@ export const useSwagger = (app: INestApplication) => {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'Access token returned by register/login.',
+        description: 'Access token returned by login.',
       },
       ACCESS_TOKEN_SECURITY_NAME,
     )

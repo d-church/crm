@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -93,13 +93,6 @@ function LoginPage() {
             <Button type="submit" disabled={isPending}>
               {isPending ? 'Входимо…' : 'Увійти'}
             </Button>
-
-            <p className="text-muted-foreground text-center text-sm">
-              Немає акаунта?{' '}
-              <Link to="/register" className="text-foreground underline underline-offset-4">
-                Зареєструватися
-              </Link>
-            </p>
           </form>
         </CardContent>
       </Card>

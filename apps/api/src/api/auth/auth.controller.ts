@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -7,19 +7,11 @@ import { Authorization } from '@/common/decorators/authorization.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @ApiOperation({ summary: 'Register' })
-  @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  public async register(@Body() registerDto: RegisterDto) {
-    return await this.authService.register(registerDto);
-  }
 
   @ApiOperation({ summary: 'Login' })
   @Post('login')

@@ -1,12 +1,11 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { hash, verify } from 'argon2';
+import { verify } from 'argon2';
 import type { StringValue } from 'ms';
 
 import { UserService, toSafeUser, type User } from '@/api/user/user.service';
 
-import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
 import { JWTAccessTokenPayload } from './auth.interfaces';
@@ -25,20 +24,6 @@ export class AuthService {
     this.JWT_REFRESH_EXPIRATION_TIME = this.configService.getOrThrow<StringValue>(
       'JWT_REFRESH_EXPIRATION_TIME',
     );
-  }
-
-  public async register(registerDto: RegisterDto) {
-    const { password, ...userData } = registerDto;
-    const hashedPassword = await hash(password);
-
-    const user = await this.userService.create({
-      ...userData,
-      password: hashedPassword,
-    });
-
-    const tokens = await this.generateTokens(user);
-
-    return { user: toSafeUser(user), ...tokens };
   }
 
   public async login(loginDto: LoginDto) {

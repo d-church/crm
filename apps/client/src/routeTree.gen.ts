@@ -11,9 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
 import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
 import { Route as AppHomeGroupsIndexRouteImport } from './routes/_app/home-groups/index'
@@ -30,11 +30,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +38,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCommunitiesIndexRoute = AppCommunitiesIndexRouteImport.update({
@@ -81,8 +81,8 @@ const AppPeoplePersonIdRoute = AppPeoplePersonIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/profile': typeof AppProfileRoute
+  '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
@@ -92,8 +92,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/profile': typeof AppProfileRoute
+  '/users': typeof AppUsersRoute
   '/': typeof AppIndexRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
@@ -106,8 +106,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/register': typeof RegisterRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/users': typeof AppUsersRoute
   '/_app/': typeof AppIndexRoute
   '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/_app/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
@@ -121,8 +121,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/register'
     | '/profile'
+    | '/users'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
     | '/people/$personId'
@@ -132,8 +132,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/register'
     | '/profile'
+    | '/users'
     | '/'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
@@ -145,8 +145,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
-    | '/register'
     | '/_app/profile'
+    | '/_app/users'
     | '/_app/'
     | '/_app/communities/$communityId'
     | '/_app/home-groups/$homeGroupId'
@@ -159,7 +159,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
-  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -178,13 +177,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app/': {
       id: '/_app/'
       path: '/'
@@ -197,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/users': {
+      id: '/_app/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AppUsersRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/communities/': {
@@ -246,6 +245,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
+  AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
   AppHomeGroupsHomeGroupIdRoute: typeof AppHomeGroupsHomeGroupIdRoute
@@ -257,6 +257,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
+  AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,
   AppHomeGroupsHomeGroupIdRoute: AppHomeGroupsHomeGroupIdRoute,
@@ -271,7 +272,6 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
-  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

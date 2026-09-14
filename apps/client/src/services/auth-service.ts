@@ -10,14 +10,6 @@ class AuthServiceClass extends ApiService {
     return response.data.user;
   }
 
-  public async register(credentials: RegisterCredentials): Promise<User> {
-    const response = await this.api.post<AuthResponse>('/auth/register', credentials);
-
-    this.persist(response.data);
-
-    return response.data.user;
-  }
-
   public logout(): void {
     AuthServiceClass.tokenStorage.clearTokens();
   }
@@ -46,11 +38,6 @@ class AuthServiceClass extends ApiService {
 export interface LoginCredentials {
   email: string;
   password: string;
-}
-
-export interface RegisterCredentials extends LoginCredentials {
-  firstName: string;
-  lastName: string;
 }
 
 type AuthResponse = {

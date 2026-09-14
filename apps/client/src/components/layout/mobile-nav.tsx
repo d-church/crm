@@ -4,7 +4,7 @@ import logoMark from '@/assets/brand/logo-main.svg';
 import { getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
-import { NAV_ITEMS } from './nav-items';
+import { getNavItems } from './nav-items';
 import { UserMenu } from './user-menu';
 
 /** Below `md` the sidebar collapses into a header plus a scrollable nav strip. */
@@ -29,7 +29,7 @@ export const MobileNav = ({ user }: { user: User }) => (
     </div>
 
     <nav className="flex gap-1 overflow-x-auto px-4 pb-3">
-      {NAV_ITEMS.map((item) => (
+      {getNavItems(user.role).map((item) => (
         <Link
           key={item.to}
           to={item.to}

@@ -5,7 +5,7 @@ import logoMark from '@/assets/brand/logo-main.svg';
 import { getFullName, getInitials } from '@/lib/format';
 import type { User } from '@/services';
 
-import { NAV_ITEMS } from './nav-items';
+import { getNavItems } from './nav-items';
 import { NavSection } from './nav-section';
 import { UserMenu } from './user-menu';
 
@@ -28,7 +28,7 @@ export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
       </div>
     </Link>
 
-    <NavSection title="Основне" items={NAV_ITEMS} counts={{ Люди: peopleCount }} />
+    <NavSection title="Основне" items={getNavItems(user.role)} counts={{ Люди: peopleCount }} />
 
     <div className="mt-auto flex items-center gap-1.5">
       <Link

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { AuthService, type LoginCredentials, type RegisterCredentials } from '@/services';
+import { AuthService, type LoginCredentials } from '@/services';
 
 import { ME_QUERY_KEY, meQueryOptions } from './queries';
 
@@ -25,23 +25,6 @@ export const useLogin = () => {
   });
 
   return { login, isPending, error };
-};
-
-export const useRegister = () => {
-  const queryClient = useQueryClient();
-
-  const {
-    mutateAsync: register,
-    isPending,
-    error,
-  } = useMutation({
-    mutationFn: (dto: RegisterCredentials) => AuthService.register(dto),
-    onSuccess: (user) => {
-      queryClient.setQueryData(ME_QUERY_KEY, user);
-    },
-  });
-
-  return { register, isPending, error };
 };
 
 export const useLogout = () => {

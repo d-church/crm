@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { RedisService } from '@/infra/redis/redis.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 const USER_CACHE_TTL_SECONDS = 60;
 
@@ -22,18 +24,26 @@ export class UserService {
     private readonly redisService: RedisService,
   ) {}
 
-  public async create(createUserDto: CreateUserDto) {
+  public async create({
+    password,
+    confirmPassword,
+    email,
+    ...userData
+  }: CreateUserDto): Promise<User> {
+    if (password !== confirmPassword) {
+      throw new BadRequestException('Паролі не збігаються');
+    }
+
     const existingUser = await this.prismaService.user.findUnique({
-      where: {
-        email: createUserDto.email,
-      },
+      where: { email },
     });
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
 
     const user = await this.prismaService.user.create({
-      data: createUserDto,
+      data: { ...userData, email, password: await hash(password) },
+      select: userSelect,
     });
 
     return user;
@@ -42,6 +52,7 @@ export class UserService {
   public async findAll(): Promise<User[]> {
     return await this.prismaService.user.findMany({
       select: userSelect,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
   }
 
@@ -112,6 +123,39 @@ export class UserService {
     await this.redisService.del(`user:id:${id}`);
   }
 
+  public async updateRole(
+    currentUserId: string,
+    userId: string,
+    { role }: UpdateUserRoleDto,
+  ): Promise<User> {
+    this.assertDifferentUser(currentUserId, userId, 'змінювати власну роль');
+    await this.findOne(userId);
+
+    const user = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { role },
+      select: userSelect,
+    });
+
+    await this.redisService.del(`user:id:${userId}`);
+
+    return user;
+  }
+
+  public async remove(currentUserId: string, userId: string): Promise<User> {
+    this.assertDifferentUser(currentUserId, userId, 'видаляти самого себе');
+    await this.findOne(userId);
+
+    const user = await this.prismaService.user.delete({
+      where: { id: userId },
+      select: userSelect,
+    });
+
+    await this.redisService.del(`user:id:${userId}`);
+
+    return user;
+  }
+
   public async findByIdForAuth(id: string): Promise<User> {
     const user = await this.redisService.retrieve<User | null>({
       key: `user:id:${id}`,
@@ -128,6 +172,12 @@ export class UserService {
     }
 
     return user;
+  }
+
+  private assertDifferentUser(currentUserId: string, targetUserId: string, action: string): void {
+    if (currentUserId === targetUserId) {
+      throw new ForbiddenException(`Не можна ${action}`);
+    }
   }
 }
 
