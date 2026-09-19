@@ -2,7 +2,7 @@ import { PersonService } from './person.service';
 
 import { PersonStatus, type PrismaService } from '@/infra/prisma/prisma.service';
 
-import { buildPeopleWhere, toPersonData } from './person.service';
+import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
 
 describe('toPersonData', () => {
   it('leaves untouched fields out so a PATCH stays partial', () => {
@@ -145,11 +145,75 @@ describe('buildPeopleWhere', () => {
     expect(buildPeopleWhere({ search: '   ' })).toEqual({});
   });
 
+  it('adds the condition filter next to the search terms without clobbering simple filters', () => {
+    const now = new Date('2026-09-14T12:00:00.000Z');
+    const where = buildPeopleWhere(
+      {
+        search: 'Іван',
+        minAge: 18,
+        filter: { match: 'any', conditions: [{ field: 'age', operator: 'isEmpty' }] },
+      },
+      now,
+    );
+
+    expect(where.birthDate).toMatchObject({ not: null });
+    expect(where.AND).toHaveLength(2);
+    expect((where.AND as unknown[])[1]).toEqual({ OR: [{ birthDate: null }] });
+  });
+
   it('keeps a status filter alongside a search', () => {
     const where = buildPeopleWhere({ search: 'Іван', status: PersonStatus.NEW });
 
     expect(where.status).toBe(PersonStatus.NEW);
     expect(where.AND).toHaveLength(1);
+  });
+});
+
+describe('buildPeopleOrderBy', () => {
+  it('defaults to the newest additions first', () => {
+    expect(buildPeopleOrderBy()).toEqual([{ createdAt: 'desc' }]);
+  });
+
+  it('starts other columns ascending — alphabetical, or smallest first', () => {
+    expect(buildPeopleOrderBy('city')).toEqual([{ city: { sort: 'asc', nulls: 'last' } }]);
+    expect(buildPeopleOrderBy('memberSince', 'desc')).toEqual([
+      { memberSince: { sort: 'desc', nulls: 'last' } },
+    ]);
+  });
+
+  it('sorts a name by surname, then by first name', () => {
+    expect(buildPeopleOrderBy('name', 'asc')).toEqual([
+      { lastName: { sort: 'asc', nulls: 'last' } },
+      { firstName: 'asc' },
+    ]);
+  });
+
+  it('keeps blanks last whichever way a nullable column is sorted', () => {
+    for (const order of ['asc', 'desc'] as const) {
+      expect(buildPeopleOrderBy('ministry', order)).toEqual([
+        { ministry: { sort: order, nulls: 'last' } },
+      ]);
+    }
+  });
+
+  it('needs no nulls rule for a column that is always filled', () => {
+    expect(buildPeopleOrderBy('status', 'asc')).toEqual([{ status: 'asc' }]);
+  });
+
+  it('turns age around, because the oldest person was born first', () => {
+    expect(buildPeopleOrderBy('age', 'asc')).toEqual([
+      { birthDate: { sort: 'desc', nulls: 'last' } },
+    ]);
+  });
+
+  it('sorts birthdays by day and month, ignoring the year', () => {
+    expect(buildPeopleOrderBy('birthday', 'asc')).toEqual([
+      { birthMd: { sort: 'asc', nulls: 'last' } },
+    ]);
+  });
+
+  it('sorts a home group by its name', () => {
+    expect(buildPeopleOrderBy('homeGroup', 'desc')).toEqual([{ homeGroup: { name: 'desc' } }]);
   });
 });
 

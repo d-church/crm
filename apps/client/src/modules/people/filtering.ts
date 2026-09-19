@@ -3,28 +3,64 @@ import { z } from 'zod';
 import { getAge } from '@/lib/format';
 import {
   PEOPLE_SORTS,
+  type PeopleFilter,
+  type PeopleFilterField,
+  type PeopleFilterOperator,
   type PeopleQuery,
   type PeopleSort,
   type Person,
-  type PersonStatus,
+  type SortOrder,
 } from '@/services';
 
-import { PERSON_STATUSES } from './status';
-import { databaseUuidSchema } from './uuid';
-
-/** Sentinel for the "no filter" choice in the dropdowns and status pills. */
-export const ANY = 'ANY';
+import { FILTER_FIELDS, getOperators, MAX_FILTER_CONDITIONS } from './filter-fields';
 
 export const PAGE_SIZE = 25;
 
 export const DEFAULT_SORT: PeopleSort = 'createdAt';
+/** Newest additions first — what the default view means. */
+export const DEFAULT_SORT_ORDER: SortOrder = 'desc';
 
-export const SORT_LABELS: Record<PeopleSort, string> = {
-  createdAt: 'За датою додавання',
-  lastSeenAt: 'За останньою зустріччю',
-  name: 'За іменем',
-  status: 'За статусом',
-};
+const FILTER_FIELD_NAMES = FILTER_FIELDS.map(({ field }) => field) as [
+  PeopleFilterField,
+  ...PeopleFilterField[],
+];
+
+/**
+ * Only the shape is checked here — the API validates values per field. A field or
+ * operator this client does not know about fails the whole filter, which is then
+ * dropped rather than sent.
+ */
+export const peopleFilterSchema = z.preprocess(
+  // Normally the router hands over the parsed object; a hand-typed URL may not.
+  (value) => {
+    if (typeof value !== 'string') return value;
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  },
+  z.object({
+    match: z.enum(['all', 'any']),
+    conditions: z
+      .array(
+        z
+          .object({
+            field: z.enum(FILTER_FIELD_NAMES),
+            operator: z.string(),
+            value: z
+              .union([z.string(), z.number(), z.array(z.string()), z.array(z.number())])
+              .optional(),
+          })
+          .refine(({ field, operator }) =>
+            getOperators(field).includes(operator as PeopleFilterOperator),
+          ),
+      )
+      .min(1)
+      .max(MAX_FILTER_CONDITIONS),
+  }),
+) as z.ZodType<PeopleFilter | undefined>;
 
 /**
  * Filters live in the URL, so a filtered list can be shared, bookmarked and
@@ -34,29 +70,27 @@ export const SORT_LABELS: Record<PeopleSort, string> = {
 export const peopleSearchSchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   q: z.string().trim().max(100).optional(),
-  status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]).optional(),
-  minAge: z.coerce.number().int().min(0).max(130).optional(),
-  maxAge: z.coerce.number().int().min(0).max(130).optional(),
-  communityId: databaseUuidSchema.optional(),
-  homeGroupId: databaseUuidSchema.optional(),
-  ministry: z.string().max(80).optional(),
+  // A broken filter is dropped on its own instead of resetting the search and page.
+  filter: peopleFilterSchema.optional().catch(undefined),
   sort: z.enum([...PEOPLE_SORTS]).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
 });
 
 export type PeopleSearch = z.infer<typeof peopleSearchSchema>;
 
+/** Detail pages list the members of one community or home group with the same table. */
+type PeopleQueryInput = PeopleSearch & Pick<PeopleQuery, 'communityId' | 'homeGroupId'>;
+
 /** URL search params → the query the API expects. */
-export const toPeopleQuery = (search: PeopleSearch): PeopleQuery => ({
+export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
   page: search.page ?? 1,
   limit: PAGE_SIZE,
   sort: search.sort ?? DEFAULT_SORT,
+  order: search.order ?? (search.sort && search.sort !== DEFAULT_SORT ? 'asc' : DEFAULT_SORT_ORDER),
   ...(search.q ? { search: search.q } : {}),
-  ...(search.status ? { status: search.status } : {}),
-  ...(search.minAge === undefined ? {} : { minAge: search.minAge }),
-  ...(search.maxAge === undefined ? {} : { maxAge: search.maxAge }),
+  ...(search.filter ? { filter: search.filter } : {}),
   ...(search.communityId ? { communityId: search.communityId } : {}),
   ...(search.homeGroupId ? { homeGroupId: search.homeGroupId } : {}),
-  ...(search.ministry ? { ministry: search.ministry } : {}),
 });
 
 /** Second line under the name: "45 р. · Львів", skipping whatever is missing. */
