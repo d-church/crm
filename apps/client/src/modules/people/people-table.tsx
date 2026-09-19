@@ -1,78 +1,116 @@
-import { Link } from '@tanstack/react-router';
+import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 
-import { formatDayMonth, getInitials } from '@/lib/format';
-import { getPersonName, type Person } from '@/services';
+import { cn } from '@/lib/utils';
+import type { PeopleSort, Person, SortOrder } from '@/services';
 
-import { getPersonMeta } from './filtering';
-import { PersonStatusBadge } from './person-status-badge';
+import { usePeopleColumns, type PersonColumn } from './people-columns';
+
+type PeopleTableProps = {
+  people: Person[];
+  /** Omitted on detail pages, where the list has one fixed order and no headers to click. */
+  sort?: { field: PeopleSort; order: SortOrder };
+  onSortChange?: (sort: { field: PeopleSort; order: SortOrder }) => void;
+};
 
 /** One grid template drives both the header and the rows. */
-const COLUMNS = 'grid grid-cols-[2.1fr_1.1fr_1.3fr_1.2fr_.9fr_.8fr] gap-4 px-5';
+const toGridStyle = (columns: PersonColumn[]) => ({
+  gridTemplateColumns: columns
+    .map(({ minWidth, width }) => `minmax(${minWidth}px, ${width}fr)`)
+    .join(' '),
+});
 
-export const PeopleTable = ({ people }: { people: Person[] }) => (
-  <div className="min-w-[880px]">
-    <div className={`${COLUMNS} eyebrow text-muted-foreground border-border-muted border-b py-3`}>
-      <span>Імʼя</span>
-      <span>Статус</span>
-      <span>Спільнота</span>
-      <span>Служіння</span>
-      <span>Остання зустріч</span>
-      <span className="text-right">Контакт</span>
-    </div>
+const GRID = 'grid gap-4 px-5';
 
-    {people.map((person) => {
-      const name = getPersonName(person);
-      const meta = getPersonMeta(person);
+/** Columns come from the one per-browser choice, so every people list matches. */
+export const PeopleTable = ({ people, sort, onSortChange }: PeopleTableProps) => {
+  const { columns } = usePeopleColumns();
 
-      return (
+  // Narrower than the sum of the minimums the table scrolls instead of squashing.
+  const minWidth = columns.reduce((total, column) => total + column.minWidth, 0) + 40;
+  const style = toGridStyle(columns);
+
+  return (
+    <div style={{ minWidth }}>
+      <div
+        className={cn(GRID, 'eyebrow text-muted-foreground border-border-muted border-b py-3')}
+        style={style}
+      >
+        {columns.map((column) => (
+          <ColumnHeader key={column.key} column={column} sort={sort} onSortChange={onSortChange} />
+        ))}
+      </div>
+
+      {people.map((person) => (
         <div
           key={person.id}
-          className={`${COLUMNS} border-border-subtle hover:bg-accent items-center border-b py-3.25 transition-colors`}
+          className={cn(
+            GRID,
+            'border-border-subtle hover:bg-accent items-center border-b py-3.25 transition-colors',
+          )}
+          style={style}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-8 flex-none place-items-center rounded-full bg-[#e6ece5] text-[11.5px] text-[#3f4a43]">
-              {getInitials(name)}
-            </span>
-
-            <span className="flex min-w-0 flex-col">
-              <Link
-                to="/people/$personId"
-                params={{ personId: person.id }}
-                className="text-foreground truncate text-[13.5px] underline-offset-3 hover:underline"
-              >
-                {name}
-              </Link>
-              {meta ? <span className="text-ink-faint text-[11.5px]">{meta}</span> : null}
-            </span>
-          </div>
-
-          <PersonStatusBadge status={person.status} className="justify-self-start" />
-
-          <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-[13px]">
-            {person.communities.length === 0 ? (
-              <span className="text-ink">ще немає</span>
-            ) : (
-              person.communities.map((community) => (
-                <Link
-                  key={community.id}
-                  to="/communities/$communityId"
-                  params={{ communityId: community.id }}
-                  className="text-ink truncate underline-offset-3 hover:underline"
+          {columns.map((column) => (
+            <div key={column.key} className="min-w-0">
+              {column.cell ? (
+                column.cell(person)
+              ) : (
+                <span
+                  className={cn(
+                    'text-ink block truncate text-[13px]',
+                    column.align === 'right' &&
+                      'text-ink-soft text-right text-[12.5px] tabular-nums',
+                  )}
                 >
-                  {community.name}
-                </Link>
-              ))
-            )}
-          </div>
-          <span className="text-ink truncate text-[13px]">{person.ministry ?? '—'}</span>
-          <span className="text-ink-soft text-[13px] tabular-nums">
-            {person.lastSeenAt ? formatDayMonth(person.lastSeenAt) : '—'}
-          </span>
-          <span className="text-ink-soft truncate text-right text-[12.5px] tabular-nums">
-            {person.phone ?? '—'}
-          </span>
+                  {column.text(person) || '—'}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
-      );
-    })}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
+
+type ColumnHeaderProps = {
+  column: PersonColumn;
+} & Pick<PeopleTableProps, 'sort' | 'onSortChange'>;
+
+/**
+ * Sorting starts ascending — alphabetical for text, smallest first for numbers and
+ * dates — and the same header flips it. Columns the API cannot order by, and lists
+ * without a sort handler, stay plain labels.
+ */
+const ColumnHeader = ({ column, sort, onSortChange }: ColumnHeaderProps) => {
+  const { sortKey, label, align } = column;
+
+  if (!sortKey || !onSortChange) {
+    return <span className={cn(align === 'right' && 'text-right')}>{label}</span>;
+  }
+
+  const isActive = sort?.field === sortKey;
+  const order: SortOrder = isActive && sort.order === 'asc' ? 'desc' : 'asc';
+  const Icon = !isActive ? ChevronsUpDown : sort.order === 'asc' ? ArrowUp : ArrowDown;
+
+  return (
+    <button
+      type="button"
+      aria-sort={isActive ? (sort.order === 'asc' ? 'ascending' : 'descending') : 'none'}
+      title={`Сортувати за «${label}» ${order === 'asc' ? 'за зростанням' : 'за спаданням'}`}
+      onClick={() => onSortChange({ field: sortKey, order })}
+      className={cn(
+        'group hover:text-foreground flex min-w-0 cursor-pointer items-center gap-1 transition-colors',
+        align === 'right' && 'justify-end',
+        isActive && 'text-foreground',
+      )}
+    >
+      <span className="truncate">{label}</span>
+      <Icon
+        className={cn(
+          'size-3 shrink-0 transition-opacity',
+          isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-60',
+        )}
+      />
+    </button>
+  );
+};

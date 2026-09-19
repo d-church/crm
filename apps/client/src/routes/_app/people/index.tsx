@@ -10,19 +10,22 @@ import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import {
+  PeopleColumnsDialog,
+  PeopleFilterDialog,
   PeopleFilters,
   PeoplePagination,
   PeopleStats,
   PeopleTable,
   PersonDialog,
-  PERSON_STATUS_LABELS,
   exportPeopleToCsv,
   peopleQueryOptions,
   peopleSearchSchema,
   toPeopleQuery,
   usePeople,
+  usePeopleColumns,
   usePeopleOptions,
   usePeopleStats,
+  type FilterOptionSources,
   type PeopleSearch,
 } from '@/modules/people';
 import { PersonService } from '@/services';
@@ -64,6 +67,15 @@ function PeoplePage() {
   const debouncedQuery = useDebouncedValue(queryText);
 
   const [isExporting, setIsExporting] = useState(false);
+  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const { columns } = usePeopleColumns();
+
+  const filterSources: FilterOptionSources = {
+    communities,
+    homeGroups,
+    ministries: options?.ministries ?? [],
+  };
 
   const patchSearch = (patch: Partial<PeopleSearch>) =>
     void navigate({
@@ -88,26 +100,11 @@ function PeoplePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery]);
 
-  const selectedCommunity = communities.find(({ id }) => id === search.communityId)?.name;
-  const selectedHomeGroup = homeGroups.find(({ id }) => id === search.homeGroupId)?.name;
-  const ageRange =
-    search.minAge === undefined && search.maxAge === undefined
-      ? null
-      : search.minAge !== undefined && search.maxAge !== undefined
-        ? `${search.minAge}–${search.maxAge} р.`
-        : search.minAge !== undefined
-          ? `від ${search.minAge} р.`
-          : `до ${search.maxAge} р.`;
+  const conditionCount = search.filter?.conditions.length ?? 0;
   const filterSummary =
-    [
-      search.status ? PERSON_STATUS_LABELS[search.status] : null,
-      selectedCommunity,
-      selectedHomeGroup,
-      ageRange,
-      search.ministry,
-    ]
-      .filter(Boolean)
-      .join(' · ') || 'Без додаткових фільтрів';
+    conditionCount === 0
+      ? 'Без додаткових фільтрів'
+      : `${conditionCount} ${conditionCount === 1 ? 'умова' : conditionCount < 5 ? 'умови' : 'умов'} фільтра`;
 
   const onExport = async () => {
     setIsExporting(true);
@@ -116,7 +113,7 @@ function PeoplePage() {
       // Exports every match, not just the page on screen.
       const all = await PersonService.listAll(query);
 
-      exportPeopleToCsv(all);
+      exportPeopleToCsv(all, columns);
     } catch (exportError) {
       toast.error(getApiErrorMessage(exportError, 'Не вдалося експортувати'));
     } finally {
@@ -152,16 +149,26 @@ function PeoplePage() {
         <PeopleFilters
           filters={search}
           query={queryText}
-          communityOptions={communities}
-          homeGroupOptions={homeGroups}
-          ministryOptions={options?.ministries ?? []}
+          sources={filterSources}
           onQueryChange={setQueryText}
           onChange={patchSearch}
+          onOpenBuilder={() => setIsBuilderOpen(true)}
+          onOpenColumns={() => setIsColumnsOpen(true)}
           onReset={() => {
             setQueryText('');
             void navigate({ search: {}, replace: true });
           }}
         />
+
+        <PeopleFilterDialog
+          open={isBuilderOpen}
+          onOpenChange={setIsBuilderOpen}
+          filter={search.filter}
+          sources={filterSources}
+          onApply={(filter) => patchSearch({ filter })}
+        />
+
+        <PeopleColumnsDialog open={isColumnsOpen} onOpenChange={setIsColumnsOpen} />
 
         <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-2.75">
           {/* The total comes from the previous page while the next one loads, so it
@@ -190,14 +197,7 @@ function PeoplePage() {
           <div className="flex flex-col gap-2 px-5 py-13.5 text-center">
             <span className="text-[15px]">Нікого не знайдено</span>
             <span className="text-ink-faint text-[13px]">
-              {page.total === 0 &&
-              !search.q &&
-              !search.status &&
-              !search.communityId &&
-              !search.homeGroupId &&
-              !search.ministry &&
-              search.minAge === undefined &&
-              search.maxAge === undefined
+              {page.total === 0 && !search.q && !search.filter
                 ? 'Додайте першу людину — і вона зʼявиться в цьому списку.'
                 : 'Спробуйте змінити фільтри або пошуковий запит.'}
             </span>
@@ -210,7 +210,11 @@ function PeoplePage() {
                 isFetching && 'pointer-events-none opacity-60',
               )}
             >
-              <PeopleTable people={page.items} />
+              <PeopleTable
+                people={page.items}
+                sort={{ field: query.sort!, order: query.order! }}
+                onSortChange={({ field, order }) => patchSearch({ sort: field, order })}
+              />
             </div>
 
             <PeoplePagination

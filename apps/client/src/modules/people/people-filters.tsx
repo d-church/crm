@@ -1,161 +1,100 @@
-import { Input, Select } from '@/components/ui';
-import { cn } from '@/lib/utils';
-import type { Community, HomeGroup, PeopleSort, PersonStatus } from '@/services';
+import { Columns3, SlidersHorizontal } from 'lucide-react';
 
-import { ANY, DEFAULT_SORT, SORT_LABELS, type PeopleSearch } from './filtering';
-import { PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
+import { Input } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import type { PeopleFilter } from '@/services';
+
+import type { FilterOptionSources } from './filter-fields';
+import type { PeopleSearch } from './filtering';
+import { PeopleFilterChips } from './people-filter-chips';
+import { SavedFiltersBar } from './saved-filters-bar';
 
 type PeopleFiltersProps = {
   filters: PeopleSearch;
   /** Local, so typing stays responsive while the request is debounced. */
   query: string;
-  communityOptions: Community[];
-  homeGroupOptions: HomeGroup[];
-  ministryOptions: string[];
+  sources: FilterOptionSources;
   onQueryChange: (query: string) => void;
   onChange: (patch: Partial<PeopleSearch>) => void;
+  onOpenBuilder: () => void;
+  onOpenColumns: () => void;
   onReset: () => void;
 };
 
 export const PeopleFilters = ({
   filters,
   query,
-  communityOptions,
-  homeGroupOptions,
-  ministryOptions,
+  sources,
   onQueryChange,
   onChange,
+  onOpenBuilder,
+  onOpenColumns,
   onReset,
-}: PeopleFiltersProps) => (
-  <div className="border-border-muted flex flex-col gap-3.25 border-b p-5">
-    <div className="flex flex-wrap items-center gap-2.5">
-      <Input
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-        placeholder="Пошук за іменем, телефоном"
-        aria-label="Пошук людей"
-        className="min-w-[250px] flex-1"
-      />
+}: PeopleFiltersProps) => {
+  const conditionCount = filters.filter?.conditions.length ?? 0;
 
-      <div className="flex items-center gap-1.5" role="group" aria-label="Вік">
-        <span className="text-ink-soft text-[12.5px]">Вік</span>
+  return (
+    <div className="border-border-muted flex flex-col gap-3.25 border-b p-5">
+      <div className="flex flex-wrap items-center gap-2.5">
         <Input
-          type="number"
-          min={0}
-          max={filters.maxAge ?? 130}
-          value={filters.minAge ?? ''}
-          placeholder="від"
-          aria-label="Вік від"
-          className="w-20"
-          onChange={(event) =>
-            onChange({ minAge: event.target.value === '' ? undefined : Number(event.target.value) })
-          }
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Пошук за іменем, телефоном"
+          aria-label="Пошук людей"
+          className="min-w-[250px] flex-1"
         />
-        <span className="text-muted-foreground">—</span>
-        <Input
-          type="number"
-          min={filters.minAge ?? 0}
-          max={130}
-          value={filters.maxAge ?? ''}
-          placeholder="до"
-          aria-label="Вік до"
-          className="w-20"
-          onChange={(event) =>
-            onChange({ maxAge: event.target.value === '' ? undefined : Number(event.target.value) })
-          }
-        />
+
+        <button
+          type="button"
+          onClick={onOpenBuilder}
+          aria-haspopup="dialog"
+          className={cn(
+            'flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3.5 text-[13.5px] transition-colors',
+            conditionCount > 0
+              ? 'border-primary bg-primary/5 text-foreground'
+              : 'border-input-border bg-input text-foreground hover:border-foreground',
+          )}
+        >
+          <SlidersHorizontal className="size-4" />
+          Фільтр
+          {conditionCount > 0 ? (
+            <span className="bg-primary text-primary-foreground grid min-w-5 place-items-center rounded-full px-1.5 text-[11px] leading-5">
+              {conditionCount}
+            </span>
+          ) : null}
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenColumns}
+          aria-haspopup="dialog"
+          className="border-input-border bg-input text-foreground hover:border-foreground flex h-11 cursor-pointer items-center gap-2 rounded-md border px-3.5 text-[13.5px] transition-colors"
+        >
+          <Columns3 className="size-4" />
+          Стовпці
+        </button>
       </div>
 
-      <Select
-        value={filters.communityId ?? ANY}
-        onChange={(event) =>
-          onChange({
-            communityId: event.target.value === ANY ? undefined : event.target.value,
-          })
-        }
-        aria-label="Спільнота"
-      >
-        <option value={ANY}>Усі спільноти</option>
-        {communityOptions.map((community) => (
-          <option key={community.id} value={community.id}>
-            {community.name}
-          </option>
-        ))}
-      </Select>
+      <SavedFiltersBar current={filters.filter} onApply={(filter) => onChange({ filter })} />
 
-      <Select
-        value={filters.homeGroupId ?? ANY}
-        onChange={(event) =>
-          onChange({ homeGroupId: event.target.value === ANY ? undefined : event.target.value })
-        }
-        aria-label="Домашня група"
-      >
-        <option value={ANY}>Усі домашні групи</option>
-        {homeGroupOptions.map((homeGroup) => (
-          <option key={homeGroup.id} value={homeGroup.id}>
-            {homeGroup.name}
-          </option>
-        ))}
-      </Select>
+      {filters.filter ? (
+        <PeopleFilterChips
+          filter={filters.filter}
+          sources={sources}
+          onEdit={onOpenBuilder}
+          onChange={(filter: PeopleFilter | undefined) => onChange({ filter })}
+        />
+      ) : null}
 
-      <Select
-        value={filters.ministry ?? ANY}
-        onChange={(event) =>
-          onChange({ ministry: event.target.value === ANY ? undefined : event.target.value })
-        }
-        aria-label="Служіння"
-      >
-        <option value={ANY}>Усі служіння</option>
-        {ministryOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
-
-      <Select
-        value={filters.sort ?? DEFAULT_SORT}
-        onChange={(event) => onChange({ sort: event.target.value as PeopleSort })}
-        aria-label="Сортування"
-      >
-        {Object.entries(SORT_LABELS).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </Select>
+      <div className="flex">
+        <button
+          type="button"
+          onClick={onReset}
+          className="text-muted-foreground hover:text-foreground ml-auto cursor-pointer text-[12.5px] underline underline-offset-3 transition-colors"
+        >
+          Скинути фільтри
+        </button>
+      </div>
     </div>
-
-    <div className="flex flex-wrap items-center gap-2">
-      {[ANY, ...PERSON_STATUSES].map((status) => {
-        const isActive = (filters.status ?? ANY) === status;
-
-        return (
-          <button
-            key={status}
-            type="button"
-            onClick={() =>
-              onChange({ status: status === ANY ? undefined : (status as PersonStatus) })
-            }
-            className={cn(
-              'cursor-pointer rounded-full border px-3.5 py-1.75 text-[12.5px] font-light transition-colors',
-              isActive
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-input-border bg-card text-ink hover:border-foreground',
-            )}
-          >
-            {status === ANY ? 'Усі статуси' : PERSON_STATUS_LABELS[status as PersonStatus]}
-          </button>
-        );
-      })}
-
-      <button
-        type="button"
-        onClick={onReset}
-        className="text-muted-foreground hover:text-foreground ml-auto cursor-pointer text-[12.5px] underline underline-offset-3 transition-colors"
-      >
-        Скинути фільтри
-      </button>
-    </div>
-  </div>
-);
+  );
+};

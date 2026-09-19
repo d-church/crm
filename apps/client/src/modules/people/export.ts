@@ -1,52 +1,25 @@
-import { formatDate } from '@/lib/format';
-import { getPersonName, type Person } from '@/services';
+import type { Person } from '@/services';
 
-import { FOLLOW_UP_LABELS, PERSON_STATUS_LABELS } from './status';
-
-const COLUMNS = [
-  'Імʼя',
-  'Статус',
-  'Перший візит',
-  'Connect',
-  'Follow-up',
-  'Next Step',
-  'Спільнота',
-  'Служіння',
-  'Відповідальний',
-  'Наступна дія',
-  'Коли',
-  'Телефон',
-  'Email',
-  'Місто',
-] as const;
+import type { PersonColumn } from './people-columns';
 
 const escape = (value: string) =>
   /[";\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 
-const toRow = (person: Person) =>
-  [
-    getPersonName(person),
-    PERSON_STATUS_LABELS[person.status],
-    person.firstVisitAt ? formatDate(person.firstVisitAt) : '',
-    person.connectedBy ?? '',
-    FOLLOW_UP_LABELS[person.followUp],
-    person.nextStep ?? '',
-    person.communities.map(({ name }) => name).join(', '),
-    person.ministry ?? '',
-    person.responsible ?? '',
-    person.nextAction ?? '',
-    person.nextActionAt ? formatDate(person.nextActionAt) : '',
-    person.phone ?? '',
-    person.email ?? '',
-    person.city ?? '',
-  ].map((value) => escape(String(value)));
-
 /**
- * Semicolon-separated with a BOM — that is what Ukrainian Excel opens without
- * an import wizard.
+ * The columns on screen, in their order — an export matches what was exported from.
+ * Semicolon-separated with a BOM: that is what Ukrainian Excel opens without an
+ * import wizard.
  */
-export const exportPeopleToCsv = (people: Person[], fileName = 'people.csv') => {
-  const csv = [COLUMNS, ...people.map(toRow)].map((row) => row.join(';')).join('\r\n');
+export const exportPeopleToCsv = (
+  people: Person[],
+  columns: PersonColumn[],
+  fileName = 'people.csv',
+) => {
+  const rows = [
+    columns.map(({ label }) => label),
+    ...people.map((person) => columns.map((column) => escape(column.text(person)))),
+  ];
+  const csv = rows.map((row) => row.join(';')).join('\r\n');
   const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
 

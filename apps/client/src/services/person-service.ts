@@ -2,9 +2,105 @@ import { RestService } from './abstracts/rest-service';
 import type { Community } from './community-service';
 import type { HomeGroup } from './home-group-service';
 
-export const PEOPLE_SORTS = ['createdAt', 'lastSeenAt', 'name', 'status'] as const;
+/** Mirrors the API's sortable columns. */
+export const PEOPLE_SORTS = [
+  'name',
+  'status',
+  'homeGroup',
+  'ministry',
+  'lastSeenAt',
+  'phone',
+  'email',
+  'city',
+  'address',
+  'district',
+  'region',
+  'age',
+  'birthDate',
+  'birthday',
+  'followUp',
+  'connectedBy',
+  'nextStep',
+  'responsible',
+  'nextAction',
+  'nextActionAt',
+  'firstVisitAt',
+  'baptizedAt',
+  'memberSince',
+  'leftAt',
+  'createdAt',
+  'notes',
+] as const;
 
 export type PeopleSort = (typeof PEOPLE_SORTS)[number];
+
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * Mirrors the API's people filter (`apps/api/src/api/person/filter/people-filter.ts`):
+ * a flat list of conditions where all must match, or any one is enough.
+ */
+export type PeopleFilter = {
+  match: 'all' | 'any';
+  conditions: PeopleFilterCondition[];
+};
+
+export type PeopleFilterCondition = {
+  field: PeopleFilterField;
+  operator: PeopleFilterOperator;
+  /** Omitted for `isEmpty` / `isNotEmpty`; the API checks the shape per field. */
+  value?: string | number | string[] | number[];
+};
+
+export type PeopleFilterField =
+  | 'firstName'
+  | 'lastName'
+  | 'phone'
+  | 'email'
+  | 'city'
+  | 'address'
+  | 'district'
+  | 'region'
+  | 'connectedBy'
+  | 'nextStep'
+  | 'responsible'
+  | 'nextAction'
+  | 'notes'
+  | 'status'
+  | 'followUp'
+  | 'ministry'
+  | 'communities'
+  | 'homeGroup'
+  | 'firstVisitAt'
+  | 'lastSeenAt'
+  | 'nextActionAt'
+  | 'birthDate'
+  | 'birthday'
+  | 'baptizedAt'
+  | 'memberSince'
+  | 'leftAt'
+  | 'createdAt'
+  | 'age';
+
+export type PeopleFilterOperator =
+  | 'contains'
+  | 'notContains'
+  | 'equals'
+  | 'notEquals'
+  | 'in'
+  | 'notIn'
+  | 'inMonths'
+  | 'on'
+  | 'before'
+  | 'after'
+  | 'between'
+  | 'withinLastDays'
+  | 'moreThanDaysAgo'
+  | 'withinNextDays'
+  | 'atLeast'
+  | 'atMost'
+  | 'isEmpty'
+  | 'isNotEmpty';
 
 /** Mirrors the API's FindPeopleDto — every field is optional. */
 export type PeopleQuery = {
@@ -17,7 +113,9 @@ export type PeopleQuery = {
   communityId?: string;
   homeGroupId?: string;
   ministry?: string;
+  filter?: PeopleFilter;
   sort?: PeopleSort;
+  order?: SortOrder;
 };
 
 export type Paginated<T> = {
@@ -45,8 +143,11 @@ export const MAX_PAGE_SIZE = 200;
 class PersonServiceClass extends RestService<Person> {
   protected anchor = 'people';
 
-  public async list(query: PeopleQuery = {}): Promise<Paginated<Person>> {
-    const response = await this.api.get<Paginated<Person>>(this.anchor, { params: query });
+  public async list({ filter, ...query }: PeopleQuery = {}): Promise<Paginated<Person>> {
+    const response = await this.api.get<Paginated<Person>>(this.anchor, {
+      // Axios would flatten a nested object into `filter[conditions][0]…`; the API reads JSON.
+      params: { ...query, ...(filter ? { filter: JSON.stringify(filter) } : {}) },
+    });
 
     return response.data;
   }

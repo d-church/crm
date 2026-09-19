@@ -8,10 +8,13 @@ import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
   DEFAULT_SORT,
+  DEFAULT_SORT_ORDER,
   FindPeopleDto,
   type PeopleSort,
+  type SortOrder,
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
+import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
 
 const PERSON_INCLUDE = {
   communities: true,
@@ -39,7 +42,7 @@ export class PersonService {
         where,
         // The id tiebreaker keeps rows from shuffling between pages when the
         // sort column ties — otherwise the same person can appear on two pages.
-        orderBy: [...SORT_ORDERS[query.sort ?? DEFAULT_SORT], { id: 'asc' }],
+        orderBy: [...buildPeopleOrderBy(query.sort, query.order), { id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,
         include: PERSON_INCLUDE,
@@ -204,23 +207,90 @@ const SEARCH_FIELDS = [
   'city',
 ] as const satisfies readonly (keyof Person)[];
 
-const SORT_ORDERS: Record<PeopleSort, Prisma.PersonOrderByWithRelationInput[]> = {
-  createdAt: [{ createdAt: 'desc' }],
-  // People never seen sink to the bottom instead of leading the list.
-  lastSeenAt: [{ lastSeenAt: { sort: 'desc', nulls: 'last' } }],
-  name: [{ lastName: 'asc' }, { firstName: 'asc' }],
-  status: [{ status: 'asc' }],
+/**
+ * Columns that can be null sort their blanks last in both directions, so a list
+ * never opens with a page of dashes.
+ */
+const NULLABLE_SORT_COLUMNS = {
+  ministry: 'ministry',
+  lastSeenAt: 'lastSeenAt',
+  phone: 'phone',
+  email: 'email',
+  city: 'city',
+  address: 'address',
+  district: 'district',
+  region: 'region',
+  birthDate: 'birthDate',
+  birthday: 'birthMd',
+  connectedBy: 'connectedBy',
+  nextStep: 'nextStep',
+  responsible: 'responsible',
+  nextAction: 'nextAction',
+  nextActionAt: 'nextActionAt',
+  firstVisitAt: 'firstVisitAt',
+  baptizedAt: 'baptizedAt',
+  memberSince: 'memberSince',
+  leftAt: 'leftAt',
+  notes: 'notes',
+} as const satisfies Partial<Record<PeopleSort, keyof Prisma.PersonOrderByWithRelationInput>>;
+
+const REQUIRED_SORT_COLUMNS = {
+  status: 'status',
+  followUp: 'followUp',
+  createdAt: 'createdAt',
+} as const satisfies Partial<Record<PeopleSort, keyof Prisma.PersonOrderByWithRelationInput>>;
+
+/**
+ * Text sorts alphabetically and numbers and dates from smallest to largest — both
+ * are just the column's own order. Age is the exception: the older a person is,
+ * the earlier they were born, so it sorts the birth date the other way round.
+ */
+export const buildPeopleOrderBy = (
+  sort: PeopleSort = DEFAULT_SORT,
+  order: SortOrder = sort === DEFAULT_SORT ? DEFAULT_SORT_ORDER : 'asc',
+): Prisma.PersonOrderByWithRelationInput[] => {
+  if (sort === 'name') {
+    return [{ lastName: { sort: order, nulls: 'last' } }, { firstName: order }];
+  }
+
+  if (sort === 'homeGroup') {
+    return [{ homeGroup: { name: order } }];
+  }
+
+  if (sort === 'age') {
+    return [{ birthDate: { sort: order === 'asc' ? 'desc' : 'asc', nulls: 'last' } }];
+  }
+
+  if (sort in REQUIRED_SORT_COLUMNS) {
+    return [{ [REQUIRED_SORT_COLUMNS[sort as keyof typeof REQUIRED_SORT_COLUMNS]]: order }];
+  }
+
+  const column = NULLABLE_SORT_COLUMNS[sort as keyof typeof NULLABLE_SORT_COLUMNS];
+
+  return [{ [column]: { sort: order, nulls: 'last' } }];
 };
 
 /**
  * Every search term has to match some field, so "Іван Петренко" finds the person
  * even though no single column holds the full name.
+ *
+ * The condition filter goes into `AND` next to the terms rather than being spread
+ * in, so it can never overwrite a key the simple filters set (both may touch
+ * `birthDate`, for one).
  */
 export const buildPeopleWhere = (
-  { search, status, minAge, maxAge, communityId, homeGroupId, ministry }: FindPeopleDto,
+  { search, status, minAge, maxAge, communityId, homeGroupId, ministry, filter }: FindPeopleDto,
   now = new Date(),
 ): Prisma.PersonWhereInput => {
   const terms = search?.trim().split(/\s+/).filter(Boolean) ?? [];
+  const clauses: Prisma.PersonWhereInput[] = [
+    ...terms.map((term) => ({
+      OR: SEARCH_FIELDS.map((field) => ({
+        [field]: { contains: term, mode: 'insensitive' as const },
+      })),
+    })),
+    ...(filter === undefined ? [] : [buildPeopleFilterWhere(filter, now)]),
+  ];
 
   return {
     ...(status === undefined ? {} : { status }),
@@ -228,40 +298,8 @@ export const buildPeopleWhere = (
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
     ...(ministry === undefined ? {} : { ministry }),
-    ...(terms.length === 0
-      ? {}
-      : {
-          AND: terms.map((term) => ({
-            OR: SEARCH_FIELDS.map((field) => ({
-              [field]: { contains: term, mode: 'insensitive' },
-            })),
-          })),
-        }),
+    ...(clauses.length === 0 ? {} : { AND: clauses }),
   };
-};
-
-/**
- * An age range translates to a birth-date interval as of today. Comparisons on
- * birthDate also intentionally exclude people whose date of birth is unknown.
- */
-const toAgeWhere = (minAge: number | undefined, maxAge: number | undefined, now: Date) => {
-  if (minAge === undefined && maxAge === undefined) return {};
-
-  return {
-    birthDate: {
-      not: null,
-      ...(minAge === undefined ? {} : { lte: yearsAgo(now, minAge) }),
-      ...(maxAge === undefined ? {} : { gt: yearsAgo(now, maxAge + 1) }),
-    },
-  };
-};
-
-const yearsAgo = (date: Date, years: number) => {
-  const result = new Date(date);
-
-  result.setFullYear(result.getFullYear() - years);
-
-  return result;
 };
 
 const toSortedValues = (values: (string | null)[]): string[] =>

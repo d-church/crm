@@ -73,6 +73,9 @@ model Person {
   nextActionAt DateTime? @map("next_action_at") @db.Date
 
   birthDate   DateTime? @map("birth_date") @db.Date
+  /// День і місяць народження як MMDD (0101–1231) — рік у пошуку іменинників не має значення.
+  /// Колонку рахує Postgres (GENERATED ALWAYS … STORED), тому вона лише для читання: писати в неї не можна.
+  birthMd     Int?      @map("birth_md") @db.SmallInt
   /// Водне хрещення.
   baptizedAt  DateTime? @map("baptized_at") @db.Date
   /// Став членом церкви.
@@ -90,6 +93,7 @@ model Person {
 
   @@index([lastName, firstName])
   @@index([status])
+  @@index([birthMd])
   @@index([homeGroupId])
   @@map("people")
 }
