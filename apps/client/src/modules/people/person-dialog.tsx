@@ -22,11 +22,13 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useTrainings } from '@/modules/trainings';
 import type { Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
 import { MinistryCheckboxes } from './ministry-checkboxes';
+import { TrainingCheckboxes } from './training-checkboxes';
 import {
   EMPTY_PERSON_VALUES,
   personSchema,
@@ -58,6 +60,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
+  const { data: trainings = [] } = useTrainings();
   const isPending = isCreating || isUpdating;
 
   const {
@@ -203,6 +206,11 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               ministries={ministries}
               register={register}
               error={errors.ministryIds?.message}
+            />
+            <TrainingCheckboxes
+              trainings={trainings}
+              register={register}
+              error={errors.trainingIds?.message}
             />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field

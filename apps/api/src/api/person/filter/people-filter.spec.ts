@@ -251,6 +251,18 @@ describe('buildPeopleFilterWhere', () => {
         ministries: { none: {} },
       });
     });
+
+    it('matches any or none of the selected trainings', () => {
+      expect(clauseFor({ field: 'trainings', operator: 'in', value: [COMMUNITY_ID] })).toEqual({
+        trainings: { some: { id: { in: [COMMUNITY_ID] } } },
+      });
+      expect(clauseFor({ field: 'trainings', operator: 'notIn', value: [COMMUNITY_ID] })).toEqual({
+        trainings: { none: { id: { in: [COMMUNITY_ID] } } },
+      });
+      expect(clauseFor({ field: 'trainings', operator: 'isEmpty' })).toEqual({
+        trainings: { none: {} },
+      });
+    });
   });
 
   describe('dates', () => {

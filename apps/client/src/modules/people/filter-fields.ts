@@ -3,6 +3,7 @@ import type {
   Community,
   HomeGroup,
   Ministry,
+  Training,
   PeopleFilterCondition,
   PeopleFilterField,
   PeopleFilterOperator,
@@ -79,6 +80,7 @@ export const FILTER_FIELDS: FilterFieldDefinition[] = [
   { field: 'communities', label: 'Спільноти', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'homeGroup', label: 'Домашня група', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'ministries', label: 'Служіння', kind: 'relation', group: 'Спільноти й служіння' },
+  { field: 'trainings', label: 'Навчання', kind: 'relation', group: 'Спільноти й служіння' },
 
   { field: 'baptizedAt', label: 'Водне хрещення', kind: 'date', group: 'Членство' },
   { field: 'memberSince', label: 'Член церкви з', kind: 'date', group: 'Членство' },
@@ -177,6 +179,7 @@ export type FilterOptionSources = {
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroups: Pick<HomeGroup, 'id' | 'name'>[];
   ministries: Pick<Ministry, 'id' | 'name' | 'community'>[];
+  trainings: Pick<Training, 'id' | 'name'>[];
 };
 
 export type FilterOption = { value: string; label: string };
@@ -197,6 +200,9 @@ export const getFilterOptions = (
         value: ministry.id,
         label: `${ministry.name} · ${ministry.community.name}`,
       }));
+
+    case 'trainings':
+      return sources.trainings.map(({ id, name }) => ({ value: id, label: name }));
 
     case 'communities':
       return sources.communities.map(({ id, name }) => ({ value: id, label: name }));

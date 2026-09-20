@@ -80,7 +80,7 @@ export type PeopleSearch = z.infer<typeof peopleSearchSchema>;
 
 /** Detail pages list the members of one community or home group with the same table. */
 type PeopleQueryInput = PeopleSearch &
-  Pick<PeopleQuery, 'communityId' | 'homeGroupId' | 'ministryId'>;
+  Pick<PeopleQuery, 'communityId' | 'homeGroupId' | 'ministryId' | 'trainingId'>;
 
 /** URL search params → the query the API expects. */
 export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
@@ -93,6 +93,7 @@ export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
   ...(search.communityId ? { communityId: search.communityId } : {}),
   ...(search.homeGroupId ? { homeGroupId: search.homeGroupId } : {}),
   ...(search.ministryId ? { ministryId: search.ministryId } : {}),
+  ...(search.trainingId ? { trainingId: search.trainingId } : {}),
 });
 
 /** Second line under the name: "45 р. · Львів", skipping whatever is missing. */

@@ -120,6 +120,11 @@ export class FindPeopleDto {
 
   @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
+  @Matches(DATABASE_UUID_PATTERN, { message: 'trainingId must be a UUID' })
+  trainingId?: string;
+
+  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
+  @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'ministryId must be a UUID' })
   ministryId?: string;
 

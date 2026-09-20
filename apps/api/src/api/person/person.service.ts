@@ -20,6 +20,7 @@ const PERSON_INCLUDE = {
   communities: true,
   homeGroup: { select: { id: true, name: true } },
   ministries: { include: { community: { select: { id: true, name: true } } } },
+  trainings: true,
 } as const satisfies Prisma.PersonInclude;
 
 @Injectable()
@@ -127,6 +128,7 @@ const toPersonData = <T extends PersonInput>({
   communityIds,
   homeGroupId,
   ministryIds,
+  trainingIds,
   ...personDto
 }: T) => ({
   ...toPersonFields(personDto),
@@ -137,6 +139,9 @@ const toPersonData = <T extends PersonInput>({
   ...(ministryIds === undefined
     ? {}
     : { ministries: { set: (ministryIds ?? []).map((id) => ({ id })) } }),
+  ...(trainingIds === undefined
+    ? {}
+    : { trainings: { set: (trainingIds ?? []).map((id) => ({ id })) } }),
 });
 
 const toPersonFields = <T extends PersonInput>({
@@ -162,7 +167,7 @@ const toPersonFields = <T extends PersonInput>({
 export { toPersonData };
 
 const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
-  const { communityIds, homeGroupId, ministryIds, ...personDto } = createPersonDto;
+  const { communityIds, homeGroupId, ministryIds, trainingIds, ...personDto } = createPersonDto;
 
   return {
     ...toPersonFields(personDto),
@@ -173,6 +178,9 @@ const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
     ...(ministryIds === undefined
       ? {}
       : { ministries: { connect: (ministryIds ?? []).map((id) => ({ id })) } }),
+    ...(trainingIds === undefined
+      ? {}
+      : { trainings: { connect: (trainingIds ?? []).map((id) => ({ id })) } }),
   };
 };
 
@@ -279,7 +287,17 @@ export const buildPeopleOrderBy = (
  * `birthDate`, for one).
  */
 export const buildPeopleWhere = (
-  { search, status, minAge, maxAge, communityId, homeGroupId, ministryId, filter }: FindPeopleDto,
+  {
+    search,
+    status,
+    minAge,
+    maxAge,
+    communityId,
+    homeGroupId,
+    ministryId,
+    trainingId,
+    filter,
+  }: FindPeopleDto,
   now = new Date(),
 ): Prisma.PersonWhereInput => {
   const terms = search?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -298,6 +316,7 @@ export const buildPeopleWhere = (
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
     ...(ministryId === undefined ? {} : { ministries: { some: { id: ministryId } } }),
+    ...(trainingId === undefined ? {} : { trainings: { some: { id: trainingId } } }),
     ...(clauses.length === 0 ? {} : { AND: clauses }),
   };
 };

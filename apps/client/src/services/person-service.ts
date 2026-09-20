@@ -2,6 +2,7 @@ import { RestService } from './abstracts/rest-service';
 import type { Community } from './community-service';
 import type { HomeGroup } from './home-group-service';
 import type { Ministry } from './ministry-service';
+import type { Training } from './training-service';
 
 /** Mirrors the API's sortable columns. */
 export const PEOPLE_SORTS = [
@@ -69,6 +70,7 @@ export type PeopleFilterField =
   | 'status'
   | 'followUp'
   | 'ministries'
+  | 'trainings'
   | 'communities'
   | 'homeGroup'
   | 'firstVisitAt'
@@ -113,6 +115,7 @@ export type PeopleQuery = {
   communityId?: string;
   homeGroupId?: string;
   ministryId?: string;
+  trainingId?: string;
   filter?: PeopleFilter;
   sort?: PeopleSort;
   order?: SortOrder;
@@ -225,6 +228,7 @@ export interface Person {
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
   ministries: (Pick<Ministry, 'id' | 'name'> & { community: Pick<Community, 'id' | 'name'> })[];
+  trainings: Pick<Training, 'id' | 'name'>[];
   responsible: string | null;
   nextAction: string | null;
   nextActionAt: string | null;

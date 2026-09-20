@@ -1,0 +1,16 @@
+/// A church course or training. A person may complete several trainings.
+model Training {
+  id String @id @default(uuid())
+
+  name String @unique
+
+  leaderId String? @map("leader_id")
+  leader   Person? @relation("TrainingLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  people   Person[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([leaderId])
+  @@map("trainings")
+}

@@ -85,7 +85,7 @@ type FieldDefinition =
   /** Several columns read as one field: a match in any of them counts. */
   | { kind: 'text'; columns: readonly TextColumn[] }
   | { kind: 'enum'; column: 'status' | 'followUp'; values: readonly string[] }
-  | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' }
+  | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' | 'trainings' }
   | { kind: 'date'; column: DateColumn; operators?: readonly FilterOperator[] }
   | { kind: 'age' }
   /** Day and month only — the year a person was born says nothing about their birthday. */
@@ -115,6 +115,7 @@ const FIELDS = {
   communities: { kind: 'relation', relation: 'communities' },
   homeGroup: { kind: 'relation', relation: 'homeGroup' },
   ministries: { kind: 'relation', relation: 'ministries' },
+  trainings: { kind: 'relation', relation: 'trainings' },
 
   firstVisitAt: { kind: 'date', column: 'firstVisitAt' },
   lastSeenAt: { kind: 'date', column: 'lastSeenAt' },
@@ -321,6 +322,7 @@ const toWhere = (
         return toCommunitiesWhere(operator, value as string[]);
       if (definition.relation === 'ministries')
         return toMinistriesWhere(operator, value as string[]);
+      if (definition.relation === 'trainings') return toTrainingsWhere(operator, value as string[]);
 
       return toHomeGroupWhere(operator, value as string[]);
 
@@ -455,6 +457,25 @@ const toMinistriesWhere = (operator: FilterOperator, ids: string[]): Where => {
 
     case 'isNotEmpty':
       return { ministries: { some: {} } };
+
+    default:
+      return unsupported(operator);
+  }
+};
+
+const toTrainingsWhere = (operator: FilterOperator, ids: string[]): Where => {
+  switch (operator) {
+    case 'in':
+      return { trainings: { some: { id: { in: ids } } } };
+
+    case 'notIn':
+      return { trainings: { none: { id: { in: ids } } } };
+
+    case 'isEmpty':
+      return { trainings: { none: {} } };
+
+    case 'isNotEmpty':
+      return { trainings: { some: {} } };
 
     default:
       return unsupported(operator);

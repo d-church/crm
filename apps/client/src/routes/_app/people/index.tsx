@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useTrainings } from '@/modules/trainings';
 import {
   PeopleColumnsDialog,
   PeopleFilterDialog,
@@ -61,6 +62,7 @@ function PeoplePage() {
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
+  const { data: trainings = [] } = useTrainings();
 
   // The input is local and the request is debounced, so typing stays smooth.
   const [queryText, setQueryText] = useState(search.q ?? '');
@@ -75,6 +77,7 @@ function PeoplePage() {
     communities,
     homeGroups,
     ministries,
+    trainings,
   };
 
   const patchSearch = (patch: Partial<PeopleSearch>) =>

@@ -77,6 +77,15 @@ describe('toPersonData', () => {
     expect(toPersonData({ ministryIds: [] })).toEqual({ ministries: { set: [] } });
   });
 
+  it('replaces and clears the complete training set', () => {
+    expect(
+      toPersonData({
+        trainingIds: ['00000000-0000-4000-8000-000000000004'],
+      }),
+    ).toEqual({ trainings: { set: [{ id: '00000000-0000-4000-8000-000000000004' }] } });
+    expect(toPersonData({ trainingIds: [] })).toEqual({ trainings: { set: [] } });
+  });
+
   it('sets and clears the optional home group', () => {
     const homeGroupId = '00000000-0000-4000-8000-000000000010';
 
@@ -96,11 +105,13 @@ describe('buildPeopleWhere', () => {
         status: PersonStatus.SERVING,
         communityId: '00000000-0000-4000-8000-000000000001',
         ministryId: '00000000-0000-4000-8000-000000000003',
+        trainingId: '00000000-0000-4000-8000-000000000004',
       }),
     ).toEqual({
       status: PersonStatus.SERVING,
       communities: { some: { id: '00000000-0000-4000-8000-000000000001' } },
       ministries: { some: { id: '00000000-0000-4000-8000-000000000003' } },
+      trainings: { some: { id: '00000000-0000-4000-8000-000000000004' } },
     });
   });
 

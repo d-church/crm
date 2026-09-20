@@ -68,6 +68,10 @@ model Person {
   ministries Ministry[]
   /// A leader may lead several ministries without serving in them.
   leadingMinistries Ministry[] @relation("MinistryLeader")
+  /// A person can complete any number of trainings.
+  trainings Training[]
+  /// A leader may lead several trainings without completing them.
+  leadingTrainings Training[] @relation("TrainingLeader")
 
   /// Відповідальний — team member carrying this person.
   responsible  String?

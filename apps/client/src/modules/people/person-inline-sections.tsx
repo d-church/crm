@@ -16,11 +16,13 @@ import { formatDateTime } from '@/lib/format';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useTrainings } from '@/modules/trainings';
 import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
 import { MinistryCheckboxes } from './ministry-checkboxes';
+import { TrainingCheckboxes } from './training-checkboxes';
 import {
   personSchema,
   pickPersonValues,
@@ -64,6 +66,7 @@ const JOURNEY_FIELDS = [
   'communityIds',
   'homeGroupId',
   'ministryIds',
+  'trainingIds',
   'responsible',
   'nextAction',
   'nextActionAt',
@@ -146,6 +149,7 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
+  const { data: trainings = [] } = useTrainings();
 
   return (
     <div className="grid max-w-5xl gap-5 lg:grid-cols-2 lg:items-start">
@@ -237,6 +241,11 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 ministries={ministries}
                 register={register}
                 error={errors.ministryIds?.message}
+              />
+              <TrainingCheckboxes
+                trainings={trainings}
+                register={register}
+                error={errors.trainingIds?.message}
               />
               <Field
                 label="Відповідальний"
