@@ -7,6 +7,7 @@ import type { Training } from './training-service';
 /** Mirrors the API's sortable columns. */
 export const PEOPLE_SORTS = [
   'name',
+  'gender',
   'status',
   'homeGroup',
   'lastSeenAt',
@@ -56,6 +57,7 @@ export type PeopleFilterCondition = {
 export type PeopleFilterField =
   | 'firstName'
   | 'lastName'
+  | 'gender'
   | 'phone'
   | 'email'
   | 'city'
@@ -206,10 +208,18 @@ export const FollowUpState = {
 
 export type FollowUpState = (typeof FollowUpState)[keyof typeof FollowUpState];
 
+export const PersonGender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+} as const;
+
+export type PersonGender = (typeof PersonGender)[keyof typeof PersonGender];
+
 export interface Person {
   id: string;
   firstName: string;
   lastName: string | null;
+  gender: PersonGender | null;
   email: string | null;
   phone: string | null;
   homePhone: string | null;

@@ -23,6 +23,7 @@ import { useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
 import { MinistryCheckboxes } from './ministry-checkboxes';
 import { TrainingCheckboxes } from './training-checkboxes';
+import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 import {
   personSchema,
   pickPersonValues,
@@ -42,6 +43,7 @@ import {
 const MAIN_FIELDS = [
   'firstName',
   'lastName',
+  'gender',
   'status',
   'followUp',
 ] as const satisfies readonly PersonField[];
@@ -159,6 +161,18 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Імʼя" error={errors.firstName?.message} {...register('firstName')} />
               <Field label="Прізвище" error={errors.lastName?.message} {...register('lastName')} />
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="gender">Стать</Label>
+                <Select id="gender" {...register('gender')}>
+                  <option value="">Не вказано</option>
+                  {PERSON_GENDERS.map((gender) => (
+                    <option key={gender} value={gender}>
+                      {PERSON_GENDER_LABELS[gender]}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
               <div className="grid gap-1.5">
                 <Label htmlFor="status">Статус</Label>

@@ -13,7 +13,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-import { FollowUpState, PersonStatus } from '@/infra/prisma/prisma.service';
+import { FollowUpState, PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 
 export class CreatePersonDto {
@@ -29,6 +29,11 @@ export class CreatePersonDto {
   @IsString()
   @MaxLength(50)
   lastName?: string;
+
+  @ApiPropertyOptional({ enum: PersonGender, description: 'Стать людини.' })
+  @IsOptional()
+  @IsEnum(PersonGender)
+  gender?: PersonGender;
 
   @ApiPropertyOptional({ example: 'ihor@example.com' })
   @IsOptional()

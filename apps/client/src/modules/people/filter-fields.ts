@@ -10,6 +10,7 @@ import type {
 } from '@/services';
 
 import { FOLLOW_UP_LABELS, PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
+import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 
 /**
  * The client half of the API's filter allowlist
@@ -47,6 +48,7 @@ export const MONTHS = [
 export const FILTER_FIELDS: FilterFieldDefinition[] = [
   { field: 'firstName', label: 'Імʼя', kind: 'text', group: 'Людина', required: true },
   { field: 'lastName', label: 'Прізвище', kind: 'text', group: 'Людина' },
+  { field: 'gender', label: 'Стать', kind: 'enum', group: 'Людина' },
   { field: 'age', label: 'Вік', kind: 'age', group: 'Людина' },
   { field: 'birthday', label: 'День народження', kind: 'birthday', group: 'Людина' },
   {
@@ -189,6 +191,9 @@ export const getFilterOptions = (
   sources: FilterOptionSources,
 ): FilterOption[] => {
   switch (field) {
+    case 'gender':
+      return PERSON_GENDERS.map((value) => ({ value, label: PERSON_GENDER_LABELS[value] }));
+
     case 'status':
       return PERSON_STATUSES.map((value) => ({ value, label: PERSON_STATUS_LABELS[value] }));
 

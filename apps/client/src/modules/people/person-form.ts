@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { toDateInputValue } from '@/lib/format';
-import { FollowUpState, PersonStatus, type Person, type Writable } from '@/services';
+import { FollowUpState, PersonGender, PersonStatus, type Person, type Writable } from '@/services';
 
 import { FOLLOW_UP_STATES, PERSON_STATUSES } from './status';
 import { databaseUuidSchema } from './uuid';
@@ -11,6 +11,7 @@ const optionalText = (max: number) => z.string().trim().max(max).optional();
 export const personSchema = z.object({
   firstName: z.string().trim().min(2, 'Мінімум 2 символи').max(50, 'Максимум 50 символів'),
   lastName: optionalText(50),
+  gender: z.union([z.literal(''), z.enum(PersonGender)]),
   status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]),
   followUp: z.enum(FOLLOW_UP_STATES as [FollowUpState, ...FollowUpState[]]),
 
@@ -60,6 +61,7 @@ export type PersonPayload = Omit<
 export const EMPTY_PERSON_VALUES: PersonValues = {
   firstName: '',
   lastName: '',
+  gender: '',
   status: PersonStatus.NEW,
   followUp: FollowUpState.NOT_DONE,
   phone: '',

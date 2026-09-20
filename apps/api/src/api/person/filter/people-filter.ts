@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
-import { FollowUpState, PersonStatus } from '@/infra/prisma/prisma.service';
+import { FollowUpState, PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
 
 /**
  * A filter is a flat list of conditions that must all match (`all`) or where one
@@ -84,7 +84,7 @@ type DateColumn =
 type FieldDefinition =
   /** Several columns read as one field: a match in any of them counts. */
   | { kind: 'text'; columns: readonly TextColumn[] }
-  | { kind: 'enum'; column: 'status' | 'followUp'; values: readonly string[] }
+  | { kind: 'enum'; column: 'status' | 'followUp' | 'gender'; values: readonly string[] }
   | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' | 'trainings' }
   | { kind: 'date'; column: DateColumn; operators?: readonly FilterOperator[] }
   | { kind: 'age' }
@@ -111,6 +111,7 @@ const FIELDS = {
   notes: { kind: 'text', columns: ['notes'] },
 
   status: { kind: 'enum', column: 'status', values: Object.values(PersonStatus) },
+  gender: { kind: 'enum', column: 'gender', values: Object.values(PersonGender) },
   followUp: { kind: 'enum', column: 'followUp', values: Object.values(FollowUpState) },
   communities: { kind: 'relation', relation: 'communities' },
   homeGroup: { kind: 'relation', relation: 'homeGroup' },
@@ -382,7 +383,7 @@ const toTextWhere = (columns: readonly TextColumn[], operator: FilterOperator, v
 };
 
 const toEnumWhere = (
-  column: 'status' | 'followUp',
+  column: 'status' | 'followUp' | 'gender',
   operator: FilterOperator,
   values: string[],
 ): Where => {
@@ -396,10 +397,10 @@ const toEnumWhere = (
         : { OR: [{ [column]: { notIn: values } }, { [column]: null }] };
 
     case 'isEmpty':
-      return isBlank(column);
+      return { [column]: null };
 
     case 'isNotEmpty':
-      return { NOT: isBlank(column) };
+      return { [column]: { not: null } };
 
     default:
       return unsupported(operator);

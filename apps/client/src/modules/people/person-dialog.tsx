@@ -29,6 +29,7 @@ import { useCreatePerson, useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
 import { MinistryCheckboxes } from './ministry-checkboxes';
 import { TrainingCheckboxes } from './training-checkboxes';
+import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 import {
   EMPTY_PERSON_VALUES,
   personSchema,
@@ -120,6 +121,18 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
           <FormSection title="Основне">
             <Field label="Імʼя" error={errors.firstName?.message} {...register('firstName')} />
             <Field label="Прізвище" error={errors.lastName?.message} {...register('lastName')} />
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="gender">Стать</Label>
+              <Select id="gender" {...register('gender')}>
+                <option value="">Не вказано</option>
+                {PERSON_GENDERS.map((gender) => (
+                  <option key={gender} value={gender}>
+                    {PERSON_GENDER_LABELS[gender]}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
             <div className="grid gap-1.5">
               <Label htmlFor="status">Статус</Label>

@@ -1,6 +1,6 @@
 import { PersonService } from './person.service';
 
-import { PersonStatus, type PrismaService } from '@/infra/prisma/prisma.service';
+import { PersonGender, PersonStatus, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
 
@@ -44,6 +44,11 @@ describe('toPersonData', () => {
 
   it('leaves non-date fields alone', () => {
     expect(toPersonData({ notes: null, city: 'Львів' })).toEqual({ notes: null, city: 'Львів' });
+  });
+
+  it('sets and clears gender in a partial update', () => {
+    expect(toPersonData({ gender: PersonGender.MALE })).toEqual({ gender: PersonGender.MALE });
+    expect(toPersonData({ gender: null })).toEqual({ gender: null });
   });
 
   it('replaces the complete community set', () => {
@@ -196,6 +201,7 @@ describe('buildPeopleOrderBy', () => {
 
   it('starts other columns ascending — alphabetical, or smallest first', () => {
     expect(buildPeopleOrderBy('city')).toEqual([{ city: { sort: 'asc', nulls: 'last' } }]);
+    expect(buildPeopleOrderBy('gender')).toEqual([{ gender: { sort: 'asc', nulls: 'last' } }]);
     expect(buildPeopleOrderBy('memberSince', 'desc')).toEqual([
       { memberSince: { sort: 'desc', nulls: 'last' } },
     ]);

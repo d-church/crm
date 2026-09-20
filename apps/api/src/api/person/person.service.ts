@@ -221,6 +221,7 @@ const SEARCH_FIELDS = [
  * never opens with a page of dashes.
  */
 const NULLABLE_SORT_COLUMNS = {
+  gender: 'gender',
   lastSeenAt: 'lastSeenAt',
   phone: 'phone',
   email: 'email',

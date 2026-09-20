@@ -21,12 +21,20 @@ enum FollowUpState {
   @@map("follow_up_states")
 }
 
+enum PersonGender {
+  MALE
+  FEMALE
+
+  @@map("person_genders")
+}
+
 /// A person known to the church, with the follow-up card the pastoral team keeps on them.
 model Person {
   id String @id @default(uuid())
 
   firstName String  @map("first_name")
   lastName  String? @map("last_name")
+  gender    PersonGender?
 
   email     String?
   phone     String?

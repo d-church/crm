@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { PersonStatus } from '@/infra/prisma/prisma.service';
+import { PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
 
 import {
   buildPeopleFilterWhere,
@@ -119,6 +119,13 @@ describe('parsePeopleFilter', () => {
     );
   });
 
+  it('accepts only the two gender values', () => {
+    expectBadRequest(
+      { conditions: [{ field: 'gender', operator: 'in', value: ['OTHER'] }] },
+      'must only contain: MALE, FEMALE',
+    );
+  });
+
   it('rejects relation ids that are not UUIDs', () => {
     expectBadRequest(
       { conditions: [{ field: 'communities', operator: 'in', value: ['1'] }] },
@@ -154,6 +161,19 @@ describe('parsePeopleFilter', () => {
 });
 
 describe('buildPeopleFilterWhere', () => {
+  it('filters by gender and includes unknown values in the negative match', () => {
+    expect(clauseFor({ field: 'gender', operator: 'in', value: [PersonGender.FEMALE] })).toEqual({
+      gender: { in: [PersonGender.FEMALE] },
+    });
+    expect(clauseFor({ field: 'gender', operator: 'notIn', value: [PersonGender.MALE] })).toEqual({
+      OR: [{ gender: { notIn: [PersonGender.MALE] } }, { gender: null }],
+    });
+    expect(clauseFor({ field: 'gender', operator: 'isEmpty' })).toEqual({ gender: null });
+    expect(clauseFor({ field: 'gender', operator: 'isNotEmpty' })).toEqual({
+      gender: { not: null },
+    });
+  });
+
   it('joins conditions with AND for all and OR for any', () => {
     const conditions = [
       { field: 'status', operator: 'in', value: ['NEW'] },

@@ -8,6 +8,7 @@ import { useAuth } from '@/modules/auth';
 import { getPersonName, type PeopleSort, type Person } from '@/services';
 
 import { getPersonMeta } from './filtering';
+import { PERSON_GENDER_LABELS } from './gender';
 import { PersonStatusBadge } from './person-status-badge';
 import { FOLLOW_UP_LABELS, PERSON_STATUS_LABELS } from './status';
 
@@ -62,6 +63,14 @@ export const PERSON_COLUMNS: PersonColumn[] = [
         </div>
       );
     },
+  },
+  {
+    key: 'gender',
+    label: 'Стать',
+    width: 0.8,
+    minWidth: 100,
+    sortKey: 'gender',
+    text: (person) => (person.gender ? PERSON_GENDER_LABELS[person.gender] : ''),
   },
   {
     key: 'status',
@@ -336,6 +345,7 @@ export const REQUIRED_COLUMN_KEY = 'name';
 
 export const DEFAULT_COLUMN_KEYS = [
   'name',
+  'gender',
   'status',
   'communities',
   'ministries',
@@ -343,39 +353,54 @@ export const DEFAULT_COLUMN_KEYS = [
   'phone',
 ];
 
+const PREVIOUS_DEFAULT_COLUMN_KEYS = DEFAULT_COLUMN_KEYS.filter((key) => key !== 'gender');
+
 const COLUMN_KEYS = PERSON_COLUMNS.map(({ key }) => key);
 
 export const getColumn = (key: string) => PERSON_COLUMNS.find((column) => column.key === key)!;
 
 const storageKey = (userId: string) => `dchurch-crm.people.columns.${userId}`;
 
-/**
- * Only the visible keys, in order, are stored. Columns added in a later release
- * are unknown to an older stored list, so they simply stay hidden until chosen.
- */
-const store = createLocalStore<string[]>((raw) => {
-  const parsed = z.array(z.string()).safeParse(raw);
+type ColumnSelection = { version: 2; keys: string[] };
+const DEFAULT_COLUMN_SELECTION: ColumnSelection = { version: 2, keys: DEFAULT_COLUMN_KEYS };
 
-  if (!parsed.success) return DEFAULT_COLUMN_KEYS;
+/** Upgrade old default lists once; versioned saves let users hide the new column again. */
+const store = createLocalStore<ColumnSelection>((raw) => {
+  const legacy = z.array(z.string()).safeParse(raw);
+  const current = z.object({ version: z.literal(2), keys: z.array(z.string()) }).safeParse(raw);
+  const rawKeys = legacy.success ? legacy.data : current.success ? current.data.keys : null;
 
-  const keys = [...new Set(parsed.data)].filter((key) => COLUMN_KEYS.includes(key));
+  if (!rawKeys) return DEFAULT_COLUMN_SELECTION;
 
-  if (keys.length === 0) return DEFAULT_COLUMN_KEYS;
+  const keys = [...new Set(rawKeys)].filter((key) => COLUMN_KEYS.includes(key));
 
-  return keys.includes(REQUIRED_COLUMN_KEY) ? keys : [REQUIRED_COLUMN_KEY, ...keys];
-}, DEFAULT_COLUMN_KEYS);
+  if (keys.length === 0) return DEFAULT_COLUMN_SELECTION;
+
+  if (
+    legacy.success &&
+    keys.length === PREVIOUS_DEFAULT_COLUMN_KEYS.length &&
+    keys.every((columnKey, index) => columnKey === PREVIOUS_DEFAULT_COLUMN_KEYS[index])
+  ) {
+    return DEFAULT_COLUMN_SELECTION;
+  }
+
+  return {
+    version: 2,
+    keys: keys.includes(REQUIRED_COLUMN_KEY) ? keys : [REQUIRED_COLUMN_KEY, ...keys],
+  };
+}, DEFAULT_COLUMN_SELECTION);
 
 export const usePeopleColumns = () => {
   const { user } = useAuth();
   const key = storageKey(user?.id ?? 'anonymous');
-  const visibleKeys = store.useValue(key);
+  const visibleKeys = store.useValue(key).keys;
 
   return {
     visibleKeys,
     columns: visibleKeys.map(getColumn),
     /** `false` when the browser refuses to store the choice. */
-    setVisibleKeys: (keys: string[]) => store.write(key, keys),
-    reset: () => store.write(key, DEFAULT_COLUMN_KEYS),
+    setVisibleKeys: (keys: string[]) => store.write(key, { version: 2, keys }),
+    reset: () => store.write(key, DEFAULT_COLUMN_SELECTION),
     isDefault:
       visibleKeys.length === DEFAULT_COLUMN_KEYS.length &&
       visibleKeys.every((columnKey, index) => columnKey === DEFAULT_COLUMN_KEYS[index]),

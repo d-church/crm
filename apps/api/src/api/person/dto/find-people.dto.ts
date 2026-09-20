@@ -23,6 +23,7 @@ import { parsePeopleFilter, type PeopleFilter } from '../filter/people-filter';
  */
 export const PEOPLE_SORTS = [
   'name',
+  'gender',
   'status',
   'homeGroup',
   'lastSeenAt',
