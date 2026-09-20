@@ -2,12 +2,12 @@ import { RestService, type Writable } from './abstracts/rest-service';
 import type { Community } from './community-service';
 import type { PersonChoice } from './person-service';
 
-export type MinistriesQuery = { communityId?: string };
+export type MinistriesQuery = { communityId?: string; withoutCommunity?: true };
 
 export interface Ministry {
   id: string;
   name: string;
-  community: Pick<Community, 'id' | 'name'>;
+  community: Pick<Community, 'id' | 'name'> | null;
   leader: PersonChoice | null;
   peopleCount: number;
   createdAt: string;
@@ -24,14 +24,17 @@ class MinistryServiceClass extends RestService<Ministry> {
   }
 
   public createMinistry(
-    data: Pick<Writable<Ministry>, 'name'> & { communityId: string; leaderId?: string },
+    data: Pick<Writable<Ministry>, 'name'> & { communityId?: string | null; leaderId?: string },
   ): Promise<Ministry> {
     return this.create(data);
   }
 
   public updateMinistry(
     id: string,
-    data: Pick<Writable<Ministry>, 'name'> & { communityId: string; leaderId: string | null },
+    data: Pick<Writable<Ministry>, 'name'> & {
+      communityId: string | null;
+      leaderId: string | null;
+    },
   ): Promise<Ministry> {
     return this.update(id, data);
   }

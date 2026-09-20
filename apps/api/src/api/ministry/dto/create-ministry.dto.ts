@@ -16,9 +16,10 @@ export class CreateMinistryDto {
   @MaxLength(80)
   name: string;
 
-  @ApiProperty({ example: '00000000-0000-4000-8000-000000000001' })
+  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001', nullable: true })
+  @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'communityId must be a UUID' })
-  communityId: string;
+  communityId?: string | null;
 
   @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000002' })
   @IsOptional()

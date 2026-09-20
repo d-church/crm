@@ -203,7 +203,7 @@ export const getFilterOptions = (
     case 'ministries':
       return sources.ministries.map((ministry) => ({
         value: ministry.id,
-        label: `${ministry.name} · ${ministry.community.name}`,
+        label: `${ministry.name} · ${ministry.community?.name ?? 'Для всіх спільнот'}`,
       }));
 
     case 'trainings':

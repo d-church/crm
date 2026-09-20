@@ -14,7 +14,7 @@ export class MinistryController {
   constructor(private readonly ministryService: MinistryService) {}
 
   @Authorization()
-  @ApiOperation({ summary: 'List ministries with their community, people counts and leaders' })
+  @ApiOperation({ summary: 'List ministries with optional communities, people counts and leaders' })
   @Get()
   public findAll(@Query() query: FindMinistriesDto) {
     return this.ministryService.findAll(query);

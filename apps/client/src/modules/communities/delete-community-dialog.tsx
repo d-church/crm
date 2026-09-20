@@ -51,7 +51,7 @@ export const DeleteCommunityDialog = ({
           <DialogTitle>Видалити «{community.name}»?</DialogTitle>
           <DialogDescription>
             Спільноту буде видалено назавжди. Люди залишаться у базі, але їхнє членство в цій
-            спільноті буде прибрано.
+            спільноті буде прибрано. Її служіння залишаться й перейдуть до «Інших».
           </DialogDescription>
         </DialogHeader>
 

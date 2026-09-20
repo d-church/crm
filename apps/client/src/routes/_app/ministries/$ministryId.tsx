@@ -71,7 +71,7 @@ function MinistryDetailPage() {
         actions={
           <>
             <Button asChild variant="outline">
-              <Link to="/ministries" search={{ communityId: ministry.community.id }}>
+              <Link to="/ministries" search={{ communityId: ministry.community?.id ?? 'other' }}>
                 <ArrowLeft />
                 До списку
               </Link>
@@ -79,7 +79,10 @@ function MinistryDetailPage() {
             <DeleteMinistryDialog
               ministry={ministry}
               onDeleted={() =>
-                void navigate({ to: '/ministries', search: { communityId: ministry.community.id } })
+                void navigate({
+                  to: '/ministries',
+                  search: { communityId: ministry.community?.id ?? 'other' },
+                })
               }
             >
               <Button variant="outline" className="text-destructive">

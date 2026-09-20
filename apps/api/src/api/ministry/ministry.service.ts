@@ -17,9 +17,12 @@ const MINISTRY_INCLUDE = {
 export class MinistryService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  public async findAll({ communityId }: FindMinistriesDto = {}): Promise<Ministry[]> {
+  public async findAll({ communityId, withoutCommunity }: FindMinistriesDto = {}): Promise<
+    Ministry[]
+  > {
     const ministries = await this.prismaService.ministry.findMany({
-      where: communityId === undefined ? {} : { communityId },
+      where:
+        withoutCommunity === 'true' ? { communityId: null } : communityId ? { communityId } : {},
       orderBy: [
         { community: { sortOrder: 'asc' } },
         { community: { name: 'asc' } },
@@ -76,19 +79,23 @@ export class MinistryService {
 
 type MinistryInput = {
   name?: string | null;
-  communityId?: string;
+  communityId?: string | null;
   leaderId?: string | null;
 };
 
 const toMinistryCreateData = ({ name, communityId, leaderId }: CreateMinistryDto) => ({
   name: name.trim(),
-  community: { connect: { id: communityId } },
+  ...(communityId ? { community: { connect: { id: communityId } } } : {}),
   ...(leaderId ? { leader: { connect: { id: leaderId } } } : {}),
 });
 
 const toMinistryUpdateData = ({ name, communityId, leaderId }: MinistryInput) => ({
   ...(name == null ? {} : { name: name.trim() }),
-  ...(communityId === undefined ? {} : { community: { connect: { id: communityId } } }),
+  ...(communityId === undefined
+    ? {}
+    : {
+        community: communityId === null ? { disconnect: true } : { connect: { id: communityId } },
+      }),
   ...(leaderId === undefined
     ? {}
     : { leader: leaderId === null ? { disconnect: true } : { connect: { id: leaderId } } }),
@@ -104,7 +111,7 @@ type MinistryWithRelations = Prisma.MinistryGetPayload<{ include: typeof MINISTR
 export type Ministry = {
   id: string;
   name: string;
-  community: { id: string; name: string };
+  community: { id: string; name: string } | null;
   leader: { id: string; firstName: string; lastName: string | null } | null;
   peopleCount: number;
   createdAt: Date;

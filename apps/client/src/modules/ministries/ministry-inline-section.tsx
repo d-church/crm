@@ -28,7 +28,7 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
     resolver: zodResolver(ministrySchema),
     defaultValues: {
       name: ministry.name,
-      communityId: ministry.community.id,
+      communityId: ministry.community?.id ?? '',
       leaderId: ministry.leader?.id ?? '',
     },
     mode: 'onSubmit',
@@ -39,22 +39,22 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
     if (!isDirty) {
       reset({
         name: ministry.name,
-        communityId: ministry.community.id,
+        communityId: ministry.community?.id ?? '',
         leaderId: ministry.leader?.id ?? '',
       });
     }
-  }, [isDirty, ministry.community.id, ministry.leader?.id, ministry.name, reset]);
+  }, [isDirty, ministry.community?.id, ministry.leader?.id, ministry.name, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
       const updatedMinistry = await updateMinistry({
         name: values.name,
-        communityId: values.communityId,
+        communityId: values.communityId || null,
         leaderId: values.leaderId || null,
       });
       reset({
         name: updatedMinistry.name,
-        communityId: updatedMinistry.community.id,
+        communityId: updatedMinistry.community?.id ?? '',
         leaderId: updatedMinistry.leader?.id ?? '',
       });
       toast.success('Зміни збережено');
@@ -78,6 +78,7 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
           <div className="grid gap-1.5">
             <Label htmlFor="communityId">Спільнота</Label>
             <Select id="communityId" {...register('communityId')}>
+              <option value="">Без спільноти (для всіх)</option>
               {communities.map((community) => (
                 <option key={community.id} value={community.id}>
                   {community.name}

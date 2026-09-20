@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, Matches } from 'class-validator';
+import { IsIn, IsOptional, Matches } from 'class-validator';
 
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 
@@ -8,4 +8,9 @@ export class FindMinistriesDto {
   @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'communityId must be a UUID' })
   communityId?: string;
+
+  @ApiPropertyOptional({ example: 'true', description: 'Show ministries without a community' })
+  @IsOptional()
+  @IsIn(['true'])
+  withoutCommunity?: 'true';
 }

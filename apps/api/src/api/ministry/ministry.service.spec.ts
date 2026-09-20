@@ -44,6 +44,16 @@ describe('MinistryService', () => {
     );
   });
 
+  it('creates a ministry without a community', async () => {
+    create.mockResolvedValue({ ...ministry, name: 'Welcome', community: null, leader: null });
+
+    await expect(service.create({ name: ' Welcome ' })).resolves.toMatchObject({
+      name: 'Welcome',
+      community: null,
+    });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: { name: 'Welcome' } }));
+  });
+
   it('filters the list by community', async () => {
     findMany.mockResolvedValue([ministry]);
 
@@ -57,6 +67,18 @@ describe('MinistryService', () => {
           { name: 'asc' },
         ],
       }),
+    );
+  });
+
+  it('lists all ministries or only those without a community', async () => {
+    findMany.mockResolvedValue([]);
+
+    await service.findAll();
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+
+    await service.findAll({ withoutCommunity: 'true' });
+    expect(findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: { communityId: null } }),
     );
   });
 
@@ -85,6 +107,18 @@ describe('MinistryService', () => {
           leader: { disconnect: true },
         },
       }),
+    );
+  });
+
+  it('removes a ministry from its community without deleting it', async () => {
+    findUnique.mockResolvedValue(ministry);
+    update.mockResolvedValue({ ...ministry, community: null });
+
+    await expect(service.update(ministry.id, { communityId: null })).resolves.toMatchObject({
+      community: null,
+    });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { community: { disconnect: true } } }),
     );
   });
 

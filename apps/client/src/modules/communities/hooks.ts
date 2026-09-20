@@ -65,6 +65,7 @@ export const useDeleteCommunity = () => {
         queryClient.invalidateQueries({ queryKey: COMMUNITIES_QUERY_KEY }),
         // Removing memberships also changes people rows and the "у спільноті" total.
         queryClient.invalidateQueries({ queryKey: ['people'] }),
+        queryClient.invalidateQueries({ queryKey: ['ministries'] }),
       ]);
     },
   });

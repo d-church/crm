@@ -49,7 +49,7 @@ export const MinistryDialog = ({
 
   const onSubmit = handleSubmit(async ({ name, communityId }) => {
     try {
-      await createMinistry({ name, communityId });
+      await createMinistry({ name, communityId: communityId || null });
       toast.success('Служіння додано');
       reset({ name: '', communityId: defaultCommunityId ?? '', leaderId: '' });
       setIsOpen(false);
@@ -71,7 +71,7 @@ export const MinistryDialog = ({
           <div className="grid gap-1.5">
             <Label htmlFor="communityId">Спільнота</Label>
             <Select id="communityId" {...register('communityId')}>
-              <option value="">Оберіть спільноту</option>
+              <option value="">Без спільноти (для всіх)</option>
               {communities.map((community) => (
                 <option key={community.id} value={community.id}>
                   {community.name}
@@ -88,7 +88,7 @@ export const MinistryDialog = ({
                 Скасувати
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isPending || communities.length === 0}>
+            <Button type="submit" disabled={isPending}>
               {isPending ? 'Додаємо…' : 'Додати'}
             </Button>
           </DialogFooter>

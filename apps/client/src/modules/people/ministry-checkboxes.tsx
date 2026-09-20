@@ -32,7 +32,7 @@ export const MinistryCheckboxes = ({ ministries, register, error }: MinistryChec
             <span className="flex min-w-0 flex-col">
               <span className="truncate">{ministry.name}</span>
               <span className="text-ink-faint truncate text-[11.5px]">
-                {ministry.community.name}
+                {ministry.community?.name ?? 'Для всіх спільнот'}
               </span>
             </span>
           </label>

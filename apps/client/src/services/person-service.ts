@@ -237,7 +237,9 @@ export interface Person {
   nextStep: string | null;
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
-  ministries: (Pick<Ministry, 'id' | 'name'> & { community: Pick<Community, 'id' | 'name'> })[];
+  ministries: (Pick<Ministry, 'id' | 'name'> & {
+    community: Pick<Community, 'id' | 'name'> | null;
+  })[];
   trainings: Pick<Training, 'id' | 'name'>[];
   responsible: string | null;
   nextAction: string | null;

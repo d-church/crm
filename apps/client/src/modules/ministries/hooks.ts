@@ -17,7 +17,7 @@ export const useMinistry = (id: string) => useQuery(ministryQueryOptions(id));
 export const useCreateMinistry = () => {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (data: { name: string; communityId: string }) =>
+    mutationFn: (data: { name: string; communityId: string | null }) =>
       MinistryService.createMinistry(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: MINISTRIES_QUERY_KEY }),
   });
@@ -32,7 +32,7 @@ export const useCreateMinistry = () => {
 export const useUpdateMinistry = (id: string) => {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (data: { name: string; communityId: string; leaderId: string | null }) =>
+    mutationFn: (data: { name: string; communityId: string | null; leaderId: string | null }) =>
       MinistryService.updateMinistry(id, data),
     onSuccess: async (ministry) => {
       queryClient.setQueryData([...MINISTRY_KEY, id], ministry);

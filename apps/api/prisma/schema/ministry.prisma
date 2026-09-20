@@ -1,11 +1,11 @@
-/// A ministry belongs to one community and can have any number of people serving in it.
+/// A ministry may belong to a community or serve the whole church.
 model Ministry {
   id String @id @default(uuid())
 
   name String
 
-  communityId String    @map("community_id")
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  communityId String?    @map("community_id")
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
 
   leaderId String? @map("leader_id")
   leader   Person? @relation("MinistryLeader", fields: [leaderId], references: [id], onDelete: SetNull)
