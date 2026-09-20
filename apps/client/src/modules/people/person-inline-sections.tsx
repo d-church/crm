@@ -152,7 +152,7 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
   const { data: trainings = [] } = useTrainings();
 
   return (
-    <div className="grid max-w-5xl gap-5 lg:grid-cols-2 lg:items-start">
+    <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
       <div className="grid gap-5">
         <InlinePersonSection person={person} title="Основне" fields={MAIN_FIELDS}>
           {({ register, errors }) => (

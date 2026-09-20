@@ -33,7 +33,7 @@ function CommunitiesPage() {
         }
       />
 
-      <section className="bg-card border-border max-w-5xl overflow-hidden rounded-xl border">
+      <section className="bg-card border-border overflow-hidden rounded-xl border">
         <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[1fr_1fr_auto_auto] gap-6 border-b px-5 py-3">
           <span>Назва</span>
           <span>Лідер</span>

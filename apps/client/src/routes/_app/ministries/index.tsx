@@ -76,7 +76,7 @@ function MinistriesPage() {
         }
       />
       {communitiesError ? (
-        <section className="bg-card border-border max-w-5xl rounded-xl border p-5">
+        <section className="bg-card border-border rounded-xl border p-5">
           <p className="text-destructive text-sm">{getApiErrorMessage(communitiesError)}</p>
         </section>
       ) : areCommunitiesPending ? (
@@ -86,7 +86,7 @@ function MinistriesPage() {
           ))}
         </div>
       ) : communities.length === 0 ? (
-        <section className="bg-card border-border max-w-5xl rounded-xl border px-5 py-14 text-center">
+        <section className="bg-card border-border rounded-xl border px-5 py-14 text-center">
           <p className="text-[14px]">Спочатку додайте спільноту, щоб створити служіння.</p>
         </section>
       ) : (
@@ -114,7 +114,7 @@ function MinistriesPage() {
               );
             })}
           </nav>
-          <section className="bg-card border-border max-w-5xl overflow-hidden rounded-xl border">
+          <section className="bg-card border-border overflow-hidden rounded-xl border">
             <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[1fr_1fr_auto_auto] gap-6 border-b px-5 py-3">
               <span>Назва</span>
               <span>Лідер</span>

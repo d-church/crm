@@ -61,7 +61,7 @@ export const CommunityInlineSection = ({ community }: { community: Community }) 
   });
 
   return (
-    <Card className="max-w-xl">
+    <Card>
       <form onSubmit={onSubmit} noValidate>
         <div className="border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
           <span className="eyebrow text-muted-foreground">Основне</span>

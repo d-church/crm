@@ -105,7 +105,7 @@ function CommunityDetailPage() {
         }
       />
 
-      <div className="grid max-w-5xl gap-5">
+      <div className="grid gap-5">
         <CommunityInlineSection community={community} />
 
         <Card className="overflow-hidden">

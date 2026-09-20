@@ -88,7 +88,7 @@ function TrainingDetailPage() {
           </>
         }
       />
-      <div className="grid max-w-5xl gap-5">
+      <div className="grid gap-5">
         <TrainingInlineSection training={training} />
         <Card className="overflow-hidden">
           <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
