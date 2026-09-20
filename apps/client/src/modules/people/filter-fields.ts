@@ -2,6 +2,7 @@ import { formatDate } from '@/lib/format';
 import type {
   Community,
   HomeGroup,
+  Ministry,
   PeopleFilterCondition,
   PeopleFilterField,
   PeopleFilterOperator,
@@ -77,7 +78,7 @@ export const FILTER_FIELDS: FilterFieldDefinition[] = [
 
   { field: 'communities', label: 'Спільноти', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'homeGroup', label: 'Домашня група', kind: 'relation', group: 'Спільноти й служіння' },
-  { field: 'ministry', label: 'Служіння', kind: 'enum', group: 'Спільноти й служіння' },
+  { field: 'ministries', label: 'Служіння', kind: 'relation', group: 'Спільноти й служіння' },
 
   { field: 'baptizedAt', label: 'Водне хрещення', kind: 'date', group: 'Членство' },
   { field: 'memberSince', label: 'Член церкви з', kind: 'date', group: 'Членство' },
@@ -175,7 +176,7 @@ export const isEmptinessCheck = (operator: PeopleFilterOperator) =>
 export type FilterOptionSources = {
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroups: Pick<HomeGroup, 'id' | 'name'>[];
-  ministries: string[];
+  ministries: Pick<Ministry, 'id' | 'name' | 'community'>[];
 };
 
 export type FilterOption = { value: string; label: string };
@@ -191,8 +192,11 @@ export const getFilterOptions = (
     case 'followUp':
       return Object.entries(FOLLOW_UP_LABELS).map(([value, label]) => ({ value, label }));
 
-    case 'ministry':
-      return sources.ministries.map((value) => ({ value, label: value }));
+    case 'ministries':
+      return sources.ministries.map((ministry) => ({
+        value: ministry.id,
+        label: `${ministry.name} · ${ministry.community.name}`,
+      }));
 
     case 'communities':
       return sources.communities.map(({ id, name }) => ({ value: id, label: name }));

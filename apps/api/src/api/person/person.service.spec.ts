@@ -68,6 +68,15 @@ describe('toPersonData', () => {
     expect(toPersonData({ communityIds: [] })).toEqual({ communities: { set: [] } });
   });
 
+  it('replaces and clears the complete ministry set', () => {
+    expect(
+      toPersonData({
+        ministryIds: ['00000000-0000-4000-8000-000000000003'],
+      }),
+    ).toEqual({ ministries: { set: [{ id: '00000000-0000-4000-8000-000000000003' }] } });
+    expect(toPersonData({ ministryIds: [] })).toEqual({ ministries: { set: [] } });
+  });
+
   it('sets and clears the optional home group', () => {
     const homeGroupId = '00000000-0000-4000-8000-000000000010';
 
@@ -81,17 +90,17 @@ describe('buildPeopleWhere', () => {
     expect(buildPeopleWhere({})).toEqual({});
   });
 
-  it('matches a status, community membership and ministry exactly', () => {
+  it('matches a status, community membership and ministry membership exactly', () => {
     expect(
       buildPeopleWhere({
         status: PersonStatus.SERVING,
         communityId: '00000000-0000-4000-8000-000000000001',
-        ministry: 'Прославлення',
+        ministryId: '00000000-0000-4000-8000-000000000003',
       }),
     ).toEqual({
       status: PersonStatus.SERVING,
       communities: { some: { id: '00000000-0000-4000-8000-000000000001' } },
-      ministry: 'Прославлення',
+      ministries: { some: { id: '00000000-0000-4000-8000-000000000003' } },
     });
   });
 
@@ -186,14 +195,6 @@ describe('buildPeopleOrderBy', () => {
       { lastName: { sort: 'asc', nulls: 'last' } },
       { firstName: 'asc' },
     ]);
-  });
-
-  it('keeps blanks last whichever way a nullable column is sorted', () => {
-    for (const order of ['asc', 'desc'] as const) {
-      expect(buildPeopleOrderBy('ministry', order)).toEqual([
-        { ministry: { sort: order, nulls: 'last' } },
-      ]);
-    }
   });
 
   it('needs no nulls rule for a column that is always filled', () => {

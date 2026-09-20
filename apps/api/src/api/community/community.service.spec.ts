@@ -7,6 +7,7 @@ import { CommunityService } from './community.service';
 const community = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'D.Youth',
+  sortOrder: 0,
   leader: { id: '00000000-0000-4000-8000-000000000002', firstName: 'Ірина', lastName: 'Коваль' },
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
@@ -40,6 +41,25 @@ describe('CommunityService', () => {
         _count: { select: { people: true } },
       },
     });
+  });
+
+  it('lists the lowest sort order first, then names', async () => {
+    findMany.mockResolvedValue([community]);
+
+    await service.findAll();
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+    );
+  });
+
+  it('updates the sort order independently', async () => {
+    findUnique.mockResolvedValue(community);
+    update.mockResolvedValue({ ...community, sortOrder: 20 });
+
+    await service.update(community.id, { sortOrder: 20 });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ data: { sortOrder: 20 } }));
   });
 
   it('rejects a missing community', async () => {

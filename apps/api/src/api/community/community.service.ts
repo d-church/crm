@@ -17,7 +17,7 @@ export class CommunityService {
 
   public async findAll(): Promise<Community[]> {
     const communities = await this.prismaService.community.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       include: COMMUNITY_INCLUDE,
     });
 
@@ -70,15 +70,18 @@ export class CommunityService {
 type CommunityInput = {
   name?: string | null;
   leaderId?: string | null;
+  sortOrder?: number;
 };
 
-const toCommunityCreateData = ({ name, leaderId }: CreateCommunityDto) => ({
+const toCommunityCreateData = ({ name, leaderId, sortOrder }: CreateCommunityDto) => ({
   name: name.trim(),
+  ...(sortOrder === undefined ? {} : { sortOrder }),
   ...(leaderId ? { leader: { connect: { id: leaderId } } } : {}),
 });
 
-const toCommunityUpdateData = ({ name, leaderId }: CommunityInput) => ({
+const toCommunityUpdateData = ({ name, leaderId, sortOrder }: CommunityInput) => ({
   ...(name == null ? {} : { name: name.trim() }),
+  ...(sortOrder === undefined ? {} : { sortOrder }),
   ...(leaderId === undefined
     ? {}
     : { leader: leaderId === null ? { disconnect: true } : { connect: { id: leaderId } } }),
@@ -94,6 +97,7 @@ type CommunityWithCount = Prisma.CommunityGetPayload<{ include: typeof COMMUNITY
 export type Community = {
   id: string;
   name: string;
+  sortOrder: number;
   leader: { id: string; firstName: string; lastName: string | null } | null;
   peopleCount: number;
   createdAt: Date;

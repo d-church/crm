@@ -4,5 +4,6 @@ export * from './abstracts/token-storage';
 export * from './auth-service';
 export * from './community-service';
 export * from './home-group-service';
+export * from './ministry-service';
 export * from './person-service';
 export * from './user-service';

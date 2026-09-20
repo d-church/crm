@@ -9,6 +9,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { label: 'Люди', to: '/people' },
   { label: 'Спільноти', to: '/communities' },
   { label: 'Домашні групи', to: '/home-groups' },
+  { label: 'Служіння', to: '/ministries' },
 ];
 
 export const getNavItems = (role: UserRole): NavItem[] =>

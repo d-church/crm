@@ -6,7 +6,6 @@ export const PEOPLE_QUERY_KEY = ['people'] as const;
 
 export const PEOPLE_LIST_KEY = [...PEOPLE_QUERY_KEY, 'list'] as const;
 export const PEOPLE_STATS_KEY = [...PEOPLE_QUERY_KEY, 'stats'] as const;
-export const PEOPLE_OPTIONS_KEY = [...PEOPLE_QUERY_KEY, 'options'] as const;
 export const PEOPLE_CHOICES_KEY = [...PEOPLE_QUERY_KEY, 'choices'] as const;
 export const PERSON_KEY = [...PEOPLE_QUERY_KEY, 'detail'] as const;
 
@@ -24,12 +23,6 @@ export const peopleStatsQueryOptions = () =>
   queryOptions({
     queryKey: PEOPLE_STATS_KEY,
     queryFn: () => PersonService.stats(),
-  });
-
-export const peopleOptionsQueryOptions = () =>
-  queryOptions({
-    queryKey: PEOPLE_OPTIONS_KEY,
-    queryFn: () => PersonService.options(),
   });
 
 export const peopleChoicesQueryOptions = () =>

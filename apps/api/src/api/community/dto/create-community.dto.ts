@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 
@@ -20,4 +30,12 @@ export class CreateCommunityDto {
   @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'leaderId must be a UUID' })
   leaderId?: string;
+
+  @ApiPropertyOptional({ description: 'Lower values appear first.', default: 100, minimum: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100_000)
+  sortOrder?: number;
 }

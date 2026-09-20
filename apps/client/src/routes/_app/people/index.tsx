@@ -9,6 +9,7 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
+import { useMinistries } from '@/modules/ministries';
 import {
   PeopleColumnsDialog,
   PeopleFilterDialog,
@@ -23,7 +24,6 @@ import {
   toPeopleQuery,
   usePeople,
   usePeopleColumns,
-  usePeopleOptions,
   usePeopleStats,
   type FilterOptionSources,
   type PeopleSearch,
@@ -58,9 +58,9 @@ function PeoplePage() {
   const query = toPeopleQuery(search);
   const { data: page, isPending, isFetching, error } = usePeople(query);
   const { data: stats } = usePeopleStats();
-  const { data: options } = usePeopleOptions();
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
+  const { data: ministries = [] } = useMinistries();
 
   // The input is local and the request is debounced, so typing stays smooth.
   const [queryText, setQueryText] = useState(search.q ?? '');
@@ -74,7 +74,7 @@ function PeoplePage() {
   const filterSources: FilterOptionSources = {
     communities,
     homeGroups,
-    ministries: options?.ministries ?? [],
+    ministries,
   };
 
   const patchSearch = (patch: Partial<PeopleSearch>) =>

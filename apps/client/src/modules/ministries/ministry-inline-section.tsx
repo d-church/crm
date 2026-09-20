@@ -4,55 +4,58 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { Button, Card, CardContent, Field } from '@/components/ui';
+import { Button, Card, CardContent, Field, Label, Select } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import type { Community } from '@/services';
+import { useCommunities } from '@/modules/communities';
+import { LeaderCombobox } from '@/modules/home-groups/leader-combobox';
 import { usePersonChoices } from '@/modules/people';
+import type { Ministry } from '@/services';
 
-import { communitySchema, type CommunityValues } from './community-form';
-import { useUpdateCommunity } from './hooks';
-import { LeaderCombobox } from '../home-groups/leader-combobox';
+import { ministrySchema, type MinistryValues } from './ministry-form';
+import { useUpdateMinistry } from './hooks';
 
-export const CommunityInlineSection = ({ community }: { community: Community }) => {
+export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
+  const { data: communities = [] } = useCommunities();
   const { data: people = [] } = usePersonChoices();
-  const { updateCommunity, isPending } = useUpdateCommunity(community.id);
+  const { updateMinistry, isPending } = useUpdateMinistry(ministry.id);
   const {
     register,
     control,
     handleSubmit,
     reset,
     formState: { errors, isDirty },
-  } = useForm<CommunityValues>({
-    resolver: zodResolver(communitySchema),
+  } = useForm<MinistryValues>({
+    resolver: zodResolver(ministrySchema),
     defaultValues: {
-      name: community.name,
-      sortOrder: community.sortOrder,
-      leaderId: community.leader?.id ?? '',
+      name: ministry.name,
+      communityId: ministry.community.id,
+      leaderId: ministry.leader?.id ?? '',
     },
     mode: 'onSubmit',
     reValidateMode: 'onBlur',
   });
 
   useEffect(() => {
-    if (!isDirty)
+    if (!isDirty) {
       reset({
-        name: community.name,
-        sortOrder: community.sortOrder,
-        leaderId: community.leader?.id ?? '',
+        name: ministry.name,
+        communityId: ministry.community.id,
+        leaderId: ministry.leader?.id ?? '',
       });
-  }, [community.leader?.id, community.name, community.sortOrder, isDirty, reset]);
+    }
+  }, [isDirty, ministry.community.id, ministry.leader?.id, ministry.name, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      const updatedCommunity = await updateCommunity({
+      const updatedMinistry = await updateMinistry({
         name: values.name,
-        sortOrder: values.sortOrder,
+        communityId: values.communityId,
         leaderId: values.leaderId || null,
       });
       reset({
-        name: updatedCommunity.name,
-        sortOrder: updatedCommunity.sortOrder,
-        leaderId: updatedCommunity.leader?.id ?? '',
+        name: updatedMinistry.name,
+        communityId: updatedMinistry.community.id,
+        leaderId: updatedMinistry.leader?.id ?? '',
       });
       toast.success('Зміни збережено');
     } catch (error) {
@@ -72,13 +75,19 @@ export const CommunityInlineSection = ({ community }: { community: Community }) 
         </div>
         <CardContent className="grid gap-4 p-5">
           <Field label="Назва" error={errors.name?.message} {...register('name')} />
-          <Field
-            label="Порядок"
-            type="number"
-            min={0}
-            error={errors.sortOrder?.message}
-            {...register('sortOrder', { valueAsNumber: true })}
-          />
+          <div className="grid gap-1.5">
+            <Label htmlFor="communityId">Спільнота</Label>
+            <Select id="communityId" {...register('communityId')}>
+              {communities.map((community) => (
+                <option key={community.id} value={community.id}>
+                  {community.name}
+                </option>
+              ))}
+            </Select>
+            {errors.communityId ? (
+              <p className="text-destructive text-[11.5px]">{errors.communityId.message}</p>
+            ) : null}
+          </div>
           <Controller
             control={control}
             name="leaderId"

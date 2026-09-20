@@ -5,10 +5,8 @@ import { PersonService, type PeopleQuery } from '@/services';
 import {
   PEOPLE_LIST_KEY,
   PEOPLE_CHOICES_KEY,
-  PEOPLE_OPTIONS_KEY,
   PEOPLE_STATS_KEY,
   PERSON_KEY,
-  peopleOptionsQueryOptions,
   peopleChoicesQueryOptions,
   peopleQueryOptions,
   peopleStatsQueryOptions,
@@ -22,18 +20,15 @@ export const usePeople = (query: PeopleQuery) => useQuery(peopleQueryOptions(que
 
 export const usePeopleStats = () => useQuery(peopleStatsQueryOptions());
 
-export const usePeopleOptions = () => useQuery(peopleOptionsQueryOptions());
-
 export const usePersonChoices = () => useQuery(peopleChoicesQueryOptions());
 
 export const usePerson = (id: string) => useQuery(personQueryOptions(id));
 
-/** A write changes the page, the totals and possibly the dropdown values. */
+/** A write changes the page, totals and available people for relation pickers. */
 const invalidateCollections = (queryClient: QueryClient) =>
   Promise.all([
     queryClient.invalidateQueries({ queryKey: PEOPLE_LIST_KEY }),
     queryClient.invalidateQueries({ queryKey: PEOPLE_STATS_KEY }),
-    queryClient.invalidateQueries({ queryKey: PEOPLE_OPTIONS_KEY }),
     queryClient.invalidateQueries({ queryKey: PEOPLE_CHOICES_KEY }),
   ]);
 

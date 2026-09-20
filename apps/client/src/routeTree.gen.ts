@@ -18,6 +18,8 @@ import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communiti
 import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
 import { Route as AppHomeGroupsIndexRouteImport } from './routes/_app/home-groups/index'
 import { Route as AppHomeGroupsHomeGroupIdRouteImport } from './routes/_app/home-groups/$homeGroupId'
+import { Route as AppMinistriesIndexRouteImport } from './routes/_app/ministries/index'
+import { Route as AppMinistriesMinistryIdRouteImport } from './routes/_app/ministries/$ministryId'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppPeoplePersonIdRouteImport } from './routes/_app/people/$personId'
 
@@ -67,6 +69,16 @@ const AppHomeGroupsHomeGroupIdRoute =
     path: '/home-groups/$homeGroupId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppMinistriesIndexRoute = AppMinistriesIndexRouteImport.update({
+  id: '/ministries/',
+  path: '/ministries/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMinistriesMinistryIdRoute = AppMinistriesMinistryIdRouteImport.update({
+  id: '/ministries/$ministryId',
+  path: '/ministries/$ministryId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/people/',
   path: '/people/',
@@ -85,9 +97,11 @@ export interface FileRoutesByFullPath {
   '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
+  '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/communities/': typeof AppCommunitiesIndexRoute
   '/home-groups/': typeof AppHomeGroupsIndexRoute
+  '/ministries/': typeof AppMinistriesIndexRoute
   '/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesByTo {
@@ -97,9 +111,11 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
+  '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
   '/communities': typeof AppCommunitiesIndexRoute
   '/home-groups': typeof AppHomeGroupsIndexRoute
+  '/ministries': typeof AppMinistriesIndexRoute
   '/people': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesById {
@@ -111,9 +127,11 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/_app/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
+  '/_app/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
   '/_app/communities/': typeof AppCommunitiesIndexRoute
   '/_app/home-groups/': typeof AppHomeGroupsIndexRoute
+  '/_app/ministries/': typeof AppMinistriesIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRouteTypes {
@@ -125,9 +143,11 @@ export interface FileRouteTypes {
     | '/users'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
+    | '/ministries/$ministryId'
     | '/people/$personId'
     | '/communities/'
     | '/home-groups/'
+    | '/ministries/'
     | '/people/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,9 +157,11 @@ export interface FileRouteTypes {
     | '/'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
+    | '/ministries/$ministryId'
     | '/people/$personId'
     | '/communities'
     | '/home-groups'
+    | '/ministries'
     | '/people'
   id:
     | '__root__'
@@ -150,9 +172,11 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/communities/$communityId'
     | '/_app/home-groups/$homeGroupId'
+    | '/_app/ministries/$ministryId'
     | '/_app/people/$personId'
     | '/_app/communities/'
     | '/_app/home-groups/'
+    | '/_app/ministries/'
     | '/_app/people/'
   fileRoutesById: FileRoutesById
 }
@@ -226,6 +250,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppHomeGroupsHomeGroupIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ministries/': {
+      id: '/_app/ministries/'
+      path: '/ministries'
+      fullPath: '/ministries/'
+      preLoaderRoute: typeof AppMinistriesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/ministries/$ministryId': {
+      id: '/_app/ministries/$ministryId'
+      path: '/ministries/$ministryId'
+      fullPath: '/ministries/$ministryId'
+      preLoaderRoute: typeof AppMinistriesMinistryIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/people/': {
       id: '/_app/people/'
       path: '/people'
@@ -249,9 +287,11 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
   AppHomeGroupsHomeGroupIdRoute: typeof AppHomeGroupsHomeGroupIdRoute
+  AppMinistriesMinistryIdRoute: typeof AppMinistriesMinistryIdRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
   AppCommunitiesIndexRoute: typeof AppCommunitiesIndexRoute
   AppHomeGroupsIndexRoute: typeof AppHomeGroupsIndexRoute
+  AppMinistriesIndexRoute: typeof AppMinistriesIndexRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
@@ -261,9 +301,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,
   AppHomeGroupsHomeGroupIdRoute: AppHomeGroupsHomeGroupIdRoute,
+  AppMinistriesMinistryIdRoute: AppMinistriesMinistryIdRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,
   AppCommunitiesIndexRoute: AppCommunitiesIndexRoute,
   AppHomeGroupsIndexRoute: AppHomeGroupsIndexRoute,
+  AppMinistriesIndexRoute: AppMinistriesIndexRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
 }
 

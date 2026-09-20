@@ -64,7 +64,10 @@ model Person {
   leadingHomeGroups HomeGroup[] @relation("HomeGroupLeader")
   /// A leader may lead several communities without being a member of them.
   leadingCommunities Community[] @relation("CommunityLeader")
-  ministry    String?
+  /// A person can serve in any number of ministries.
+  ministries Ministry[]
+  /// A leader may lead several ministries without serving in them.
+  leadingMinistries Ministry[] @relation("MinistryLeader")
 
   /// Відповідальний — team member carrying this person.
   responsible  String?

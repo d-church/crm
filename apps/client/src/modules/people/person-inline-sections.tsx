@@ -15,10 +15,12 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { formatDateTime } from '@/lib/format';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
+import { useMinistries } from '@/modules/ministries';
 import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
+import { MinistryCheckboxes } from './ministry-checkboxes';
 import {
   personSchema,
   pickPersonValues,
@@ -61,7 +63,7 @@ const JOURNEY_FIELDS = [
   'nextStep',
   'communityIds',
   'homeGroupId',
-  'ministry',
+  'ministryIds',
   'responsible',
   'nextAction',
   'nextActionAt',
@@ -143,6 +145,7 @@ const InlinePersonSection = ({ person, title, fields, children }: InlinePersonSe
 export const PersonInlineSections = ({ person }: { person: Person }) => {
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
+  const { data: ministries = [] } = useMinistries();
 
   return (
     <div className="grid max-w-5xl gap-5 lg:grid-cols-2 lg:items-start">
@@ -230,7 +233,11 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 )}
               />
 
-              <Field label="Служіння" error={errors.ministry?.message} {...register('ministry')} />
+              <MinistryCheckboxes
+                ministries={ministries}
+                register={register}
+                error={errors.ministryIds?.message}
+              />
               <Field
                 label="Відповідальний"
                 error={errors.responsible?.message}

@@ -118,12 +118,29 @@ export const PERSON_COLUMNS: PersonColumn[] = [
       ),
   },
   {
-    key: 'ministry',
+    key: 'ministries',
     label: 'Служіння',
     width: 1.2,
     minWidth: 140,
-    sortKey: 'ministry',
-    text: (p) => text(p.ministry),
+    text: (person) => person.ministries.map(({ name }) => name).join(', '),
+    cell: (person) => (
+      <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-[13px]">
+        {person.ministries.length === 0 ? (
+          <span className="text-ink-soft">{dash}</span>
+        ) : (
+          person.ministries.map((ministry) => (
+            <Link
+              key={ministry.id}
+              to="/ministries/$ministryId"
+              params={{ ministryId: ministry.id }}
+              className="text-ink truncate underline-offset-3 hover:underline"
+            >
+              {ministry.name}
+            </Link>
+          ))
+        )}
+      </div>
+    ),
   },
   {
     key: 'lastSeenAt',
@@ -321,7 +338,7 @@ export const DEFAULT_COLUMN_KEYS = [
   'name',
   'status',
   'communities',
-  'ministry',
+  'ministries',
   'lastSeenAt',
   'phone',
 ];

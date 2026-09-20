@@ -144,11 +144,18 @@ export class CreatePersonDto {
   @Matches(DATABASE_UUID_PATTERN, { message: 'homeGroupId must be a UUID' })
   homeGroupId?: string;
 
-  @ApiPropertyOptional({ example: 'Прославлення', description: 'Служіння.' })
+  @ApiPropertyOptional({
+    example: ['00000000-0000-4000-8000-000000000001'],
+    description: 'Повний набір служінь людини.',
+  })
   @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  ministry?: string;
+  @IsArray()
+  @ArrayUnique()
+  @Matches(DATABASE_UUID_PATTERN, {
+    each: true,
+    message: 'each value in ministryIds must be a UUID',
+  })
+  ministryIds?: string[];
 
   @ApiPropertyOptional({ example: 'Петро', description: 'Відповідальний за людину.' })
   @IsOptional()

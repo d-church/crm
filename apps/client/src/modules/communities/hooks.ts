@@ -21,7 +21,7 @@ export const useCreateCommunity = () => {
     isPending,
     error,
   } = useMutation({
-    mutationFn: (name: string) => CommunityService.createCommunity({ name }),
+    mutationFn: (name: string) => CommunityService.createCommunity({ name, sortOrder: 100 }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: COMMUNITIES_QUERY_KEY }),
   });
 
@@ -36,8 +36,11 @@ export const useUpdateCommunity = (id: string) => {
     isPending,
     error,
   } = useMutation({
-    mutationFn: (data: Pick<Writable<{ name: string }>, 'name'> & { leaderId: string | null }) =>
-      CommunityService.updateCommunity(id, data),
+    mutationFn: (
+      data: Pick<Writable<{ name: string; sortOrder: number }>, 'name' | 'sortOrder'> & {
+        leaderId: string | null;
+      },
+    ) => CommunityService.updateCommunity(id, data),
     onSuccess: async (community) => {
       queryClient.setQueryData([...COMMUNITY_KEY, id], community);
       await queryClient.invalidateQueries({ queryKey: COMMUNITIES_QUERY_KEY });

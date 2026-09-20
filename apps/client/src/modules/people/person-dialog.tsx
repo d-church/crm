@@ -21,10 +21,12 @@ import {
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
+import { useMinistries } from '@/modules/ministries';
 import type { Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
+import { MinistryCheckboxes } from './ministry-checkboxes';
 import {
   EMPTY_PERSON_VALUES,
   personSchema,
@@ -55,6 +57,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
   const { updatePerson, isPending: isUpdating } = useUpdatePerson(person?.id ?? '');
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
+  const { data: ministries = [] } = useMinistries();
   const isPending = isCreating || isUpdating;
 
   const {
@@ -196,7 +199,11 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
                 </div>
               )}
             />
-            <Field label="Служіння" {...register('ministry')} />
+            <MinistryCheckboxes
+              ministries={ministries}
+              register={register}
+              error={errors.ministryIds?.message}
+            />
             <Field label="Відповідальний" {...register('responsible')} />
             <Field
               label="Наступна дія"

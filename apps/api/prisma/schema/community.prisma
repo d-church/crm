@@ -3,8 +3,11 @@ model Community {
   id String @id @default(uuid())
 
   name String @unique
+  /// Lower numbers are shown first in selectors, tabs and lists.
+  sortOrder Int @default(100) @map("sort_order")
 
   people Person[]
+  ministries Ministry[]
 
   /// A leader can lead several communities without being a member of them.
   leaderId String? @map("leader_id")

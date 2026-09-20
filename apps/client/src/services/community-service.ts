@@ -4,6 +4,7 @@ import type { PersonChoice } from './person-service';
 export interface Community {
   id: string;
   name: string;
+  sortOrder: number;
   leader: PersonChoice | null;
   peopleCount: number;
   createdAt: string;
@@ -13,13 +14,15 @@ export interface Community {
 class CommunityServiceClass extends RestService<Community> {
   protected anchor = 'communities';
 
-  public createCommunity(data: Pick<Writable<Community>, 'name'>): Promise<Community> {
+  public createCommunity(
+    data: Pick<Writable<Community>, 'name' | 'sortOrder'>,
+  ): Promise<Community> {
     return this.create(data);
   }
 
   public updateCommunity(
     id: string,
-    data: Pick<Writable<Community>, 'name'> & { leaderId?: string | null },
+    data: Pick<Writable<Community>, 'name' | 'sortOrder'> & { leaderId?: string | null },
   ): Promise<Community> {
     return this.update(id, data);
   }

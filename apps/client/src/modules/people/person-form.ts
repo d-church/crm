@@ -31,7 +31,7 @@ export const personSchema = z.object({
   nextStep: optionalText(120),
   communityIds: z.array(databaseUuidSchema),
   homeGroupId: z.union([z.literal(''), databaseUuidSchema]).optional(),
-  ministry: optionalText(80),
+  ministryIds: z.array(databaseUuidSchema),
   responsible: optionalText(80),
   nextAction: optionalText(200),
   nextActionAt: optionalText(10),
@@ -46,9 +46,10 @@ export const personSchema = z.object({
 
 export type PersonValues = z.infer<typeof personSchema>;
 export type PersonField = keyof PersonValues;
-export type PersonPayload = Omit<Writable<Person>, 'communities' | 'homeGroup'> & {
+export type PersonPayload = Omit<Writable<Person>, 'communities' | 'homeGroup' | 'ministries'> & {
   communityIds?: string[] | null;
   homeGroupId?: string | null;
+  ministryIds?: string[] | null;
 };
 
 export const EMPTY_PERSON_VALUES: PersonValues = {
@@ -71,7 +72,7 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
   nextStep: '',
   communityIds: [],
   homeGroupId: '',
-  ministry: '',
+  ministryIds: [],
   responsible: '',
   nextAction: '',
   nextActionAt: '',
@@ -100,6 +101,7 @@ export const toPersonValues = (person: Person): PersonValues =>
     Object.entries(EMPTY_PERSON_VALUES).map(([key, fallback]) => {
       if (key === 'communityIds') return [key, person.communities.map(({ id }) => id)];
       if (key === 'homeGroupId') return [key, person.homeGroup?.id ?? ''];
+      if (key === 'ministryIds') return [key, person.ministries.map(({ id }) => id)];
 
       const value = person[key as keyof Person];
 

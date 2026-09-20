@@ -25,7 +25,6 @@ export const PEOPLE_SORTS = [
   'name',
   'status',
   'homeGroup',
-  'ministry',
   'lastSeenAt',
   'phone',
   'email',
@@ -119,11 +118,10 @@ export class FindPeopleDto {
   @Matches(DATABASE_UUID_PATTERN, { message: 'homeGroupId must be a UUID' })
   homeGroupId?: string;
 
-  @ApiPropertyOptional({ example: 'Прославлення' })
+  @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000001' })
   @IsOptional()
-  @IsString()
-  @MaxLength(80)
-  ministry?: string;
+  @Matches(DATABASE_UUID_PATTERN, { message: 'ministryId must be a UUID' })
+  ministryId?: string;
 
   @ApiPropertyOptional({
     type: String,

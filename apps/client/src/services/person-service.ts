@@ -1,13 +1,13 @@
 import { RestService } from './abstracts/rest-service';
 import type { Community } from './community-service';
 import type { HomeGroup } from './home-group-service';
+import type { Ministry } from './ministry-service';
 
 /** Mirrors the API's sortable columns. */
 export const PEOPLE_SORTS = [
   'name',
   'status',
   'homeGroup',
-  'ministry',
   'lastSeenAt',
   'phone',
   'email',
@@ -68,7 +68,7 @@ export type PeopleFilterField =
   | 'notes'
   | 'status'
   | 'followUp'
-  | 'ministry'
+  | 'ministries'
   | 'communities'
   | 'homeGroup'
   | 'firstVisitAt'
@@ -112,7 +112,7 @@ export type PeopleQuery = {
   maxAge?: number;
   communityId?: string;
   homeGroupId?: string;
-  ministry?: string;
+  ministryId?: string;
   filter?: PeopleFilter;
   sort?: PeopleSort;
   order?: SortOrder;
@@ -133,8 +133,6 @@ export type PeopleStats = {
   needsAction: number;
 };
 
-export type PeopleOptions = { ministries: string[] };
-
 export type PersonChoice = { id: string; firstName: string; lastName: string | null };
 
 /** The API caps a page at 200; the CSV export pages through instead of asking for more. */
@@ -154,12 +152,6 @@ class PersonServiceClass extends RestService<Person> {
 
   public async stats(): Promise<PeopleStats> {
     const response = await this.api.get<PeopleStats>(`${this.anchor}/stats`);
-
-    return response.data;
-  }
-
-  public async options(): Promise<PeopleOptions> {
-    const response = await this.api.get<PeopleOptions>(`${this.anchor}/options`);
 
     return response.data;
   }
@@ -232,7 +224,7 @@ export interface Person {
   nextStep: string | null;
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
-  ministry: string | null;
+  ministries: (Pick<Ministry, 'id' | 'name'> & { community: Pick<Community, 'id' | 'name'> })[];
   responsible: string | null;
   nextAction: string | null;
   nextActionAt: string | null;

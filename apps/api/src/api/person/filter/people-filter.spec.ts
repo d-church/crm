@@ -119,14 +119,6 @@ describe('parsePeopleFilter', () => {
     );
   });
 
-  it('accepts any ministry name, since ministries are free text', () => {
-    expect(() =>
-      parsePeopleFilter({
-        conditions: [{ field: 'ministry', operator: 'in', value: ['Прославлення'] }],
-      }),
-    ).not.toThrow();
-  });
-
   it('rejects relation ids that are not UUIDs', () => {
     expectBadRequest(
       { conditions: [{ field: 'communities', operator: 'in', value: ['1'] }] },
@@ -224,12 +216,6 @@ describe('buildPeopleFilterWhere', () => {
         status: { notIn: ['INACTIVE'] },
       });
     });
-
-    it('keeps people without a ministry when excluding ministries', () => {
-      expect(clauseFor({ field: 'ministry', operator: 'notIn', value: ['Діти'] })).toEqual({
-        OR: [{ ministry: { notIn: ['Діти'] } }, { ministry: null }],
-      });
-    });
   });
 
   describe('relations', () => {
@@ -251,6 +237,18 @@ describe('buildPeopleFilterWhere', () => {
       });
       expect(clauseFor({ field: 'homeGroup', operator: 'isEmpty' })).toEqual({
         homeGroupId: null,
+      });
+    });
+
+    it('matches any or none of the selected ministries', () => {
+      expect(clauseFor({ field: 'ministries', operator: 'in', value: [COMMUNITY_ID] })).toEqual({
+        ministries: { some: { id: { in: [COMMUNITY_ID] } } },
+      });
+      expect(clauseFor({ field: 'ministries', operator: 'notIn', value: [COMMUNITY_ID] })).toEqual({
+        ministries: { none: { id: { in: [COMMUNITY_ID] } } },
+      });
+      expect(clauseFor({ field: 'ministries', operator: 'isEmpty' })).toEqual({
+        ministries: { none: {} },
       });
     });
   });

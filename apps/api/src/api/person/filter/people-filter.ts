@@ -85,9 +85,7 @@ type FieldDefinition =
   /** Several columns read as one field: a match in any of them counts. */
   | { kind: 'text'; columns: readonly TextColumn[] }
   | { kind: 'enum'; column: 'status' | 'followUp'; values: readonly string[] }
-  /** Free-text values offered as a list — any string is accepted, and it can be blank. */
-  | { kind: 'enum'; column: 'ministry'; values?: undefined }
-  | { kind: 'relation'; relation: 'communities' | 'homeGroup' }
+  | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' }
   | { kind: 'date'; column: DateColumn; operators?: readonly FilterOperator[] }
   | { kind: 'age' }
   /** Day and month only — the year a person was born says nothing about their birthday. */
@@ -114,10 +112,9 @@ const FIELDS = {
 
   status: { kind: 'enum', column: 'status', values: Object.values(PersonStatus) },
   followUp: { kind: 'enum', column: 'followUp', values: Object.values(FollowUpState) },
-  ministry: { kind: 'enum', column: 'ministry' },
-
   communities: { kind: 'relation', relation: 'communities' },
   homeGroup: { kind: 'relation', relation: 'homeGroup' },
+  ministries: { kind: 'relation', relation: 'ministries' },
 
   firstVisitAt: { kind: 'date', column: 'firstVisitAt' },
   lastSeenAt: { kind: 'date', column: 'lastSeenAt' },
@@ -320,9 +317,12 @@ const toWhere = (
       return toEnumWhere(definition.column, operator, value as string[]);
 
     case 'relation':
-      return definition.relation === 'communities'
-        ? toCommunitiesWhere(operator, value as string[])
-        : toHomeGroupWhere(operator, value as string[]);
+      if (definition.relation === 'communities')
+        return toCommunitiesWhere(operator, value as string[]);
+      if (definition.relation === 'ministries')
+        return toMinistriesWhere(operator, value as string[]);
+
+      return toHomeGroupWhere(operator, value as string[]);
 
     case 'date':
       return toDateWhere(definition.column, operator, value, today);
@@ -380,7 +380,7 @@ const toTextWhere = (columns: readonly TextColumn[], operator: FilterOperator, v
 };
 
 const toEnumWhere = (
-  column: 'status' | 'followUp' | 'ministry',
+  column: 'status' | 'followUp',
   operator: FilterOperator,
   values: string[],
 ): Where => {
@@ -436,6 +436,25 @@ const toHomeGroupWhere = (operator: FilterOperator, ids: string[]): Where => {
 
     case 'isNotEmpty':
       return { homeGroupId: { not: null } };
+
+    default:
+      return unsupported(operator);
+  }
+};
+
+const toMinistriesWhere = (operator: FilterOperator, ids: string[]): Where => {
+  switch (operator) {
+    case 'in':
+      return { ministries: { some: { id: { in: ids } } } };
+
+    case 'notIn':
+      return { ministries: { none: { id: { in: ids } } } };
+
+    case 'isEmpty':
+      return { ministries: { none: {} } };
+
+    case 'isNotEmpty':
+      return { ministries: { some: {} } };
 
     default:
       return unsupported(operator);
