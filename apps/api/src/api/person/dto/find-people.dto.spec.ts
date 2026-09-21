@@ -5,6 +5,18 @@ import { validate } from 'class-validator';
 import { FindPeopleDto } from './find-people.dto';
 
 describe('FindPeopleDto', () => {
+  it('parses the includeInactive query flag as a boolean', async () => {
+    const included = plainToInstance(FindPeopleDto, { includeInactive: 'true' });
+    const excluded = plainToInstance(FindPeopleDto, { includeInactive: 'false' });
+    const invalid = plainToInstance(FindPeopleDto, { includeInactive: 'yes' });
+
+    expect(included.includeInactive).toBe(true);
+    expect(excluded.includeInactive).toBe(false);
+    await expect(validate(included)).resolves.toHaveLength(0);
+    await expect(validate(excluded)).resolves.toHaveLength(0);
+    await expect(validate(invalid)).resolves.toHaveLength(1);
+  });
+
   it('accepts a canonical PostgreSQL UUID from legacy community data', async () => {
     const dto = new FindPeopleDto();
     dto.communityId = '185a2b20-b3ba-5b0e-de61-e66ce7c3e470';

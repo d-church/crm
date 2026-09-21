@@ -58,7 +58,8 @@ function PeoplePage() {
 
   const query = toPeopleQuery(search);
   const { data: page, isPending, isFetching, error } = usePeople(query);
-  const { data: stats } = usePeopleStats();
+  const includeInactive = search.includeInactive ?? false;
+  const { data: stats } = usePeopleStats(includeInactive);
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
@@ -146,7 +147,7 @@ function PeoplePage() {
         }
       />
 
-      <PeopleStats stats={stats} />
+      <PeopleStats stats={stats} includeInactive={includeInactive} />
 
       <section className="bg-card border-border overflow-hidden rounded-xl border">
         <PeopleFilters

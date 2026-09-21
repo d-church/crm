@@ -18,7 +18,8 @@ export type { PersonPayload } from './person-form';
 
 export const usePeople = (query: PeopleQuery) => useQuery(peopleQueryOptions(query));
 
-export const usePeopleStats = () => useQuery(peopleStatsQueryOptions());
+export const usePeopleStats = (includeInactive = false) =>
+  useQuery(peopleStatsQueryOptions(includeInactive));
 
 export const usePersonChoices = () => useQuery(peopleChoicesQueryOptions());
 

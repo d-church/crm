@@ -5,6 +5,7 @@ import { Authorization } from '@/common/decorators';
 
 import { CreatePersonDto } from './dto/create-person.dto';
 import { FindPeopleDto } from './dto/find-people.dto';
+import { PeopleStatsDto } from './dto/people-stats.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { PersonService } from './person.service';
 
@@ -31,8 +32,8 @@ export class PersonController {
   @Authorization()
   @ApiOperation({ summary: 'Totals for the whole base, ignoring filters' })
   @Get('stats')
-  public stats() {
-    return this.personService.stats();
+  public stats(@Query() query: PeopleStatsDto) {
+    return this.personService.stats(query.includeInactive);
   }
 
   @Authorization()

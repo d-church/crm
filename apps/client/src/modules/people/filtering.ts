@@ -68,6 +68,12 @@ export const peopleFilterSchema = z.preprocess(
  * URL instead of cluttering it.
  */
 export const peopleSearchSchema = z.object({
+  includeInactive: z
+    .preprocess(
+      (value) => (value === true || value === 'true' ? true : undefined),
+      z.literal(true).optional(),
+    )
+    .optional(),
   page: z.coerce.number().int().min(1).optional(),
   q: z.string().trim().max(100).optional(),
   // A broken filter is dropped on its own instead of resetting the search and page.
@@ -84,6 +90,7 @@ type PeopleQueryInput = PeopleSearch &
 
 /** URL search params → the query the API expects. */
 export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
+  ...(search.includeInactive ? { includeInactive: true } : {}),
   page: search.page ?? 1,
   limit: PAGE_SIZE,
   sort: search.sort ?? DEFAULT_SORT,

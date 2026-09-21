@@ -86,11 +86,22 @@ export const PeopleFilters = ({
         />
       ) : null}
 
-      <div className="flex">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="text-ink-soft flex cursor-pointer items-center gap-2 text-[13px]">
+          <input
+            type="checkbox"
+            checked={filters.includeInactive ?? false}
+            onChange={(event) =>
+              onChange({ includeInactive: event.target.checked ? true : undefined })
+            }
+            className="accent-primary size-3.5"
+          />
+          Включити неактивних
+        </label>
         <button
           type="button"
           onClick={onReset}
-          className="text-muted-foreground hover:text-foreground ml-auto cursor-pointer text-[12.5px] underline underline-offset-3 transition-colors"
+          className="text-muted-foreground hover:text-foreground cursor-pointer text-[12.5px] underline underline-offset-3 transition-colors"
         >
           Скинути фільтри
         </button>

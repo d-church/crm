@@ -19,10 +19,10 @@ export const peopleQueryOptions = (query: PeopleQuery) =>
   });
 
 /** Whole-base totals — independent of the filters, so they get their own key. */
-export const peopleStatsQueryOptions = () =>
+export const peopleStatsQueryOptions = (includeInactive = false) =>
   queryOptions({
-    queryKey: PEOPLE_STATS_KEY,
-    queryFn: () => PersonService.stats(),
+    queryKey: [...PEOPLE_STATS_KEY, { includeInactive }],
+    queryFn: () => PersonService.stats(includeInactive),
   });
 
 export const peopleChoicesQueryOptions = () =>

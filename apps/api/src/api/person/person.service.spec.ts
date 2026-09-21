@@ -100,8 +100,9 @@ describe('toPersonData', () => {
 });
 
 describe('buildPeopleWhere', () => {
-  it('is empty when nothing is filtered', () => {
-    expect(buildPeopleWhere({})).toEqual({});
+  it('excludes inactive people by default', () => {
+    expect(buildPeopleWhere({})).toEqual({ status: { not: PersonStatus.INACTIVE } });
+    expect(buildPeopleWhere({ includeInactive: true })).toEqual({});
   });
 
   it('matches a status, community membership and ministry membership exactly', () => {
@@ -122,6 +123,7 @@ describe('buildPeopleWhere', () => {
 
   it('matches a home group exactly', () => {
     expect(buildPeopleWhere({ homeGroupId: '00000000-0000-4000-8000-000000000010' })).toEqual({
+      status: { not: PersonStatus.INACTIVE },
       homeGroupId: '00000000-0000-4000-8000-000000000010',
     });
   });
@@ -167,7 +169,9 @@ describe('buildPeopleWhere', () => {
   });
 
   it('ignores a blank search', () => {
-    expect(buildPeopleWhere({ search: '   ' })).toEqual({});
+    expect(buildPeopleWhere({ search: '   ' })).toEqual({
+      status: { not: PersonStatus.INACTIVE },
+    });
   });
 
   it('adds the condition filter next to the search terms without clobbering simple filters', () => {
@@ -236,7 +240,9 @@ describe('buildPeopleOrderBy', () => {
 });
 
 describe('PersonService stats', () => {
-  it('counts people who belong to at least one community', async () => {
+  it('excludes inactive people from all totals by default', async () => {
+    const now = new Date('2026-09-21T12:00:00.000Z');
+    jest.useFakeTimers().setSystemTime(now);
     const count = jest
       .fn()
       .mockResolvedValueOnce(10)
@@ -245,12 +251,41 @@ describe('PersonService stats', () => {
       .mockResolvedValueOnce(1);
     const service = new PersonService({ person: { count } } as unknown as PrismaService);
 
-    await expect(service.stats()).resolves.toMatchObject({
-      total: 10,
-      inCommunity: 4,
-      newThisMonth: 2,
-      needsAction: 1,
+    try {
+      await expect(service.stats()).resolves.toMatchObject({
+        total: 10,
+        inCommunity: 4,
+        newThisMonth: 2,
+        needsAction: 1,
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+    const visiblePeople = { status: { not: PersonStatus.INACTIVE } };
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    expect(count).toHaveBeenNthCalledWith(1, { where: visiblePeople });
+    expect(count).toHaveBeenNthCalledWith(2, {
+      where: { ...visiblePeople, communities: { some: {} } },
     });
+    expect(count).toHaveBeenNthCalledWith(3, {
+      where: { ...visiblePeople, createdAt: { gte: monthAgo } },
+    });
+    expect(count).toHaveBeenNthCalledWith(4, {
+      where: {
+        ...visiblePeople,
+        OR: [{ status: PersonStatus.CARE }, { nextActionAt: { lte: now } }],
+      },
+    });
+  });
+
+  it('includes inactive people when requested', async () => {
+    const count = jest.fn().mockResolvedValue(0);
+    const service = new PersonService({ person: { count } } as unknown as PrismaService);
+
+    await service.stats(true);
+
+    expect(count).toHaveBeenNthCalledWith(1, { where: {} });
     expect(count).toHaveBeenNthCalledWith(2, { where: { communities: { some: {} } } });
   });
 });

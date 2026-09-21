@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsObject,
@@ -64,7 +65,25 @@ export const DEFAULT_SORT: PeopleSort = 'createdAt';
 /** Newest first, which is what the default `createdAt` view means. */
 export const DEFAULT_SORT_ORDER: SortOrder = 'desc';
 
+const parseBoolean = ({ value }: TransformFnParams): unknown => {
+  const raw: unknown = value;
+
+  if (raw === true || raw === 'true') return true;
+  if (raw === false || raw === 'false') return false;
+
+  return raw;
+};
+
 export class FindPeopleDto {
+  @ApiPropertyOptional({
+    default: false,
+    description: 'Include people whose status is INACTIVE.',
+  })
+  @IsOptional()
+  @Transform(parseBoolean)
+  @IsBoolean()
+  includeInactive?: boolean;
+
   @ApiPropertyOptional({ default: DEFAULT_PAGE, minimum: 1 })
   @IsOptional()
   @Type(() => Number)

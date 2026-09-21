@@ -55,19 +55,25 @@ export class PersonService {
     return { items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) };
   }
 
-  /** Dashboard totals for the whole base — deliberately ignores the filters. */
-  public async stats(): Promise<PeopleStats> {
+  /** Dashboard totals ignore ad-hoc filters but follow inactive-person visibility. */
+  public async stats(includeInactive = false): Promise<PeopleStats> {
     const now = new Date();
     const monthAgo = new Date(now.getTime() - MONTH_MS);
+    const visiblePeople = includeInactive ? {} : { status: { not: PersonStatus.INACTIVE } };
 
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
-      this.prismaService.person.count(),
+      this.prismaService.person.count({ where: visiblePeople }),
       this.prismaService.person.count({
-        where: { communities: { some: {} } },
+        where: { ...visiblePeople, communities: { some: {} } },
       }),
-      this.prismaService.person.count({ where: { createdAt: { gte: monthAgo } } }),
       this.prismaService.person.count({
-        where: { OR: [{ status: PersonStatus.CARE }, { nextActionAt: { lte: now } }] },
+        where: { ...visiblePeople, createdAt: { gte: monthAgo } },
+      }),
+      this.prismaService.person.count({
+        where: {
+          ...visiblePeople,
+          OR: [{ status: PersonStatus.CARE }, { nextActionAt: { lte: now } }],
+        },
       }),
     ]);
 
@@ -298,6 +304,7 @@ export const buildPeopleWhere = (
     ministryId,
     trainingId,
     filter,
+    includeInactive,
   }: FindPeopleDto,
   now = new Date(),
 ): Prisma.PersonWhereInput => {
@@ -312,7 +319,11 @@ export const buildPeopleWhere = (
   ];
 
   return {
-    ...(status === undefined ? {} : { status }),
+    ...(status === undefined
+      ? includeInactive
+        ? {}
+        : { status: { not: PersonStatus.INACTIVE } }
+      : { status }),
     ...toAgeWhere(minAge, maxAge, now),
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
