@@ -4,7 +4,6 @@ import { Plus, UsersRound } from 'lucide-react';
 import { PageHeader } from '@/components/layout';
 import { Button, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { formatDate } from '@/lib/format';
 import { TrainingDialog, trainingsQueryOptions, useTrainings } from '@/modules/trainings';
 import { getPersonName } from '@/services';
 
@@ -33,11 +32,10 @@ function TrainingsPage() {
         }
       />
       <section className="bg-card border-border overflow-hidden rounded-xl border">
-        <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[1fr_1fr_auto_auto] gap-6 border-b px-5 py-3">
+        <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_3.5rem] gap-3 border-b px-4 py-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_6rem] sm:gap-6 sm:px-5">
           <span>Назва</span>
           <span>Лідер</span>
-          <span className="w-24 text-right">Пройшли</span>
-          <span className="w-28 text-right">Створено</span>
+          <span className="text-right">Людей</span>
         </div>
         {error ? (
           <p className="text-destructive p-5 text-sm">{getApiErrorMessage(error)}</p>
@@ -59,10 +57,10 @@ function TrainingsPage() {
                 key={training.id}
                 to="/trainings/$trainingId"
                 params={{ trainingId: training.id }}
-                className="hover:bg-accent grid grid-cols-[1fr_1fr_auto_auto] items-center gap-6 px-5 py-3.5 transition-colors"
+                className="hover:bg-accent grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_3.5rem] items-center gap-3 px-4 py-3.5 transition-colors sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_6rem] sm:gap-6 sm:px-5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="bg-secondary text-primary grid size-8 shrink-0 place-items-center rounded-full">
+                  <span className="bg-secondary text-primary hidden size-8 shrink-0 place-items-center rounded-full sm:grid">
                     <UsersRound className="size-4" />
                   </span>
                   <span className="truncate text-[13.5px]">{training.name}</span>
@@ -70,11 +68,8 @@ function TrainingsPage() {
                 <span className="text-ink-soft truncate text-[13px]">
                   {training.leader ? getPersonName(training.leader) : 'Не призначено'}
                 </span>
-                <span className="text-ink-soft w-24 text-right text-[13px] tabular-nums">
+                <span className="text-ink-soft text-right text-[13px] tabular-nums">
                   {training.peopleCount}
-                </span>
-                <span className="text-ink-faint w-28 text-right text-[12.5px] tabular-nums">
-                  {formatDate(training.createdAt)}
                 </span>
               </Link>
             ))}

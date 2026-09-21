@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { PageHeader } from '@/components/layout';
 import { Button, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { ministriesQueryOptions, MinistryDialog, useMinistries } from '@/modules/ministries';
@@ -126,13 +125,11 @@ function MinistriesPage() {
           Інші
         </button>
       </nav>
-      <section className="bg-card border-border overflow-x-auto rounded-xl border">
-        <div className="eyebrow text-muted-foreground border-border-muted grid min-w-[760px] grid-cols-[minmax(10rem,1.4fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_6rem_7rem] gap-5 border-b px-5 py-3">
+      <section className="bg-card border-border overflow-hidden rounded-xl border">
+        <div className="eyebrow text-muted-foreground border-border-muted grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_3.5rem] gap-3 border-b px-4 py-3 sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_6rem] sm:gap-6 sm:px-5">
           <span>Назва</span>
-          <span>Спільнота</span>
           <span>Лідер</span>
           <span className="text-right">Людей</span>
-          <span className="text-right">Створено</span>
         </div>
         {ministriesError ? (
           <p className="text-destructive p-5 text-sm">{getApiErrorMessage(ministriesError)}</p>
@@ -160,25 +157,19 @@ function MinistriesPage() {
                 key={ministry.id}
                 to="/ministries/$ministryId"
                 params={{ ministryId: ministry.id }}
-                className="hover:bg-accent grid min-w-[760px] grid-cols-[minmax(10rem,1.4fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_6rem_7rem] items-center gap-5 px-5 py-3.5 transition-colors"
+                className="hover:bg-accent grid grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_3.5rem] items-center gap-3 px-4 py-3.5 transition-colors sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_6rem] sm:gap-6 sm:px-5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="bg-secondary text-primary grid size-8 shrink-0 place-items-center rounded-full">
+                  <span className="bg-secondary text-primary hidden size-8 shrink-0 place-items-center rounded-full sm:grid">
                     <UsersRound className="size-4" />
                   </span>
                   <span className="truncate text-[13.5px]">{ministry.name}</span>
                 </div>
                 <span className="text-ink-soft truncate text-[13px]">
-                  {ministry.community?.name ?? 'Для всіх спільнот'}
-                </span>
-                <span className="text-ink-soft truncate text-[13px]">
                   {ministry.leader ? getPersonName(ministry.leader) : 'Не призначено'}
                 </span>
                 <span className="text-ink-soft text-right text-[13px] tabular-nums">
                   {ministry.peopleCount}
-                </span>
-                <span className="text-ink-faint text-right text-[12.5px] tabular-nums">
-                  {formatDate(ministry.createdAt)}
                 </span>
               </Link>
             ))}
