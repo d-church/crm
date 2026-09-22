@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
-import { PrismaService, PersonStatus } from '@/infra/prisma/prisma.service';
+import {
+  ActivityState,
+  MinistryRole,
+  PrismaService,
+  StepState,
+} from '@/infra/prisma/prisma.service';
 
-import { CreatePersonDto } from './dto/create-person.dto';
+import { BulkPeopleDto } from './dto/bulk-people.dto';
+import { CreatePersonDto, MinistryAssignmentDto } from './dto/create-person.dto';
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
@@ -19,8 +25,18 @@ import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
 const PERSON_INCLUDE = {
   communities: true,
   homeGroup: { select: { id: true, name: true } },
-  ministries: { include: { community: { select: { id: true, name: true } } } },
+  /// Лише діючі участі — завершені лишаються в базі як історія служіння.
+  ministryAssignments: {
+    where: { until: null },
+    include: { ministry: { include: { community: { select: { id: true, name: true } } } } },
+    orderBy: { ministry: { name: 'asc' } },
+  },
   trainings: true,
+  /// Кроки разом із завершеними: картка людини показує і план, і історію.
+  steps: {
+    include: { stepType: true },
+    orderBy: [{ completedAt: 'desc' }, { dueAt: 'asc' }, { createdAt: 'asc' }],
+  },
 } as const satisfies Prisma.PersonInclude;
 
 @Injectable()
@@ -59,7 +75,12 @@ export class PersonService {
   public async stats(includeInactive = false): Promise<PeopleStats> {
     const now = new Date();
     const monthAgo = new Date(now.getTime() - MONTH_MS);
-    const visiblePeople = includeInactive ? {} : { status: { not: PersonStatus.INACTIVE } };
+    const visiblePeople = includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } };
+    // Крок, який мав бути зроблений до сьогодні й досі в роботі.
+    const overdueStep = {
+      state: { in: [StepState.PLANNED, StepState.IN_PROGRESS] },
+      dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
+    };
 
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
       this.prismaService.person.count({ where: visiblePeople }),
@@ -72,12 +93,164 @@ export class PersonService {
       this.prismaService.person.count({
         where: {
           ...visiblePeople,
-          OR: [{ status: PersonStatus.CARE }, { nextActionAt: { lte: now } }],
+          OR: [{ careNeeded: true }, { steps: { some: overdueStep } }],
         },
       }),
     ]);
 
     return { total, inCommunity, newThisMonth, needsAction };
+  }
+
+  /**
+   * Тільки ідентифікатори за поточним фільтром — щоб «вибрати всіх знайдених»
+   * не тягнуло сотні повних карток.
+   */
+  public async findIds(query: FindPeopleDto): Promise<string[]> {
+    const people = await this.prismaService.person.findMany({
+      where: buildPeopleWhere(query),
+      select: { id: true },
+    });
+
+    return people.map(({ id }) => id);
+  }
+
+  /**
+   * Одна дія над багатьма людьми: база тільки наповнюється, тож додати два десятки
+   * людей у служіння списком швидше, ніж відкривати кожну картку.
+   */
+  public async bulk(dto: BulkPeopleDto): Promise<BulkResult> {
+    const personIds = dto.personIds;
+    const mode = dto.mode ?? 'add';
+
+    switch (dto.action) {
+      case 'ministry':
+        return this.bulkMinistry(
+          personIds,
+          requireTarget(dto),
+          dto.role ?? MinistryRole.MEMBER,
+          mode,
+        );
+
+      case 'community':
+        return this.bulkRelation('community', personIds, requireTarget(dto), mode);
+
+      case 'training':
+        return this.bulkRelation('training', personIds, requireTarget(dto), mode);
+
+      case 'homeGroup': {
+        // Порожня ціль означає «прибрати з групи».
+        const homeGroupId = mode === 'remove' ? null : (dto.targetId ?? null);
+        const { count } = await this.prismaService.person.updateMany({
+          where: { id: { in: personIds } },
+          data: { homeGroupId },
+        });
+
+        return { affected: count };
+      }
+
+      case 'step':
+        return this.bulkStep(personIds, requireTarget(dto), dto.dueAt, dto.responsible);
+
+      case 'membership':
+      case 'activity':
+      case 'careNeeded': {
+        const value = dto[dto.action];
+
+        if (value === undefined) {
+          throw new BadRequestException(`Поле "${dto.action}" обовʼязкове для цієї дії`);
+        }
+
+        const { count } = await this.prismaService.person.updateMany({
+          where: { id: { in: personIds } },
+          data: { [dto.action]: value },
+        });
+
+        return { affected: count };
+      }
+    }
+  }
+
+  /** Роль у служінні: наявним учасникам оновлюємо роль, відсутніх додаємо. */
+  private async bulkMinistry(
+    personIds: string[],
+    ministryId: string,
+    role: MinistryRole,
+    mode: 'add' | 'remove',
+  ): Promise<BulkResult> {
+    if (mode === 'remove') {
+      const { count } = await this.prismaService.ministryAssignment.deleteMany({
+        where: { personId: { in: personIds }, ministryId, until: null },
+      });
+
+      return { affected: count };
+    }
+
+    const existing = await this.prismaService.ministryAssignment.findMany({
+      where: { personId: { in: personIds }, ministryId, until: null },
+      select: { personId: true },
+    });
+    const existingIds = new Set(existing.map(({ personId }) => personId));
+    const missing = personIds.filter((id) => !existingIds.has(id));
+
+    const [, created] = await this.prismaService.$transaction([
+      this.prismaService.ministryAssignment.updateMany({
+        where: { personId: { in: personIds }, ministryId, until: null },
+        data: { role },
+      }),
+      this.prismaService.ministryAssignment.createMany({
+        data: missing.map((personId) => ({ personId, ministryId, role })),
+      }),
+    ]);
+
+    return { affected: existingIds.size + created.count };
+  }
+
+  /** Спільноти й навчання — звичайні звʼязки, тож приєднуємо всіх одним запитом. */
+  private async bulkRelation(
+    relation: 'community' | 'training',
+    personIds: string[],
+    targetId: string,
+    mode: 'add' | 'remove',
+  ): Promise<BulkResult> {
+    const people = personIds.map((id) => ({ id }));
+    const data = { people: mode === 'add' ? { connect: people } : { disconnect: people } };
+
+    await (relation === 'community'
+      ? this.prismaService.community.update({ where: { id: targetId }, data })
+      : this.prismaService.training.update({ where: { id: targetId }, data }));
+
+    return { affected: personIds.length };
+  }
+
+  /** Крок не дублюємо: у кого він уже в роботі, той лишається як був. */
+  private async bulkStep(
+    personIds: string[],
+    stepTypeId: string,
+    dueAt?: string,
+    responsible?: string,
+  ): Promise<BulkResult> {
+    const existing = await this.prismaService.personStep.findMany({
+      where: {
+        personId: { in: personIds },
+        stepTypeId,
+        state: { in: [StepState.PLANNED, StepState.IN_PROGRESS] },
+      },
+      select: { personId: true },
+    });
+    const existingIds = new Set(existing.map(({ personId }) => personId));
+
+    const { count } = await this.prismaService.personStep.createMany({
+      data: personIds
+        .filter((id) => !existingIds.has(id))
+        .map((personId) => ({
+          personId,
+          stepTypeId,
+          ...(dueAt ? { dueAt: new Date(dueAt) } : {}),
+          ...(responsible ? { responsible } : {}),
+        })),
+    });
+
+    return { affected: count };
   }
 
   /** Small relation-picker payload — avoids loading full person cards for a select. */
@@ -103,11 +276,63 @@ export class PersonService {
   public async update(id: string, updatePersonDto: UpdatePersonDto): Promise<Person> {
     await this.findOne(id);
 
-    return this.prismaService.person.update({
-      where: { id },
-      data: toPersonData(updatePersonDto),
-      include: PERSON_INCLUDE,
+    const { ministries, ...personDto } = updatePersonDto;
+
+    await this.prismaService.person.update({ where: { id }, data: toPersonData(personDto) });
+
+    if (ministries !== undefined) await this.syncMinistryAssignments(id, ministries ?? []);
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Приводить діючі участі людини до надісланого набору: зайві прибирає, ролі
+   * оновлює, нові створює. Роль, яку не змінювали, лишається як була.
+   */
+  private async syncMinistryAssignments(
+    personId: string,
+    desired: MinistryAssignmentDto[],
+  ): Promise<void> {
+    const current = await this.prismaService.ministryAssignment.findMany({
+      where: { personId, until: null },
+      select: { id: true, ministryId: true, role: true },
     });
+
+    const kept = new Set(desired.map(({ ministryId }) => ministryId));
+    const removed = current.filter(({ ministryId }) => !kept.has(ministryId));
+    const added = desired.filter(
+      ({ ministryId }) => !current.some((assignment) => assignment.ministryId === ministryId),
+    );
+    const changed = desired.filter(({ ministryId, role }) =>
+      current.some(
+        (assignment) => assignment.ministryId === ministryId && assignment.role !== role,
+      ),
+    );
+
+    if (removed.length === 0 && added.length === 0 && changed.length === 0) return;
+
+    await this.prismaService.$transaction([
+      ...(removed.length === 0
+        ? []
+        : [
+            this.prismaService.ministryAssignment.deleteMany({
+              where: { id: { in: removed.map(({ id }) => id) } },
+            }),
+          ]),
+      ...changed.map(({ ministryId, role }) =>
+        this.prismaService.ministryAssignment.updateMany({
+          where: { personId, ministryId, until: null },
+          data: { role },
+        }),
+      ),
+      ...(added.length === 0
+        ? []
+        : [
+            this.prismaService.ministryAssignment.createMany({
+              data: added.map(({ ministryId, role }) => ({ personId, ministryId, role })),
+            }),
+          ]),
+    ]);
   }
 
   public async remove(id: string): Promise<Person> {
@@ -133,7 +358,6 @@ const toDate = (value: string | null) => (value === null ? null : new Date(value
 const toPersonData = <T extends PersonInput>({
   communityIds,
   homeGroupId,
-  ministryIds,
   trainingIds,
   ...personDto
 }: T) => ({
@@ -142,9 +366,6 @@ const toPersonData = <T extends PersonInput>({
     ? {}
     : { communities: { set: (communityIds ?? []).map((id) => ({ id })) } }),
   ...(homeGroupId === undefined ? {} : { homeGroupId }),
-  ...(ministryIds === undefined
-    ? {}
-    : { ministries: { set: (ministryIds ?? []).map((id) => ({ id })) } }),
   ...(trainingIds === undefined
     ? {}
     : { trainings: { set: (trainingIds ?? []).map((id) => ({ id })) } }),
@@ -154,7 +375,6 @@ const toPersonFields = <T extends PersonInput>({
   birthDate,
   firstVisitAt,
   lastSeenAt,
-  nextActionAt,
   baptizedAt,
   memberSince,
   leftAt,
@@ -164,7 +384,6 @@ const toPersonFields = <T extends PersonInput>({
   ...(birthDate === undefined ? {} : { birthDate: toDate(birthDate) }),
   ...(firstVisitAt === undefined ? {} : { firstVisitAt: toDate(firstVisitAt) }),
   ...(lastSeenAt === undefined ? {} : { lastSeenAt: toDate(lastSeenAt) }),
-  ...(nextActionAt === undefined ? {} : { nextActionAt: toDate(nextActionAt) }),
   ...(baptizedAt === undefined ? {} : { baptizedAt: toDate(baptizedAt) }),
   ...(memberSince === undefined ? {} : { memberSince: toDate(memberSince) }),
   ...(leftAt === undefined ? {} : { leftAt: toDate(leftAt) }),
@@ -173,7 +392,7 @@ const toPersonFields = <T extends PersonInput>({
 export { toPersonData };
 
 const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
-  const { communityIds, homeGroupId, ministryIds, trainingIds, ...personDto } = createPersonDto;
+  const { communityIds, homeGroupId, ministries, trainingIds, ...personDto } = createPersonDto;
 
   return {
     ...toPersonFields(personDto),
@@ -181,9 +400,13 @@ const toPersonCreateData = (createPersonDto: CreatePersonDto) => {
       ? {}
       : { communities: { connect: (communityIds ?? []).map((id) => ({ id })) } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
-    ...(ministryIds === undefined
+    ...(ministries === undefined
       ? {}
-      : { ministries: { connect: (ministryIds ?? []).map((id) => ({ id })) } }),
+      : {
+          ministryAssignments: {
+            create: ministries.map(({ ministryId, role }) => ({ ministryId, role })),
+          },
+        }),
     ...(trainingIds === undefined
       ? {}
       : { trainings: { connect: (trainingIds ?? []).map((id) => ({ id })) } }),
@@ -208,6 +431,17 @@ export type PeopleStats = {
 };
 
 export type PersonChoice = { id: string; firstName: string; lastName: string | null };
+
+export type BulkResult = {
+  /** Скільки людей дія реально зачепила. */
+  affected: number;
+};
+
+const requireTarget = ({ action, targetId }: BulkPeopleDto): string => {
+  if (!targetId) throw new BadRequestException(`Оберіть, що саме додати (дія "${action}")`);
+
+  return targetId;
+};
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -238,10 +472,7 @@ const NULLABLE_SORT_COLUMNS = {
   birthDate: 'birthDate',
   birthday: 'birthMd',
   connectedBy: 'connectedBy',
-  nextStep: 'nextStep',
   responsible: 'responsible',
-  nextAction: 'nextAction',
-  nextActionAt: 'nextActionAt',
   firstVisitAt: 'firstVisitAt',
   baptizedAt: 'baptizedAt',
   memberSince: 'memberSince',
@@ -250,7 +481,8 @@ const NULLABLE_SORT_COLUMNS = {
 } as const satisfies Partial<Record<PeopleSort, keyof Prisma.PersonOrderByWithRelationInput>>;
 
 const REQUIRED_SORT_COLUMNS = {
-  status: 'status',
+  membership: 'membership',
+  activity: 'activity',
   followUp: 'followUp',
   createdAt: 'createdAt',
 } as const satisfies Partial<Record<PeopleSort, keyof Prisma.PersonOrderByWithRelationInput>>;
@@ -296,7 +528,6 @@ export const buildPeopleOrderBy = (
 export const buildPeopleWhere = (
   {
     search,
-    status,
     minAge,
     maxAge,
     communityId,
@@ -319,15 +550,14 @@ export const buildPeopleWhere = (
   ];
 
   return {
-    ...(status === undefined
-      ? includeInactive
-        ? {}
-        : { status: { not: PersonStatus.INACTIVE } }
-      : { status }),
+    // Неактивні приховані, поки їх не попросять явно.
+    ...(includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } }),
     ...toAgeWhere(minAge, maxAge, now),
     ...(communityId === undefined ? {} : { communities: { some: { id: communityId } } }),
     ...(homeGroupId === undefined ? {} : { homeGroupId }),
-    ...(ministryId === undefined ? {} : { ministries: { some: { id: ministryId } } }),
+    ...(ministryId === undefined
+      ? {}
+      : { ministryAssignments: { some: { ministryId, until: null } } }),
     ...(trainingId === undefined ? {} : { trainings: { some: { id: trainingId } } }),
     ...(clauses.length === 0 ? {} : { AND: clauses }),
   };

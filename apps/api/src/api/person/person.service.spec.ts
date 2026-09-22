@@ -1,6 +1,6 @@
 import { PersonService } from './person.service';
 
-import { PersonGender, PersonStatus, type PrismaService } from '@/infra/prisma/prisma.service';
+import { ActivityState, PersonGender, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
 
@@ -31,7 +31,6 @@ describe('toPersonData', () => {
       birthDate: '1990-12-10',
       firstVisitAt: '2026-08-09',
       lastSeenAt: '2026-08-17',
-      nextActionAt: '2026-08-20',
       baptizedAt: '1998-07-27',
       memberSince: '2005-01-24',
       leftAt: '2024-03-01',
@@ -73,13 +72,8 @@ describe('toPersonData', () => {
     expect(toPersonData({ communityIds: [] })).toEqual({ communities: { set: [] } });
   });
 
-  it('replaces and clears the complete ministry set', () => {
-    expect(
-      toPersonData({
-        ministryIds: ['00000000-0000-4000-8000-000000000003'],
-      }),
-    ).toEqual({ ministries: { set: [{ id: '00000000-0000-4000-8000-000000000003' }] } });
-    expect(toPersonData({ ministryIds: [] })).toEqual({ ministries: { set: [] } });
+  it('leaves ministries to the assignment sync, not to the scalar data', () => {
+    expect(toPersonData({ firstName: 'Ігор' })).toEqual({ firstName: 'Ігор' });
   });
 
   it('replaces and clears the complete training set', () => {
@@ -101,29 +95,30 @@ describe('toPersonData', () => {
 
 describe('buildPeopleWhere', () => {
   it('excludes inactive people by default', () => {
-    expect(buildPeopleWhere({})).toEqual({ status: { not: PersonStatus.INACTIVE } });
+    expect(buildPeopleWhere({})).toEqual({ activity: { not: ActivityState.INACTIVE } });
     expect(buildPeopleWhere({ includeInactive: true })).toEqual({});
   });
 
-  it('matches a status, community membership and ministry membership exactly', () => {
+  it('matches community and ministry membership exactly', () => {
     expect(
       buildPeopleWhere({
-        status: PersonStatus.SERVING,
         communityId: '00000000-0000-4000-8000-000000000001',
         ministryId: '00000000-0000-4000-8000-000000000003',
         trainingId: '00000000-0000-4000-8000-000000000004',
       }),
     ).toEqual({
-      status: PersonStatus.SERVING,
+      activity: { not: ActivityState.INACTIVE },
       communities: { some: { id: '00000000-0000-4000-8000-000000000001' } },
-      ministries: { some: { id: '00000000-0000-4000-8000-000000000003' } },
+      ministryAssignments: {
+        some: { ministryId: '00000000-0000-4000-8000-000000000003', until: null },
+      },
       trainings: { some: { id: '00000000-0000-4000-8000-000000000004' } },
     });
   });
 
   it('matches a home group exactly', () => {
     expect(buildPeopleWhere({ homeGroupId: '00000000-0000-4000-8000-000000000010' })).toEqual({
-      status: { not: PersonStatus.INACTIVE },
+      activity: { not: ActivityState.INACTIVE },
       homeGroupId: '00000000-0000-4000-8000-000000000010',
     });
   });
@@ -170,7 +165,7 @@ describe('buildPeopleWhere', () => {
 
   it('ignores a blank search', () => {
     expect(buildPeopleWhere({ search: '   ' })).toEqual({
-      status: { not: PersonStatus.INACTIVE },
+      activity: { not: ActivityState.INACTIVE },
     });
   });
 
@@ -190,10 +185,10 @@ describe('buildPeopleWhere', () => {
     expect((where.AND as unknown[])[1]).toEqual({ OR: [{ birthDate: null }] });
   });
 
-  it('keeps a status filter alongside a search', () => {
-    const where = buildPeopleWhere({ search: 'Іван', status: PersonStatus.NEW });
+  it('keeps inactive people out alongside a search', () => {
+    const where = buildPeopleWhere({ search: 'Іван' });
 
-    expect(where.status).toBe(PersonStatus.NEW);
+    expect(where.activity).toEqual({ not: ActivityState.INACTIVE });
     expect(where.AND).toHaveLength(1);
   });
 });
@@ -219,7 +214,7 @@ describe('buildPeopleOrderBy', () => {
   });
 
   it('needs no nulls rule for a column that is always filled', () => {
-    expect(buildPeopleOrderBy('status', 'asc')).toEqual([{ status: 'asc' }]);
+    expect(buildPeopleOrderBy('membership', 'asc')).toEqual([{ membership: 'asc' }]);
   });
 
   it('turns age around, because the oldest person was born first', () => {
@@ -261,7 +256,7 @@ describe('PersonService stats', () => {
     } finally {
       jest.useRealTimers();
     }
-    const visiblePeople = { status: { not: PersonStatus.INACTIVE } };
+    const visiblePeople = { activity: { not: ActivityState.INACTIVE } };
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     expect(count).toHaveBeenNthCalledWith(1, { where: visiblePeople });
@@ -274,7 +269,17 @@ describe('PersonService stats', () => {
     expect(count).toHaveBeenNthCalledWith(4, {
       where: {
         ...visiblePeople,
-        OR: [{ status: PersonStatus.CARE }, { nextActionAt: { lte: now } }],
+        OR: [
+          { careNeeded: true },
+          {
+            steps: {
+              some: {
+                state: { in: ['PLANNED', 'IN_PROGRESS'] },
+                dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
+              },
+            },
+          },
+        ],
       },
     });
   });

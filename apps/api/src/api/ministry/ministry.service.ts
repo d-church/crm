@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
-import { PrismaService } from '@/infra/prisma/prisma.service';
+import { MinistryRole, PrismaService } from '@/infra/prisma/prisma.service';
 
 import { CreateMinistryDto } from './dto/create-ministry.dto';
 import { FindMinistriesDto } from './dto/find-ministries.dto';
@@ -9,8 +9,11 @@ import { UpdateMinistryDto } from './dto/update-ministry.dto';
 
 const MINISTRY_INCLUDE = {
   community: { select: { id: true, name: true } },
-  leader: { select: { id: true, firstName: true, lastName: true } },
-  _count: { select: { people: true } },
+  /// Лише діючі участі: завершені лишаються в базі як історія.
+  assignments: {
+    where: { until: null },
+    include: { person: { select: { id: true, firstName: true, lastName: true } } },
+  },
 } as const satisfies Prisma.MinistryInclude;
 
 @Injectable()
@@ -34,13 +37,17 @@ export class MinistryService {
     return ministries.map(toMinistry);
   }
 
-  public async create(dto: CreateMinistryDto): Promise<Ministry> {
+  public async create({ leaderId, ...dto }: CreateMinistryDto): Promise<Ministry> {
     const ministry = await this.prismaService.ministry.create({
       data: toMinistryCreateData(dto),
       include: MINISTRY_INCLUDE,
     });
 
-    return toMinistry(ministry);
+    if (leaderId === undefined) return toMinistry(ministry);
+
+    await this.setLeader(ministry.id, leaderId);
+
+    return this.findOne(ministry.id);
   }
 
   public async findOne(id: string): Promise<Ministry> {
@@ -53,16 +60,49 @@ export class MinistryService {
     return toMinistry(ministry);
   }
 
-  public async update(id: string, dto: UpdateMinistryDto): Promise<Ministry> {
+  public async update(id: string, { leaderId, ...dto }: UpdateMinistryDto): Promise<Ministry> {
     await this.findOne(id);
 
-    const ministry = await this.prismaService.ministry.update({
+    await this.prismaService.ministry.update({
       where: { id },
       data: toMinistryUpdateData(dto),
-      include: MINISTRY_INCLUDE,
     });
 
-    return toMinistry(ministry);
+    if (leaderId !== undefined) await this.setLeader(id, leaderId ?? null);
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Керівник служіння — це участь із роллю LEADER. Попередній керівник лишається
+   * в команді учасником, бо зміна керівника рідко означає, що людина пішла.
+   */
+  private async setLeader(ministryId: string, leaderId: string | null): Promise<void> {
+    await this.prismaService.ministryAssignment.updateMany({
+      where: {
+        ministryId,
+        role: MinistryRole.LEADER,
+        until: null,
+        NOT: { personId: leaderId ?? '' },
+      },
+      data: { role: MinistryRole.MEMBER },
+    });
+
+    if (!leaderId) return;
+
+    const existing = await this.prismaService.ministryAssignment.findFirst({
+      where: { ministryId, personId: leaderId, until: null },
+      select: { id: true },
+    });
+
+    await (existing
+      ? this.prismaService.ministryAssignment.update({
+          where: { id: existing.id },
+          data: { role: MinistryRole.LEADER },
+        })
+      : this.prismaService.ministryAssignment.create({
+          data: { ministryId, personId: leaderId, role: MinistryRole.LEADER },
+        }));
   }
 
   public async remove(id: string): Promise<Ministry> {
@@ -83,27 +123,24 @@ type MinistryInput = {
   leaderId?: string | null;
 };
 
-const toMinistryCreateData = ({ name, communityId, leaderId }: CreateMinistryDto) => ({
+const toMinistryCreateData = ({ name, communityId }: Omit<CreateMinistryDto, 'leaderId'>) => ({
   name: name.trim(),
   ...(communityId ? { community: { connect: { id: communityId } } } : {}),
-  ...(leaderId ? { leader: { connect: { id: leaderId } } } : {}),
 });
 
-const toMinistryUpdateData = ({ name, communityId, leaderId }: MinistryInput) => ({
+const toMinistryUpdateData = ({ name, communityId }: MinistryInput) => ({
   ...(name == null ? {} : { name: name.trim() }),
   ...(communityId === undefined
     ? {}
     : {
         community: communityId === null ? { disconnect: true } : { connect: { id: communityId } },
       }),
-  ...(leaderId === undefined
-    ? {}
-    : { leader: leaderId === null ? { disconnect: true } : { connect: { id: leaderId } } }),
 });
 
-const toMinistry = ({ _count, ...ministry }: MinistryWithRelations): Ministry => ({
+const toMinistry = ({ assignments, ...ministry }: MinistryWithRelations): Ministry => ({
   ...ministry,
-  peopleCount: _count.people,
+  leader: assignments.find(({ role }) => role === MinistryRole.LEADER)?.person ?? null,
+  peopleCount: assignments.length,
 });
 
 type MinistryWithRelations = Prisma.MinistryGetPayload<{ include: typeof MINISTRY_INCLUDE }>;

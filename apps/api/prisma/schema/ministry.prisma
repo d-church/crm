@@ -1,3 +1,38 @@
+/// Роль людини в служінні. Керівник — теж учасник, просто з іншою роллю.
+enum MinistryRole {
+  MEMBER
+  HELPER
+  LEADER
+
+  @@map("ministry_roles")
+}
+
+/// Участь людини в служінні: роль належить саме цій участі, а не людині.
+/// Тому одна людина може керувати одним служінням і бути помічником в іншому.
+model MinistryAssignment {
+  id String @id @default(uuid())
+
+  personId String @map("person_id")
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  ministryId String   @map("ministry_id")
+  ministry   Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  role MinistryRole @default(MEMBER)
+
+  /// Порожній until означає, що людина служить досі.
+  since DateTime? @db.Date
+  until DateTime? @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([ministryId])
+  @@index([role])
+  @@map("ministry_assignments")
+}
+
 /// A ministry may belong to a community or serve the whole church.
 model Ministry {
   id String @id @default(uuid())
@@ -7,15 +42,12 @@ model Ministry {
   communityId String?    @map("community_id")
   community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
 
-  leaderId String? @map("leader_id")
-  leader   Person? @relation("MinistryLeader", fields: [leaderId], references: [id], onDelete: SetNull)
-  people   Person[]
+  assignments MinistryAssignment[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([communityId, name])
   @@index([communityId])
-  @@index([leaderId])
   @@map("ministries")
 }

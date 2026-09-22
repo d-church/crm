@@ -3,6 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
 
+import { BulkPeopleDto } from './dto/bulk-people.dto';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { FindPeopleDto } from './dto/find-people.dto';
 import { PeopleStatsDto } from './dto/people-stats.dto';
@@ -26,6 +27,20 @@ export class PersonController {
   @Post()
   public create(@Body() createPersonDto: CreatePersonDto) {
     return this.personService.create(createPersonDto);
+  }
+
+  @Authorization()
+  @ApiOperation({ summary: 'Ідентифікатори всіх людей за поточним фільтром' })
+  @Get('ids')
+  public findIds(@Query() query: FindPeopleDto) {
+    return this.personService.findIds(query);
+  }
+
+  @Authorization()
+  @ApiOperation({ summary: 'Одна дія над багатьма людьми одразу' })
+  @Post('bulk')
+  public bulk(@Body() dto: BulkPeopleDto) {
+    return this.personService.bulk(dto);
   }
 
   // Both of these must stay above `:id`, or that route swallows them.

@@ -12,7 +12,7 @@ const buildStats = (stats: PeopleStatsData, includeInactive: boolean): Stat[] =>
   },
   { label: 'У спільноті', value: stats.inCommunity, note: 'включно зі служителями' },
   { label: 'Нові за місяць', value: stats.newThisMonth, note: 'потребують контакту' },
-  { label: 'Потребують дії', value: stats.needsAction, note: 'опіка або протермінована дія' },
+  { label: 'Потребують дії', value: stats.needsAction, note: 'опіка або прострочений крок' },
 ];
 
 const PLACEHOLDERS = [

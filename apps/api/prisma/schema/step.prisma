@@ -1,0 +1,58 @@
+/// Довідник кроків зростання. Церква додає свої, тому це таблиця, а не enum.
+model StepType {
+  id String @id @default(uuid())
+
+  name String @unique
+  /// Порядок у списку — церква сама вирішує, що пропонувати першим.
+  sortOrder Int @default(0) @map("sort_order")
+  /// Архівний крок не пропонують для нових людей, але старі записи лишаються.
+  isArchived Boolean @default(false) @map("is_archived")
+
+  steps PersonStep[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("step_types")
+}
+
+/// Крок — це задача, а не статус: у нього є стан, дедлайн і відповідальний,
+/// а завершені кроки лишаються історією людини.
+enum StepState {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  SKIPPED
+
+  @@map("step_states")
+}
+
+model PersonStep {
+  id String @id @default(uuid())
+
+  personId String @map("person_id")
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  /// Крок із довідника не можна видалити, поки він комусь призначений.
+  stepTypeId String   @map("step_type_id")
+  stepType   StepType @relation(fields: [stepTypeId], references: [id], onDelete: Restrict)
+
+  state StepState @default(PLANNED)
+
+  /// Коли крок варто зробити і коли його фактично завершили.
+  dueAt       DateTime? @map("due_at") @db.Date
+  completedAt DateTime? @map("completed_at") @db.Date
+
+  /// Хто з команди веде цей крок.
+  responsible String?
+  note        String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([stepTypeId])
+  @@index([state])
+  @@index([dueAt])
+  @@map("person_steps")
+}

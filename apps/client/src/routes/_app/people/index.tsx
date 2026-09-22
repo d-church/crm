@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -10,8 +11,10 @@ import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useStepTypes } from '@/modules/steps';
 import { useTrainings } from '@/modules/trainings';
 import {
+  BulkActionsBar,
   PeopleColumnsDialog,
   PeopleFilterDialog,
   PeopleFilters,
@@ -20,6 +23,7 @@ import {
   PeopleTable,
   PersonDialog,
   exportPeopleToCsv,
+  PEOPLE_QUERY_KEY,
   peopleQueryOptions,
   peopleSearchSchema,
   toPeopleQuery,
@@ -55,6 +59,7 @@ export const Route = createFileRoute('/_app/people/')({
 function PeoplePage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const queryClient = useQueryClient();
 
   const query = toPeopleQuery(search);
   const { data: page, isPending, isFetching, error } = usePeople(query);
@@ -63,6 +68,7 @@ function PeoplePage() {
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
+  const { data: stepTypes = [] } = useStepTypes();
   const { data: trainings = [] } = useTrainings();
 
   // The input is local and the request is debounced, so typing stays smooth.
@@ -72,12 +78,41 @@ function PeoplePage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      if (!next.delete(id)) next.add(id);
+
+      return next;
+    });
+
+  const toggleSelectedPage = (ids: string[], selected: boolean) =>
+    setSelectedIds((current) => {
+      const next = new Set(current);
+
+      ids.forEach((id) => (selected ? next.add(id) : next.delete(id)));
+
+      return next;
+    });
+
+  /** «Вибрати всіх знайдених» тягне лише ідентифікатори, не повні картки. */
+  const selectAllMatching = async () => {
+    try {
+      setSelectedIds(new Set(await PersonService.listIds(query)));
+    } catch (selectError) {
+      toast.error(getApiErrorMessage(selectError, 'Не вдалося вибрати всіх'));
+    }
+  };
   const { columns } = usePeopleColumns();
 
   const filterSources: FilterOptionSources = {
     communities,
     homeGroups,
     ministries,
+    stepTypes,
     trainings,
   };
 
@@ -189,6 +224,19 @@ function PeoplePage() {
           <span className="text-ink-faint text-xs">{filterSummary}</span>
         </div>
 
+        {selectedIds.size > 0 ? (
+          <BulkActionsBar
+            selectedIds={[...selectedIds]}
+            totalMatching={page?.total ?? selectedIds.size}
+            onSelectAllMatching={() => void selectAllMatching()}
+            onClear={() => setSelectedIds(new Set())}
+            onApplied={async () => {
+              setSelectedIds(new Set());
+              await queryClient.invalidateQueries({ queryKey: PEOPLE_QUERY_KEY });
+            }}
+          />
+        ) : null}
+
         {error ? (
           <p className="text-destructive p-6 text-sm">{getApiErrorMessage(error)}</p>
         ) : isPending ? (
@@ -216,6 +264,11 @@ function PeoplePage() {
             >
               <PeopleTable
                 people={page.items}
+                selection={{
+                  selectedIds,
+                  onToggle: toggleSelected,
+                  onTogglePage: toggleSelectedPage,
+                }}
                 sort={{ field: query.sort!, order: query.order! }}
                 onSortChange={({ field, order }) => patchSearch({ sort: field, order })}
               />

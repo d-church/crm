@@ -8,6 +8,7 @@ import {
   getPersonMeta,
   personQueryOptions,
   PersonInlineSections,
+  PersonStepsSection,
   usePerson,
 } from '@/modules/people';
 import { getPersonName } from '@/services';
@@ -61,6 +62,8 @@ function PersonDetailPage() {
           </>
         }
       />
+
+      <PersonStepsSection person={person} />
 
       <PersonInlineSections person={person} />
     </>

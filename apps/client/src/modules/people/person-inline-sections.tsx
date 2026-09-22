@@ -21,7 +21,7 @@ import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
-import { MinistryCheckboxes } from './ministry-checkboxes';
+import { MinistryAssignmentsField } from './ministry-assignments-field';
 import { TrainingCheckboxes } from './training-checkboxes';
 import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 import {
@@ -35,16 +35,21 @@ import {
 import {
   FOLLOW_UP_LABELS,
   FOLLOW_UP_STATES,
-  PERSON_STATUSES,
-  PERSON_STATUS_HINTS,
-  PERSON_STATUS_LABELS,
+  ACTIVITY_LABELS,
+  ACTIVITY_STATES,
+  CARE_LABEL,
+  MEMBERSHIP_HINTS,
+  MEMBERSHIP_LABELS,
+  MEMBERSHIP_STATUSES,
 } from './status';
 
 const MAIN_FIELDS = [
   'firstName',
   'lastName',
   'gender',
-  'status',
+  'membership',
+  'activity',
+  'careNeeded',
   'followUp',
 ] as const satisfies readonly PersonField[];
 
@@ -64,14 +69,11 @@ const JOURNEY_FIELDS = [
   'firstVisitAt',
   'lastSeenAt',
   'connectedBy',
-  'nextStep',
   'communityIds',
   'homeGroupId',
-  'ministryIds',
+  'ministries',
   'trainingIds',
   'responsible',
-  'nextAction',
-  'nextActionAt',
 ] as const satisfies readonly PersonField[];
 
 const DATE_FIELDS = [
@@ -175,15 +177,35 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="status">Статус</Label>
-                <Select id="status" {...register('status')}>
-                  {PERSON_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {PERSON_STATUS_LABELS[status]} — {PERSON_STATUS_HINTS[status]}
+                <Label htmlFor="membership">Статус</Label>
+                <Select id="membership" {...register('membership')}>
+                  {MEMBERSHIP_STATUSES.map((membership) => (
+                    <option key={membership} value={membership}>
+                      {MEMBERSHIP_LABELS[membership]} — {MEMBERSHIP_HINTS[membership]}
                     </option>
                   ))}
                 </Select>
               </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="activity">Активність</Label>
+                <Select id="activity" {...register('activity')}>
+                  {ACTIVITY_STATES.map((activity) => (
+                    <option key={activity} value={activity}>
+                      {ACTIVITY_LABELS[activity]}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <label className="border-input-border hover:bg-accent flex min-h-11 items-center gap-2 self-end rounded-md border px-3 text-[13px] transition-colors">
+                <input
+                  type="checkbox"
+                  className="accent-primary size-3.5"
+                  {...register('careNeeded')}
+                />
+                {CARE_LABEL}
+              </label>
 
               <div className="grid gap-1.5">
                 <Label htmlFor="followUp">Follow-up</Label>
@@ -219,7 +241,6 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 error={errors.connectedBy?.message}
                 {...register('connectedBy')}
               />
-              <Field label="Next Step" error={errors.nextStep?.message} {...register('nextStep')} />
 
               <CommunityCheckboxes
                 communities={communities}
@@ -251,10 +272,17 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 )}
               />
 
-              <MinistryCheckboxes
-                ministries={ministries}
-                register={register}
-                error={errors.ministryIds?.message}
+              <Controller
+                control={control}
+                name="ministries"
+                render={({ field }) => (
+                  <MinistryAssignmentsField
+                    ministries={ministries}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.ministries?.message}
+                  />
+                )}
               />
               <TrainingCheckboxes
                 trainings={trainings}
@@ -265,17 +293,6 @@ export const PersonInlineSections = ({ person }: { person: Person }) => {
                 label="Відповідальний"
                 error={errors.responsible?.message}
                 {...register('responsible')}
-              />
-              <Field
-                label="Наступна дія"
-                error={errors.nextAction?.message}
-                {...register('nextAction')}
-              />
-              <Field
-                label="Коли зробити"
-                type="date"
-                error={errors.nextActionAt?.message}
-                {...register('nextActionAt')}
               />
             </div>
           )}

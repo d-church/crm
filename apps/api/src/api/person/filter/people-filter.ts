@@ -2,7 +2,15 @@ import { BadRequestException } from '@nestjs/common';
 
 import { Prisma } from '@generated/prisma/client';
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
-import { FollowUpState, PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
+import {
+  ActivityState,
+  FollowUpState,
+  MembershipStatus,
+  MinistryRole,
+  PersonGender,
+  StepState,
+} from '@/infra/prisma/prisma.service';
+import { OPEN_STEP_STATES } from '@/api/step/step.service';
 
 /**
  * A filter is a flat list of conditions that must all match (`all`) or where one
@@ -26,7 +34,7 @@ export type FilterMatch = (typeof FILTER_MATCHES)[number];
 
 export const MAX_FILTER_CONDITIONS = 20;
 
-type FilterValue = string | number | string[] | number[];
+type FilterValue = string | number | boolean | string[] | number[];
 
 /** What a field holds decides which operators make sense and what the value looks like. */
 const OPERATORS = {
@@ -45,6 +53,10 @@ const OPERATORS = {
     'isNotEmpty',
   ],
   age: ['equals', 'atLeast', 'atMost', 'between', 'isEmpty', 'isNotEmpty'],
+  boolean: ['is'],
+  ministryRole: ['in', 'notIn'],
+  step: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
+  overdueStep: ['is'],
   birthday: ['inMonths', 'withinNextDays', 'isEmpty', 'isNotEmpty'],
 } as const;
 
@@ -66,15 +78,12 @@ type TextColumn =
   | 'district'
   | 'region'
   | 'connectedBy'
-  | 'nextStep'
   | 'responsible'
-  | 'nextAction'
   | 'notes';
 
 type DateColumn =
   | 'firstVisitAt'
   | 'lastSeenAt'
-  | 'nextActionAt'
   | 'birthDate'
   | 'baptizedAt'
   | 'memberSince'
@@ -84,10 +93,22 @@ type DateColumn =
 type FieldDefinition =
   /** Several columns read as one field: a match in any of them counts. */
   | { kind: 'text'; columns: readonly TextColumn[] }
-  | { kind: 'enum'; column: 'status' | 'followUp' | 'gender'; values: readonly string[] }
+  | {
+      kind: 'enum';
+      column: 'membership' | 'activity' | 'followUp' | 'gender';
+      values: readonly string[];
+    }
   | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' | 'trainings' }
   | { kind: 'date'; column: DateColumn; operators?: readonly FilterOperator[] }
   | { kind: 'age' }
+  /** A yes/no flag, such as "потребує уваги". */
+  | { kind: 'boolean'; column: 'careNeeded' }
+  /** Роль у будь-якому з діючих служінь людини. */
+  | { kind: 'ministryRole' }
+  /** Кроки з довідника: або ті, що в роботі, або вже завершені. */
+  | { kind: 'step'; done: boolean }
+  /** Чи є хоч один крок у роботі, дедлайн якого вже минув. */
+  | { kind: 'overdueStep' }
   /** Day and month only — the year a person was born says nothing about their birthday. */
   | { kind: 'birthday' };
 
@@ -105,22 +126,25 @@ const FIELDS = {
   district: { kind: 'text', columns: ['district'] },
   region: { kind: 'text', columns: ['region'] },
   connectedBy: { kind: 'text', columns: ['connectedBy'] },
-  nextStep: { kind: 'text', columns: ['nextStep'] },
   responsible: { kind: 'text', columns: ['responsible'] },
-  nextAction: { kind: 'text', columns: ['nextAction'] },
   notes: { kind: 'text', columns: ['notes'] },
 
-  status: { kind: 'enum', column: 'status', values: Object.values(PersonStatus) },
+  membership: { kind: 'enum', column: 'membership', values: Object.values(MembershipStatus) },
+  activity: { kind: 'enum', column: 'activity', values: Object.values(ActivityState) },
+  careNeeded: { kind: 'boolean', column: 'careNeeded' },
   gender: { kind: 'enum', column: 'gender', values: Object.values(PersonGender) },
   followUp: { kind: 'enum', column: 'followUp', values: Object.values(FollowUpState) },
   communities: { kind: 'relation', relation: 'communities' },
   homeGroup: { kind: 'relation', relation: 'homeGroup' },
   ministries: { kind: 'relation', relation: 'ministries' },
+  ministryRole: { kind: 'ministryRole' },
+  openSteps: { kind: 'step', done: false },
+  completedSteps: { kind: 'step', done: true },
+  stepOverdue: { kind: 'overdueStep' },
   trainings: { kind: 'relation', relation: 'trainings' },
 
   firstVisitAt: { kind: 'date', column: 'firstVisitAt' },
   lastSeenAt: { kind: 'date', column: 'lastSeenAt' },
-  nextActionAt: { kind: 'date', column: 'nextActionAt' },
   birthDate: { kind: 'date', column: 'birthDate', operators: BIRTH_DATE_OPERATORS },
   birthday: { kind: 'birthday' },
   baptizedAt: { kind: 'date', column: 'baptizedAt' },
@@ -136,7 +160,9 @@ export type PeopleFilterField = keyof typeof FIELDS;
 /** Columns that can never be null — negations need no `OR … IS NULL` for them. */
 const REQUIRED_COLUMNS: ReadonlySet<string> = new Set([
   'firstName',
-  'status',
+  'membership',
+  'activity',
+  'careNeeded',
   'followUp',
   'createdAt',
 ]);
@@ -295,6 +321,37 @@ const parseValue = (
 
       return parseInteger(value, path, 0, MAX_AGE);
 
+    case 'boolean':
+      if (typeof value !== 'boolean') fail(`${path} must be true or false`);
+
+      return value;
+
+    case 'overdueStep':
+      if (typeof value !== 'boolean') fail(`${path} must be true or false`);
+
+      return value;
+
+    case 'step':
+      return parseList(value, path, (item) => {
+        if (typeof item !== 'string' || !DATABASE_UUID_PATTERN.test(item)) {
+          fail(`${path} must only contain UUIDs`);
+        }
+
+        return item;
+      });
+
+    case 'ministryRole': {
+      const roles: readonly string[] = Object.values(MinistryRole);
+
+      return parseList(value, path, (item) => {
+        if (typeof item !== 'string' || !roles.includes(item)) {
+          fail(`${path} must only contain: ${roles.join(', ')}`);
+        }
+
+        return item;
+      });
+    }
+
     case 'birthday':
       if (operator === 'inMonths') {
         return parseList(value, path, (item) => parseInteger(item, path, 1, MONTHS_IN_YEAR));
@@ -332,6 +389,18 @@ const toWhere = (
 
     case 'age':
       return toAgeConditionWhere(operator, value, now);
+
+    case 'boolean':
+      return { [definition.column]: value as boolean };
+
+    case 'ministryRole':
+      return toMinistryRoleWhere(operator, value as string[]);
+
+    case 'step':
+      return toStepWhere(definition.done, operator, value as string[]);
+
+    case 'overdueStep':
+      return toOverdueStepWhere(value as boolean, today);
 
     case 'birthday':
       return toBirthdayWhere(operator, value, today);
@@ -383,7 +452,7 @@ const toTextWhere = (columns: readonly TextColumn[], operator: FilterOperator, v
 };
 
 const toEnumWhere = (
-  column: 'status' | 'followUp' | 'gender',
+  column: 'membership' | 'activity' | 'followUp' | 'gender',
   operator: FilterOperator,
   values: string[],
 ): Where => {
@@ -445,19 +514,71 @@ const toHomeGroupWhere = (operator: FilterOperator, ids: string[]): Where => {
   }
 };
 
+/**
+ * Крок «у роботі» — запланований або початий. Завершені кроки шукаються окремо,
+ * бо «має пройти хрещення» і «вже охрестився» — різні питання.
+ */
+const toStepWhere = (done: boolean, operator: FilterOperator, ids: string[]): Where => {
+  const state = done ? { equals: StepState.DONE } : { in: OPEN_STEP_STATES };
+
+  switch (operator) {
+    case 'in':
+      return { steps: { some: { stepTypeId: { in: ids }, state } } };
+
+    case 'notIn':
+      return { steps: { none: { stepTypeId: { in: ids }, state } } };
+
+    case 'isEmpty':
+      return { steps: { none: { state } } };
+
+    case 'isNotEmpty':
+      return { steps: { some: { state } } };
+
+    default:
+      return unsupported(operator);
+  }
+};
+
+/** Прострочений крок — той, що в роботі й мав бути зроблений до сьогодні. */
+const toOverdueStepWhere = (overdue: boolean, today: Date): Where => {
+  const overdueStep = { state: { in: OPEN_STEP_STATES }, dueAt: { lt: today } };
+
+  return overdue ? { steps: { some: overdueStep } } : { steps: { none: overdueStep } };
+};
+
+/**
+ * Роль стосується участі, а не людини, тож «керівник» означає «керує хоча б одним
+ * служінням». «Не керівник» — не керує жодним, навіть якщо десь є помічником.
+ */
+const toMinistryRoleWhere = (operator: FilterOperator, roles: string[]): Where => {
+  const some = { role: { in: roles as MinistryRole[] }, until: null };
+
+  switch (operator) {
+    case 'in':
+      return { ministryAssignments: { some } };
+
+    case 'notIn':
+      return { ministryAssignments: { none: some } };
+
+    default:
+      return unsupported(operator);
+  }
+};
+
+/** Служіння читаються через участі, бо саме там лежить роль і період. */
 const toMinistriesWhere = (operator: FilterOperator, ids: string[]): Where => {
   switch (operator) {
     case 'in':
-      return { ministries: { some: { id: { in: ids } } } };
+      return { ministryAssignments: { some: { ministryId: { in: ids }, until: null } } };
 
     case 'notIn':
-      return { ministries: { none: { id: { in: ids } } } };
+      return { ministryAssignments: { none: { ministryId: { in: ids }, until: null } } };
 
     case 'isEmpty':
-      return { ministries: { none: {} } };
+      return { ministryAssignments: { none: { until: null } } };
 
     case 'isNotEmpty':
-      return { ministries: { some: {} } };
+      return { ministryAssignments: { some: { until: null } } };
 
     default:
       return unsupported(operator);
@@ -635,6 +756,14 @@ const canBeEmpty = (definition: FieldDefinition) => {
       return !REQUIRED_COLUMNS.has(definition.column);
 
     case 'birthday':
+      return true;
+
+    case 'boolean':
+    case 'ministryRole':
+    case 'overdueStep':
+      return false;
+
+    case 'step':
       return true;
 
     default:

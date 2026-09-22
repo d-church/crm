@@ -27,7 +27,7 @@ import type { Person } from '@/services';
 
 import { useCreatePerson, useUpdatePerson } from './hooks';
 import { CommunityCheckboxes } from './community-checkboxes';
-import { MinistryCheckboxes } from './ministry-checkboxes';
+import { MinistryAssignmentsField } from './ministry-assignments-field';
 import { TrainingCheckboxes } from './training-checkboxes';
 import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 import {
@@ -40,9 +40,12 @@ import {
 import {
   FOLLOW_UP_LABELS,
   FOLLOW_UP_STATES,
-  PERSON_STATUSES,
-  PERSON_STATUS_HINTS,
-  PERSON_STATUS_LABELS,
+  ACTIVITY_LABELS,
+  ACTIVITY_STATES,
+  CARE_LABEL,
+  MEMBERSHIP_HINTS,
+  MEMBERSHIP_LABELS,
+  MEMBERSHIP_STATUSES,
 } from './status';
 
 type PersonDialogProps = {
@@ -135,15 +138,35 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
             </div>
 
             <div className="grid gap-1.5">
-              <Label htmlFor="status">Статус</Label>
-              <Select id="status" {...register('status')}>
-                {PERSON_STATUSES.map((status) => (
-                  <option key={status} value={status}>
-                    {PERSON_STATUS_LABELS[status]} — {PERSON_STATUS_HINTS[status]}
+              <Label htmlFor="membership">Статус</Label>
+              <Select id="membership" {...register('membership')}>
+                {MEMBERSHIP_STATUSES.map((membership) => (
+                  <option key={membership} value={membership}>
+                    {MEMBERSHIP_LABELS[membership]} — {MEMBERSHIP_HINTS[membership]}
                   </option>
                 ))}
               </Select>
             </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="activity">Активність</Label>
+              <Select id="activity" {...register('activity')}>
+                {ACTIVITY_STATES.map((activity) => (
+                  <option key={activity} value={activity}>
+                    {ACTIVITY_LABELS[activity]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <label className="border-input-border hover:bg-accent flex min-h-11 items-center gap-2 self-end rounded-md border px-3 text-[13px] transition-colors">
+              <input
+                type="checkbox"
+                className="accent-primary size-3.5"
+                {...register('careNeeded')}
+              />
+              {CARE_LABEL}
+            </label>
 
             <div className="grid gap-1.5">
               <Label htmlFor="followUp">Follow-up</Label>
@@ -185,7 +208,6 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               placeholder="хто вийшов на контакт"
               {...register('connectedBy')}
             />
-            <Field label="Next Step" placeholder="зустріч для нових" {...register('nextStep')} />
             <CommunityCheckboxes
               communities={communities}
               register={register}
@@ -215,10 +237,17 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
                 </div>
               )}
             />
-            <MinistryCheckboxes
-              ministries={ministries}
-              register={register}
-              error={errors.ministryIds?.message}
+            <Controller
+              control={control}
+              name="ministries"
+              render={({ field }) => (
+                <MinistryAssignmentsField
+                  ministries={ministries}
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.ministries?.message}
+                />
+              )}
             />
             <TrainingCheckboxes
               trainings={trainings}
@@ -226,12 +255,6 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
               error={errors.trainingIds?.message}
             />
             <Field label="Відповідальний" {...register('responsible')} />
-            <Field
-              label="Наступна дія"
-              placeholder="запросити на зустріч"
-              {...register('nextAction')}
-            />
-            <Field label="Коли зробити" type="date" {...register('nextActionAt')} />
           </FormSection>
 
           <FormSection title="Дати">

@@ -14,7 +14,6 @@ import {
 } from 'class-validator';
 
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
-import { PersonStatus } from '@/infra/prisma/prisma.service';
 
 import { parsePeopleFilter, type PeopleFilter } from '../filter/people-filter';
 
@@ -25,7 +24,8 @@ import { parsePeopleFilter, type PeopleFilter } from '../filter/people-filter';
 export const PEOPLE_SORTS = [
   'name',
   'gender',
-  'status',
+  'membership',
+  'activity',
   'homeGroup',
   'lastSeenAt',
   'phone',
@@ -39,10 +39,7 @@ export const PEOPLE_SORTS = [
   'birthday',
   'followUp',
   'connectedBy',
-  'nextStep',
   'responsible',
-  'nextAction',
-  'nextActionAt',
   'firstVisitAt',
   'baptizedAt',
   'memberSince',
@@ -77,7 +74,7 @@ const parseBoolean = ({ value }: TransformFnParams): unknown => {
 export class FindPeopleDto {
   @ApiPropertyOptional({
     default: false,
-    description: 'Include people whose status is INACTIVE.',
+    description: 'Include people whose activity is INACTIVE.',
   })
   @IsOptional()
   @Transform(parseBoolean)
@@ -106,11 +103,6 @@ export class FindPeopleDto {
   @IsString()
   @MaxLength(100)
   search?: string;
-
-  @ApiPropertyOptional({ enum: PersonStatus })
-  @IsOptional()
-  @IsIn(Object.values(PersonStatus))
-  status?: PersonStatus;
 
   @ApiPropertyOptional({ description: 'Minimum age in completed years', minimum: 0, maximum: 130 })
   @IsOptional()
@@ -153,7 +145,7 @@ export class FindPeopleDto {
     description:
       'Condition filter as JSON. `match` is `all` or `any`; each condition names a `field`, an `operator` and, unless it asks about emptiness, a `value`. Combined with the other filters by AND.',
     example:
-      '{"match":"all","conditions":[{"field":"status","operator":"in","value":["NEW"]},{"field":"lastSeenAt","operator":"moreThanDaysAgo","value":60}]}',
+      '{"match":"all","conditions":[{"field":"membership","operator":"in","value":["GUEST"]},{"field":"lastSeenAt","operator":"moreThanDaysAgo","value":60}]}',
   })
   @IsOptional()
   // Parsing throws a 400 that names the broken condition, so the checks live there.
