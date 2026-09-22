@@ -1,17 +1,22 @@
 import { NotFoundException } from '@nestjs/common';
 
-import type { PrismaService } from '@/infra/prisma/prisma.service';
+import { MinistryRole, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { MinistryService } from './ministry.service';
+
+const leader = {
+  id: '00000000-0000-4000-8000-000000000011',
+  firstName: 'Ірина',
+  lastName: 'Коваль',
+};
 
 const ministry = {
   id: '00000000-0000-4000-8000-000000000010',
   name: 'Прославлення',
   community: { id: '00000000-0000-4000-8000-000000000001', name: 'D.Youth' },
-  leader: { id: '00000000-0000-4000-8000-000000000011', firstName: 'Ірина', lastName: 'Коваль' },
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
-  _count: { people: 3 },
+  assignments: [{ id: 'a1', role: MinistryRole.LEADER, person: leader }],
 };
 
 describe('MinistryService', () => {
@@ -20,14 +25,24 @@ describe('MinistryService', () => {
   const update = jest.fn();
   const remove = jest.fn();
   const findMany = jest.fn();
+  const assignmentFindFirst = jest.fn();
+  const assignmentCreate = jest.fn();
+  const assignmentUpdate = jest.fn();
+  const assignmentUpdateMany = jest.fn();
   const service = new MinistryService({
     ministry: { findMany, findUnique, create, update, delete: remove },
+    ministryAssignment: {
+      findFirst: assignmentFindFirst,
+      create: assignmentCreate,
+      update: assignmentUpdate,
+      updateMany: assignmentUpdateMany,
+    },
   } as unknown as PrismaService);
 
   beforeEach(() => jest.resetAllMocks());
 
   it('creates a ministry in its community without a leader', async () => {
-    create.mockResolvedValue({ ...ministry, leader: null, _count: { people: 0 } });
+    create.mockResolvedValue({ ...ministry, assignments: [] });
 
     await expect(
       service.create({ name: ' Прославлення ', communityId: ministry.community.id }),
@@ -45,7 +60,7 @@ describe('MinistryService', () => {
   });
 
   it('creates a ministry without a community', async () => {
-    create.mockResolvedValue({ ...ministry, name: 'Welcome', community: null, leader: null });
+    create.mockResolvedValue({ ...ministry, name: 'Welcome', community: null, assignments: [] });
 
     await expect(service.create({ name: ' Welcome ' })).resolves.toMatchObject({
       name: 'Welcome',
@@ -82,36 +97,47 @@ describe('MinistryService', () => {
     );
   });
 
-  it('allows a leader who is not a member', async () => {
+  it('makes a leader out of someone who has no assignment yet', async () => {
     findUnique.mockResolvedValue(ministry);
-    update.mockResolvedValue(ministry);
+    assignmentFindFirst.mockResolvedValue(null);
 
-    await service.update(ministry.id, { leaderId: ministry.leader.id });
+    await service.update(ministry.id, { leaderId: leader.id });
 
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { leader: { connect: { id: ministry.leader.id } } } }),
-    );
+    expect(assignmentCreate).toHaveBeenCalledWith({
+      data: { ministryId: ministry.id, personId: leader.id, role: MinistryRole.LEADER },
+    });
   });
 
-  it('moves a ministry to another community and clears a leader', async () => {
+  it('promotes an existing member instead of adding a second assignment', async () => {
     findUnique.mockResolvedValue(ministry);
-    update.mockResolvedValue({ ...ministry, leader: null });
-    const communityId = '00000000-0000-4000-8000-000000000012';
+    assignmentFindFirst.mockResolvedValue({ id: 'a2' });
 
-    await service.update(ministry.id, { communityId, leaderId: null } as never);
+    await service.update(ministry.id, { leaderId: leader.id });
 
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          community: { connect: { id: communityId } },
-          leader: { disconnect: true },
-        },
-      }),
+    expect(assignmentUpdate).toHaveBeenCalledWith({
+      where: { id: 'a2' },
+      data: { role: MinistryRole.LEADER },
+    });
+    expect(assignmentCreate).not.toHaveBeenCalled();
+  });
+
+  it('leaves a replaced leader in the team as a member', async () => {
+    findUnique.mockResolvedValue(ministry);
+    assignmentFindFirst.mockResolvedValue(null);
+
+    await service.update(ministry.id, { leaderId: null });
+
+    expect(assignmentUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { role: MinistryRole.MEMBER } }),
     );
+    expect(assignmentCreate).not.toHaveBeenCalled();
   });
 
   it('removes a ministry from its community without deleting it', async () => {
-    findUnique.mockResolvedValue(ministry);
+    findUnique.mockResolvedValueOnce(ministry).mockResolvedValueOnce({
+      ...ministry,
+      community: null,
+    });
     update.mockResolvedValue({ ...ministry, community: null });
 
     await expect(service.update(ministry.id, { communityId: null })).resolves.toMatchObject({

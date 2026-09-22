@@ -3,14 +3,18 @@ import type { ReactNode } from 'react';
 import { z } from 'zod';
 
 import { createLocalStore } from '@/lib/local-store';
+import { cn } from '@/lib/utils';
 import { formatDate, formatDayMonth, getAge, getInitials } from '@/lib/format';
 import { useAuth } from '@/modules/auth';
-import { getPersonName, type PeopleSort, type Person } from '@/services';
+import { MinistryRole, getPersonName, type PeopleSort, type Person } from '@/services';
 
 import { getPersonMeta } from './filtering';
 import { PERSON_GENDER_LABELS } from './gender';
-import { PersonStatusBadge } from './person-status-badge';
-import { FOLLOW_UP_LABELS, PERSON_STATUS_LABELS } from './status';
+import { isStepOpen } from '@/modules/steps';
+
+import { MINISTRY_ROLE_BADGES, MINISTRY_ROLE_LABELS } from './ministry-roles';
+import { ActivityBadge, CareBadge, MembershipBadge } from './person-badges';
+import { ACTIVITY_LABELS, CARE_LABEL, FOLLOW_UP_LABELS, MEMBERSHIP_LABELS } from './status';
 
 type PersonColumn = {
   key: string;
@@ -73,13 +77,33 @@ export const PERSON_COLUMNS: PersonColumn[] = [
     text: (person) => (person.gender ? PERSON_GENDER_LABELS[person.gender] : ''),
   },
   {
-    key: 'status',
+    key: 'membership',
     label: 'Статус',
     width: 1.1,
     minWidth: 130,
-    sortKey: 'status',
-    text: (person) => PERSON_STATUS_LABELS[person.status],
-    cell: (person) => <PersonStatusBadge status={person.status} className="justify-self-start" />,
+    sortKey: 'membership',
+    text: (person) => MEMBERSHIP_LABELS[person.membership],
+    cell: (person) => <MembershipBadge membership={person.membership} />,
+  },
+  {
+    key: 'activity',
+    label: 'Активність',
+    width: 1,
+    minWidth: 120,
+    sortKey: 'activity',
+    text: (person) => ACTIVITY_LABELS[person.activity],
+    cell: (person) => (
+      <ActivityBadge activity={person.activity} showWhenActive className="opacity-90" />
+    ),
+  },
+  {
+    key: 'careNeeded',
+    label: CARE_LABEL,
+    width: 0.8,
+    minWidth: 120,
+    text: (person) => (person.careNeeded ? 'так' : ''),
+    cell: (person) =>
+      person.careNeeded ? <CareBadge /> : <span className="text-ink-soft">—</span>,
   },
   {
     key: 'communities',
@@ -129,27 +153,52 @@ export const PERSON_COLUMNS: PersonColumn[] = [
   {
     key: 'ministries',
     label: 'Служіння',
-    width: 1.2,
-    minWidth: 140,
-    text: (person) => person.ministries.map(({ name }) => name).join(', '),
+    width: 1.4,
+    minWidth: 170,
+    text: (person) =>
+      person.ministryAssignments
+        .map(({ ministry, role }) => `${ministry.name} (${MINISTRY_ROLE_LABELS[role]})`)
+        .join(', '),
     cell: (person) => (
       <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-1 text-[13px]">
-        {person.ministries.length === 0 ? (
-          <span className="text-ink-soft">{dash}</span>
+        {person.ministryAssignments.length === 0 ? (
+          <span className="text-ink-soft">—</span>
         ) : (
-          person.ministries.map((ministry) => (
-            <Link
-              key={ministry.id}
-              to="/ministries/$ministryId"
-              params={{ ministryId: ministry.id }}
-              className="text-ink truncate underline-offset-3 hover:underline"
-            >
-              {ministry.name}
-            </Link>
+          person.ministryAssignments.map(({ id, ministry, role }) => (
+            <span key={id} className="flex min-w-0 items-center gap-1">
+              <Link
+                to="/ministries/$ministryId"
+                params={{ ministryId: ministry.id }}
+                className="text-ink truncate underline-offset-3 hover:underline"
+              >
+                {ministry.name}
+              </Link>
+              {/* Роль показуємо лише там, де вона щось додає: учасник — типовий випадок. */}
+              {role === MinistryRole.MEMBER ? null : (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10.5px] leading-none',
+                    MINISTRY_ROLE_BADGES[role],
+                  )}
+                >
+                  {MINISTRY_ROLE_LABELS[role]}
+                </span>
+              )}
+            </span>
           ))
         )}
       </div>
     ),
+  },
+  {
+    key: 'ministryRole',
+    label: 'Роль у служінні',
+    width: 1,
+    minWidth: 130,
+    text: (person) =>
+      [...new Set(person.ministryAssignments.map(({ role }) => MINISTRY_ROLE_LABELS[role]))].join(
+        ', ',
+      ),
   },
   {
     key: 'lastSeenAt',
@@ -259,12 +308,15 @@ export const PERSON_COLUMNS: PersonColumn[] = [
     text: (p) => text(p.connectedBy),
   },
   {
-    key: 'nextStep',
-    label: 'Next Step',
-    width: 1.2,
-    minWidth: 150,
-    sortKey: 'nextStep',
-    text: (p) => text(p.nextStep),
+    key: 'openSteps',
+    label: 'Кроки в роботі',
+    width: 1.4,
+    minWidth: 170,
+    text: (person) =>
+      person.steps
+        .filter(({ state }) => isStepOpen(state))
+        .map(({ stepType }) => stepType.name)
+        .join(', '),
   },
   {
     key: 'responsible',
@@ -273,22 +325,6 @@ export const PERSON_COLUMNS: PersonColumn[] = [
     minWidth: 140,
     sortKey: 'responsible',
     text: (p) => text(p.responsible),
-  },
-  {
-    key: 'nextAction',
-    label: 'Наступна дія',
-    width: 1.3,
-    minWidth: 160,
-    sortKey: 'nextAction',
-    text: (p) => text(p.nextAction),
-  },
-  {
-    key: 'nextActionAt',
-    label: 'Коли зробити',
-    width: 0.9,
-    minWidth: 130,
-    sortKey: 'nextActionAt',
-    text: (p) => date(p.nextActionAt),
   },
   {
     key: 'firstVisitAt',

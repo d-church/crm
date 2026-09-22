@@ -6,5 +6,6 @@ export * from './community-service';
 export * from './home-group-service';
 export * from './ministry-service';
 export * from './person-service';
+export * from './step-service';
 export * from './training-service';
 export * from './user-service';

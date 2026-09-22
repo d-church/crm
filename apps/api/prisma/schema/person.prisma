@@ -1,16 +1,22 @@
-/// The church's own pipeline: перший візит → контакт → наступний крок → спільнота → служіння.
-/// CARE, ABROAD and INACTIVE sit outside the ladder — they describe special care/status states.
-enum PersonStatus {
-  NEW
-  CONNECTED
-  NEXT_STEP
-  COMMUNITY
-  SERVING
-  CARE
+/// Ким людина є для церкви. Змінюється рідко і лише одне значення за раз.
+enum MembershipStatus {
+  SUBSCRIBER
+  GUEST
+  ATTENDER
+  MEMBER
+  FORMER_MEMBER
+
+  @@map("membership_statuses")
+}
+
+/// Чи людина зараз тут. Не залежить від статусу: член церкви може бути за кордоном.
+enum ActivityState {
+  ACTIVE
   ABROAD
   INACTIVE
+  MOVED
 
-  @@map("person_statuses")
+  @@map("activity_states")
 }
 
 enum FollowUpState {
@@ -50,7 +56,12 @@ model Person {
   district   String?
   region     String?
 
-  status PersonStatus @default(NEW)
+  /// Статус — підписник, гість, прихожанин, член церкви, колишній член.
+  membership MembershipStatus @default(GUEST)
+  /// Активність — чи людина зараз тут, окремо від її статусу.
+  activity   ActivityState    @default(ACTIVE)
+  /// Потребує пасторської уваги — прапорець, а не статус: він поєднується з будь-яким.
+  careNeeded Boolean          @default(false) @map("care_needed")
 
   /// Перший візит — when the person first showed up.
   firstVisitAt DateTime? @map("first_visit_at") @db.Date
@@ -60,8 +71,8 @@ model Person {
   /// Connect — who from the team made contact. Free text until people can link to people.
   connectedBy String?       @map("connected_by")
   followUp    FollowUpState @default(NOT_DONE) @map("follow_up")
-  /// Next Step — the step they are going through, e.g. "зустріч для нових".
-  nextStep    String?       @map("next_step")
+  /// Наступні кроки — окремі задачі з довідника, а не одне текстове поле.
+  steps       PersonStep[]
 
   /// Спільноти — a person can participate in any number of communities.
   communities Community[]
@@ -72,10 +83,8 @@ model Person {
   leadingHomeGroups HomeGroup[] @relation("HomeGroupLeader")
   /// A leader may lead several communities without being a member of them.
   leadingCommunities Community[] @relation("CommunityLeader")
-  /// A person can serve in any number of ministries.
-  ministries Ministry[]
-  /// A leader may lead several ministries without serving in them.
-  leadingMinistries Ministry[] @relation("MinistryLeader")
+  /// Служіння з роллю в кожному — керівник, помічник чи учасник.
+  ministryAssignments MinistryAssignment[]
   /// A person can complete any number of trainings.
   trainings Training[]
   /// A leader may lead several trainings without completing them.
@@ -83,9 +92,6 @@ model Person {
 
   /// Відповідальний — team member carrying this person.
   responsible  String?
-  /// Наступна дія — what to do next, and when.
-  nextAction   String?   @map("next_action")
-  nextActionAt DateTime? @map("next_action_at") @db.Date
 
   birthDate   DateTime? @map("birth_date") @db.Date
   /// День і місяць народження як MMDD (0101–1231) — рік у пошуку іменинників не має значення.
@@ -107,7 +113,8 @@ model Person {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([lastName, firstName])
-  @@index([status])
+  @@index([membership])
+  @@index([activity])
   @@index([birthMd])
   @@index([homeGroupId])
   @@map("people")

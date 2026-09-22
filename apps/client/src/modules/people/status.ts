@@ -1,65 +1,70 @@
-import { FollowUpState, PersonStatus } from '@/services';
-
-/** Pipeline order the church uses, from first visit to falling away. */
-export const PERSON_STATUSES: PersonStatus[] = [
-  PersonStatus.NEW,
-  PersonStatus.CONNECTED,
-  PersonStatus.NEXT_STEP,
-  PersonStatus.COMMUNITY,
-  PersonStatus.SERVING,
-  PersonStatus.CARE,
-  PersonStatus.ABROAD,
-  PersonStatus.INACTIVE,
-];
-
-export const PERSON_STATUS_LABELS: Record<PersonStatus, string> = {
-  [PersonStatus.NEW]: 'Новий',
-  [PersonStatus.CONNECTED]: 'Є контакт',
-  [PersonStatus.NEXT_STEP]: 'Наступний крок',
-  [PersonStatus.COMMUNITY]: 'У спільноті',
-  [PersonStatus.SERVING]: 'Служить',
-  [PersonStatus.CARE]: 'Потребує опіки',
-  [PersonStatus.ABROAD]: 'За кордоном',
-  [PersonStatus.INACTIVE]: 'Неактивний',
-};
-
-/** The church's own gloss for each stage — shown as a tooltip and on the card. */
-export const PERSON_STATUS_HINTS: Record<PersonStatus, string> = {
-  [PersonStatus.NEW]: 'перший візит',
-  [PersonStatus.CONNECTED]: 'є контакт',
-  [PersonStatus.NEXT_STEP]: 'проходить наступний крок',
-  [PersonStatus.COMMUNITY]: 'включений у спільноту',
-  [PersonStatus.SERVING]: 'служить',
-  [PersonStatus.CARE]: 'потребує пасторської опіки',
-  [PersonStatus.ABROAD]: 'перебуває за кордоном',
-  [PersonStatus.INACTIVE]: 'перестав приходити',
-};
+import { ActivityState, FollowUpState, MembershipStatus } from '@/services';
 
 /**
- * Hues follow the church's colour key (🟢🔵🟡🟣🟠🔴⚫), toned down to sit on the
- * warm paper background instead of shouting off it.
+ * Три різні питання про людину, які раніше відповідались одним полем:
+ * ким вона є для церкви (статус), чи вона зараз тут (активність)
+ * і чи потребує уваги (окремий прапорець).
  */
-export const PERSON_STATUS_BADGES: Record<PersonStatus, string> = {
-  [PersonStatus.NEW]: 'bg-[#dfeadf] text-[#2f6b3d]',
-  [PersonStatus.CONNECTED]: 'bg-[#dde6f1] text-[#33587a]',
-  [PersonStatus.NEXT_STEP]: 'bg-[#f6ecd2] text-[#87682a]',
-  [PersonStatus.COMMUNITY]: 'bg-[#e8e0f0] text-[#5c4a76]',
-  [PersonStatus.SERVING]: 'bg-[#f7e2cf] text-[#8c5423]',
-  [PersonStatus.CARE]: 'bg-[#f5dcd6] text-[#9a4030]',
-  [PersonStatus.ABROAD]: 'bg-[#dce9e6] text-[#2f675e]',
-  [PersonStatus.INACTIVE]: 'bg-[#e6e3dc] text-[#5b584f]',
+export const MEMBERSHIP_STATUSES: MembershipStatus[] = [
+  MembershipStatus.SUBSCRIBER,
+  MembershipStatus.GUEST,
+  MembershipStatus.ATTENDER,
+  MembershipStatus.MEMBER,
+  MembershipStatus.FORMER_MEMBER,
+];
+
+export const MEMBERSHIP_LABELS: Record<MembershipStatus, string> = {
+  [MembershipStatus.SUBSCRIBER]: 'Підписник',
+  [MembershipStatus.GUEST]: 'Гість',
+  [MembershipStatus.ATTENDER]: 'Прихожанин',
+  [MembershipStatus.MEMBER]: 'Член церкви',
+  [MembershipStatus.FORMER_MEMBER]: 'Колишній член',
 };
 
-/** Matching dot for the sidebar-free contexts where a full badge is too loud. */
-export const PERSON_STATUS_DOTS: Record<PersonStatus, string> = {
-  [PersonStatus.NEW]: 'bg-[#4a9a5c]',
-  [PersonStatus.CONNECTED]: 'bg-[#3f74a8]',
-  [PersonStatus.NEXT_STEP]: 'bg-[#d7ab3c]',
-  [PersonStatus.COMMUNITY]: 'bg-[#8a6bb1]',
-  [PersonStatus.SERVING]: 'bg-[#d2803a]',
-  [PersonStatus.CARE]: 'bg-[#c04a36]',
-  [PersonStatus.ABROAD]: 'bg-[#3d8b7b]',
-  [PersonStatus.INACTIVE]: 'bg-[#3b3c35]',
+/** Пояснення, яке видно підказкою на бейджі й у випадному списку. */
+export const MEMBERSHIP_HINTS: Record<MembershipStatus, string> = {
+  [MembershipStatus.SUBSCRIBER]: 'стежить за церквою, але не приходить',
+  [MembershipStatus.GUEST]: 'був у гостях',
+  [MembershipStatus.ATTENDER]: 'ходить, але не член церкви',
+  [MembershipStatus.MEMBER]: 'прийнятий у члени церкви',
+  [MembershipStatus.FORMER_MEMBER]: 'вибув з членства',
+};
+
+/** Сходинка вище — тепліший колір; той, хто вибув, тьмяніє. */
+export const MEMBERSHIP_BADGES: Record<MembershipStatus, string> = {
+  [MembershipStatus.SUBSCRIBER]: 'bg-[#e6e3dc] text-[#5b584f]',
+  [MembershipStatus.GUEST]: 'bg-[#dfeadf] text-[#2f6b3d]',
+  [MembershipStatus.ATTENDER]: 'bg-[#dde6f1] text-[#33587a]',
+  [MembershipStatus.MEMBER]: 'bg-[#e8e0f0] text-[#5c4a76]',
+  [MembershipStatus.FORMER_MEMBER]: 'bg-[#eae7e0] text-[#8a867c]',
+};
+
+export const ACTIVITY_STATES: ActivityState[] = [
+  ActivityState.ACTIVE,
+  ActivityState.ABROAD,
+  ActivityState.INACTIVE,
+  ActivityState.MOVED,
+];
+
+export const ACTIVITY_LABELS: Record<ActivityState, string> = {
+  [ActivityState.ACTIVE]: 'Активний',
+  [ActivityState.ABROAD]: 'За кордоном',
+  [ActivityState.INACTIVE]: 'Неактивний',
+  [ActivityState.MOVED]: 'Переїхав',
+};
+
+export const ACTIVITY_HINTS: Record<ActivityState, string> = {
+  [ActivityState.ACTIVE]: 'буває на зібраннях',
+  [ActivityState.ABROAD]: 'зараз за межами країни',
+  [ActivityState.INACTIVE]: 'давно не з’являвся',
+  [ActivityState.MOVED]: 'переїхав до іншої церкви або міста',
+};
+
+export const ACTIVITY_BADGES: Record<ActivityState, string> = {
+  [ActivityState.ACTIVE]: 'bg-[#dfeadf] text-[#2f6b3d]',
+  [ActivityState.ABROAD]: 'bg-[#dce9e6] text-[#2f675e]',
+  [ActivityState.INACTIVE]: 'bg-[#e6e3dc] text-[#5b584f]',
+  [ActivityState.MOVED]: 'bg-[#f7e2cf] text-[#8c5423]',
 };
 
 export const FOLLOW_UP_STATES: FollowUpState[] = [
@@ -73,3 +78,5 @@ export const FOLLOW_UP_LABELS: Record<FollowUpState, string> = {
   [FollowUpState.PLANNED]: 'заплановано',
   [FollowUpState.DONE]: 'зроблено',
 };
+
+export const CARE_LABEL = 'Потребує уваги';

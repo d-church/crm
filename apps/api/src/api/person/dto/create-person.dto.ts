@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   ArrayUnique,
   IsArray,
   IsDateString,
@@ -11,10 +13,28 @@ import {
   MaxLength,
   Matches,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 
-import { FollowUpState, PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
+import {
+  ActivityState,
+  FollowUpState,
+  MembershipStatus,
+  MinistryRole,
+  PersonGender,
+} from '@/infra/prisma/prisma.service';
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
+
+/** Одна участь у служінні: яке служіння і з якою роллю. */
+export class MinistryAssignmentDto {
+  @ApiProperty({ example: '00000000-0000-4000-8000-000000000003' })
+  @Matches(DATABASE_UUID_PATTERN, { message: 'ministryId must be a UUID' })
+  ministryId: string;
+
+  @ApiProperty({ enum: MinistryRole, default: MinistryRole.MEMBER })
+  @IsEnum(MinistryRole)
+  role: MinistryRole;
+}
 
 export class CreatePersonDto {
   @ApiProperty({ example: 'Ігор', description: 'Given name.' })
@@ -89,13 +109,27 @@ export class CreatePersonDto {
   region?: string;
 
   @ApiPropertyOptional({
-    enum: PersonStatus,
-    default: PersonStatus.NEW,
-    description: 'Where the person is on the church pipeline.',
+    enum: MembershipStatus,
+    default: MembershipStatus.GUEST,
+    description: 'Ким людина є для церкви.',
   })
   @IsOptional()
-  @IsEnum(PersonStatus)
-  status?: PersonStatus;
+  @IsEnum(MembershipStatus)
+  membership?: MembershipStatus;
+
+  @ApiPropertyOptional({
+    enum: ActivityState,
+    default: ActivityState.ACTIVE,
+    description: 'Чи людина зараз тут — окремо від статусу.',
+  })
+  @IsOptional()
+  @IsEnum(ActivityState)
+  activity?: ActivityState;
+
+  @ApiPropertyOptional({ default: false, description: 'Потребує пасторської уваги.' })
+  @IsOptional()
+  @IsBoolean()
+  careNeeded?: boolean;
 
   @ApiPropertyOptional({ example: '2026-08-09', description: 'Перший візит (ISO 8601).' })
   @IsOptional()
@@ -122,12 +156,6 @@ export class CreatePersonDto {
   @IsEnum(FollowUpState)
   followUp?: FollowUpState;
 
-  @ApiPropertyOptional({ example: 'зустріч для нових', description: 'Next Step.' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  nextStep?: string;
-
   @ApiPropertyOptional({
     example: ['00000000-0000-4000-8000-000000000001'],
     description: 'Повний набір спільнот людини.',
@@ -150,17 +178,15 @@ export class CreatePersonDto {
   homeGroupId?: string;
 
   @ApiPropertyOptional({
-    example: ['00000000-0000-4000-8000-000000000001'],
-    description: 'Повний набір служінь людини.',
+    type: [MinistryAssignmentDto],
+    description: 'Служіння людини з роллю в кожному. Замінює весь набір діючих участей.',
   })
   @IsOptional()
   @IsArray()
-  @ArrayUnique()
-  @Matches(DATABASE_UUID_PATTERN, {
-    each: true,
-    message: 'each value in ministryIds must be a UUID',
-  })
-  ministryIds?: string[];
+  @ArrayUnique((assignment: MinistryAssignmentDto) => assignment.ministryId)
+  @ValidateNested({ each: true })
+  @Type(() => MinistryAssignmentDto)
+  ministries?: MinistryAssignmentDto[];
 
   @ApiPropertyOptional({
     example: ['00000000-0000-4000-8000-000000000001'],
@@ -180,17 +206,6 @@ export class CreatePersonDto {
   @IsString()
   @MaxLength(80)
   responsible?: string;
-
-  @ApiPropertyOptional({ example: 'запросити на зустріч', description: 'Наступна дія.' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  nextAction?: string;
-
-  @ApiPropertyOptional({ example: '2026-08-17', description: 'Коли зробити наступну дію.' })
-  @IsOptional()
-  @IsDateString()
-  nextActionAt?: string;
 
   @ApiPropertyOptional({ example: '1990-12-10', description: 'Date of birth (ISO 8601).' })
   @IsOptional()

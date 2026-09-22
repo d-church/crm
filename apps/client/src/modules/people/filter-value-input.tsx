@@ -1,4 +1,4 @@
-import { Input } from '@/components/ui';
+import { Input, Select } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 import {
@@ -86,6 +86,20 @@ export const FilterValueInput = ({ draft, sources, onChange }: FilterValueInputP
           to={to}
           onChange={(range) => onChange({ range })}
         />
+      );
+
+    case 'boolean':
+      return (
+        <Select
+          value={draft.text}
+          aria-label={`${label}: так чи ні`}
+          className="h-10 w-full"
+          onChange={(event) => onChange({ text: event.target.value })}
+        >
+          <option value="">—</option>
+          <option value="true">так</option>
+          <option value="false">ні</option>
+        </Select>
       );
 
     case 'list':

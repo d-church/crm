@@ -24,5 +24,5 @@ export class CreateMinistryDto {
   @ApiPropertyOptional({ example: '00000000-0000-4000-8000-000000000002' })
   @IsOptional()
   @Matches(DATABASE_UUID_PATTERN, { message: 'leaderId must be a UUID' })
-  leaderId?: string;
+  leaderId?: string | null;
 }

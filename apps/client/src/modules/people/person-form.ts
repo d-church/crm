@@ -1,9 +1,18 @@
 import { z } from 'zod';
 
 import { toDateInputValue } from '@/lib/format';
-import { FollowUpState, PersonGender, PersonStatus, type Person, type Writable } from '@/services';
+import type { MinistryRole } from '@/services';
+import {
+  ActivityState,
+  FollowUpState,
+  MembershipStatus,
+  PersonGender,
+  type Person,
+  type Writable,
+} from '@/services';
 
-import { FOLLOW_UP_STATES, PERSON_STATUSES } from './status';
+import { MINISTRY_ROLES } from './ministry-roles';
+import { ACTIVITY_STATES, FOLLOW_UP_STATES, MEMBERSHIP_STATUSES } from './status';
 import { databaseUuidSchema } from './uuid';
 
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -12,7 +21,9 @@ export const personSchema = z.object({
   firstName: z.string().trim().min(2, 'Мінімум 2 символи').max(50, 'Максимум 50 символів'),
   lastName: optionalText(50),
   gender: z.union([z.literal(''), z.enum(PersonGender)]),
-  status: z.enum(PERSON_STATUSES as [PersonStatus, ...PersonStatus[]]),
+  membership: z.enum(MEMBERSHIP_STATUSES as [MembershipStatus, ...MembershipStatus[]]),
+  activity: z.enum(ACTIVITY_STATES as [ActivityState, ...ActivityState[]]),
+  careNeeded: z.boolean(),
   followUp: z.enum(FOLLOW_UP_STATES as [FollowUpState, ...FollowUpState[]]),
 
   phone: optionalText(30),
@@ -29,14 +40,11 @@ export const personSchema = z.object({
   firstVisitAt: optionalText(10),
   lastSeenAt: optionalText(10),
   connectedBy: optionalText(80),
-  nextStep: optionalText(120),
   communityIds: z.array(databaseUuidSchema),
   homeGroupId: z.union([z.literal(''), databaseUuidSchema]).optional(),
-  ministryIds: z.array(databaseUuidSchema),
+  ministries: z.array(z.object({ ministryId: databaseUuidSchema, role: z.enum(MINISTRY_ROLES) })),
   trainingIds: z.array(databaseUuidSchema),
   responsible: optionalText(80),
-  nextAction: optionalText(200),
-  nextActionAt: optionalText(10),
 
   birthDate: optionalText(10),
   baptizedAt: optionalText(10),
@@ -50,11 +58,11 @@ export type PersonValues = z.infer<typeof personSchema>;
 export type PersonField = keyof PersonValues;
 export type PersonPayload = Omit<
   Writable<Person>,
-  'communities' | 'homeGroup' | 'ministries' | 'trainings'
+  'communities' | 'homeGroup' | 'ministryAssignments' | 'trainings'
 > & {
   communityIds?: string[] | null;
   homeGroupId?: string | null;
-  ministryIds?: string[] | null;
+  ministries?: { ministryId: string; role: MinistryRole }[] | null;
   trainingIds?: string[] | null;
 };
 
@@ -62,7 +70,9 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
   firstName: '',
   lastName: '',
   gender: '',
-  status: PersonStatus.NEW,
+  membership: MembershipStatus.GUEST,
+  activity: ActivityState.ACTIVE,
+  careNeeded: false,
   followUp: FollowUpState.NOT_DONE,
   phone: '',
   homePhone: '',
@@ -76,14 +86,11 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
   firstVisitAt: '',
   lastSeenAt: '',
   connectedBy: '',
-  nextStep: '',
   communityIds: [],
   homeGroupId: '',
-  ministryIds: [],
+  ministries: [],
   trainingIds: [],
   responsible: '',
-  nextAction: '',
-  nextActionAt: '',
   birthDate: '',
   baptizedAt: '',
   memberSince: '',
@@ -94,7 +101,6 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
 const DATE_KEYS = [
   'firstVisitAt',
   'lastSeenAt',
-  'nextActionAt',
   'birthDate',
   'baptizedAt',
   'memberSince',
@@ -109,7 +115,11 @@ export const toPersonValues = (person: Person): PersonValues =>
     Object.entries(EMPTY_PERSON_VALUES).map(([key, fallback]) => {
       if (key === 'communityIds') return [key, person.communities.map(({ id }) => id)];
       if (key === 'homeGroupId') return [key, person.homeGroup?.id ?? ''];
-      if (key === 'ministryIds') return [key, person.ministries.map(({ id }) => id)];
+      if (key === 'ministries')
+        return [
+          key,
+          person.ministryAssignments.map(({ ministryId, role }) => ({ ministryId, role })),
+        ];
       if (key === 'trainingIds') return [key, person.trainings.map(({ id }) => id)];
 
       const value = person[key as keyof Person];

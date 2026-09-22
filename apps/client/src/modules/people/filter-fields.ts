@@ -7,9 +7,18 @@ import type {
   PeopleFilterCondition,
   PeopleFilterField,
   PeopleFilterOperator,
+  StepType,
 } from '@/services';
 
-import { FOLLOW_UP_LABELS, PERSON_STATUSES, PERSON_STATUS_LABELS } from './status';
+import { MINISTRY_ROLES, MINISTRY_ROLE_LABELS } from './ministry-roles';
+import {
+  ACTIVITY_LABELS,
+  ACTIVITY_STATES,
+  CARE_LABEL,
+  FOLLOW_UP_LABELS,
+  MEMBERSHIP_LABELS,
+  MEMBERSHIP_STATUSES,
+} from './status';
 import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 
 /**
@@ -17,7 +26,8 @@ import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
  * (`apps/api/src/api/person/filter/people-filter.ts`). The kind decides which
  * operators are offered and which control edits the value.
  */
-export type FilterFieldKind = 'text' | 'enum' | 'relation' | 'date' | 'age' | 'birthday';
+export type FilterFieldKind =
+  'text' | 'enum' | 'relation' | 'date' | 'age' | 'birthday' | 'boolean';
 
 type FilterFieldDefinition = {
   field: PeopleFilterField;
@@ -69,18 +79,44 @@ export const FILTER_FIELDS: FilterFieldDefinition[] = [
   { field: 'region', label: 'Область', kind: 'text', group: 'Контакти' },
   { field: 'address', label: 'Вулиця, будинок', kind: 'text', group: 'Контакти' },
 
-  { field: 'status', label: 'Статус', kind: 'enum', group: 'Супровід', required: true },
+  { field: 'membership', label: 'Статус', kind: 'enum', group: 'Супровід', required: true },
+  { field: 'activity', label: 'Активність', kind: 'enum', group: 'Супровід', required: true },
+  { field: 'careNeeded', label: CARE_LABEL, kind: 'boolean', group: 'Супровід', required: true },
   { field: 'followUp', label: 'Follow-up', kind: 'enum', group: 'Супровід', required: true },
   { field: 'connectedBy', label: 'Connect', kind: 'text', group: 'Супровід' },
-  { field: 'nextStep', label: 'Next Step', kind: 'text', group: 'Супровід' },
+  {
+    field: 'openSteps',
+    label: 'Крок у роботі',
+    kind: 'relation',
+    group: 'Наступні кроки',
+  },
+  {
+    field: 'completedSteps',
+    label: 'Пройдений крок',
+    kind: 'relation',
+    group: 'Наступні кроки',
+  },
+  {
+    field: 'stepOverdue',
+    label: 'Прострочений крок',
+    kind: 'boolean',
+    group: 'Наступні кроки',
+    required: true,
+  },
   { field: 'responsible', label: 'Відповідальний', kind: 'text', group: 'Супровід' },
-  { field: 'nextAction', label: 'Наступна дія', kind: 'text', group: 'Супровід' },
-  { field: 'nextActionAt', label: 'Коли зробити', kind: 'date', group: 'Супровід' },
   { field: 'firstVisitAt', label: 'Перший візит', kind: 'date', group: 'Супровід' },
   { field: 'lastSeenAt', label: 'Остання зустріч', kind: 'date', group: 'Супровід' },
 
   { field: 'communities', label: 'Спільноти', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'homeGroup', label: 'Домашня група', kind: 'relation', group: 'Спільноти й служіння' },
+  {
+    field: 'ministryRole',
+    label: 'Роль у служінні',
+    kind: 'enum',
+    group: 'Спільноти й служіння',
+    // Роль є лише там, де є участь, тож «не вказано» для неї не має сенсу.
+    required: true,
+  },
   { field: 'ministries', label: 'Служіння', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'trainings', label: 'Навчання', kind: 'relation', group: 'Спільноти й служіння' },
 
@@ -121,6 +157,7 @@ const OPERATORS_BY_KIND: Record<FilterFieldKind, PeopleFilterOperator[]> = {
   ],
   age: ['between', 'atLeast', 'atMost', 'equals', 'isEmpty', 'isNotEmpty'],
   birthday: ['withinNextDays', 'inMonths', 'isEmpty', 'isNotEmpty'],
+  boolean: ['is'],
 };
 
 export const getOperators = (field: PeopleFilterField) => {
@@ -154,6 +191,7 @@ const OPERATOR_LABELS: Record<FilterFieldKind, Partial<Record<PeopleFilterOperat
     isEmpty: 'не вказано',
     isNotEmpty: 'вказано',
   },
+  boolean: { is: '' },
   birthday: {
     withinNextDays: 'у найближчі N днів',
     inMonths: 'у місяцях',
@@ -181,6 +219,7 @@ export type FilterOptionSources = {
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroups: Pick<HomeGroup, 'id' | 'name'>[];
   ministries: Pick<Ministry, 'id' | 'name' | 'community'>[];
+  stepTypes: Pick<StepType, 'id' | 'name'>[];
   trainings: Pick<Training, 'id' | 'name'>[];
 };
 
@@ -194,8 +233,14 @@ export const getFilterOptions = (
     case 'gender':
       return PERSON_GENDERS.map((value) => ({ value, label: PERSON_GENDER_LABELS[value] }));
 
-    case 'status':
-      return PERSON_STATUSES.map((value) => ({ value, label: PERSON_STATUS_LABELS[value] }));
+    case 'membership':
+      return MEMBERSHIP_STATUSES.map((value) => ({ value, label: MEMBERSHIP_LABELS[value] }));
+
+    case 'activity':
+      return ACTIVITY_STATES.map((value) => ({ value, label: ACTIVITY_LABELS[value] }));
+
+    case 'ministryRole':
+      return MINISTRY_ROLES.map((value) => ({ value, label: MINISTRY_ROLE_LABELS[value] }));
 
     case 'followUp':
       return Object.entries(FOLLOW_UP_LABELS).map(([value, label]) => ({ value, label }));
@@ -214,6 +259,10 @@ export const getFilterOptions = (
 
     case 'homeGroup':
       return sources.homeGroups.map(({ id, name }) => ({ value: id, label: name }));
+
+    case 'openSteps':
+    case 'completedSteps':
+      return sources.stepTypes.map(({ id, name }) => ({ value: id, label: name }));
 
     case 'birthday':
       return MONTHS.map((label, index) => ({ value: String(index + 1), label }));
@@ -241,7 +290,7 @@ let draftSequence = 0;
 /** React needs a stable key per row; the index shifts when a middle row is removed. */
 const nextDraftKey = () => `condition-${(draftSequence += 1)}`;
 
-export const createDraft = (field: PeopleFilterField = 'status'): ConditionDraft => ({
+export const createDraft = (field: PeopleFilterField = 'membership'): ConditionDraft => ({
   key: nextDraftKey(),
   field,
   operator: getOperators(field)[0],
@@ -260,7 +309,9 @@ export type ValueShape =
   | 'date'
   | 'dateRange'
   | 'number'
-  | 'numberRange';
+  | 'numberRange'
+  /** Так / Ні. */
+  | 'boolean';
 
 export const getValueShape = (
   field: PeopleFilterField,
@@ -286,6 +337,9 @@ export const getValueShape = (
 
     case 'birthday':
       return operator === 'inMonths' ? 'monthList' : 'number';
+
+    case 'boolean':
+      return 'boolean';
   }
 };
 
@@ -316,6 +370,9 @@ export const toCondition = (draft: ConditionDraft): PeopleFilterCondition | null
       return draft.list.length > 0
         ? { field, operator, value: draft.list.map(Number).sort((a, b) => a - b) }
         : null;
+
+    case 'boolean':
+      return draft.text === '' ? null : { field, operator, value: draft.text === 'true' };
 
     case 'date':
       return draft.text ? { field, operator, value: draft.text } : null;
@@ -386,6 +443,9 @@ export const describeCondition = (
 
       case 'in':
         return (value as string[]).map(optionLabel).join(' або ');
+
+      case 'is':
+        return value === true ? 'так' : 'ні';
 
       case 'inMonths':
         return (value as number[]).map((month) => optionLabel(String(month))).join(' або ');

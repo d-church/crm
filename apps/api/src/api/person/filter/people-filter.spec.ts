@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { PersonGender, PersonStatus } from '@/infra/prisma/prisma.service';
+import { MembershipStatus, PersonGender } from '@/infra/prisma/prisma.service';
 
 import {
   buildPeopleFilterWhere,
@@ -10,6 +10,7 @@ import {
 } from './people-filter';
 
 const COMMUNITY_ID = '00000000-0000-4000-8000-000000000001';
+const MINISTRY_ID = '00000000-0000-4000-8000-000000000003';
 
 /** 23:30 in Lviv on 14 September — already the 15th there, still the 14th in UTC. */
 const NOW = new Date('2026-09-14T21:30:00.000Z');
@@ -28,10 +29,12 @@ const expectBadRequest = (input: unknown, message: string) => {
 describe('parsePeopleFilter', () => {
   it('accepts a JSON string and defaults match to all', () => {
     expect(
-      parsePeopleFilter('{"conditions":[{"field":"status","operator":"in","value":["NEW"]}]}'),
+      parsePeopleFilter(
+        '{"conditions":[{"field":"membership","operator":"in","value":["GUEST"]}]}',
+      ),
     ).toEqual({
       match: 'all',
-      conditions: [{ field: 'status', operator: 'in', value: ['NEW'] }],
+      conditions: [{ field: 'membership', operator: 'in', value: ['GUEST'] }],
     });
   });
 
@@ -41,12 +44,12 @@ describe('parsePeopleFilter', () => {
         match: 'any',
         conditions: [
           { field: 'city', operator: 'contains', value: '  Львів ' },
-          { field: 'status', operator: 'in', value: ['NEW', 'NEW'] },
+          { field: 'membership', operator: 'in', value: ['GUEST', 'GUEST'] },
         ],
       }).conditions,
     ).toEqual([
       { field: 'city', operator: 'contains', value: 'Львів' },
-      { field: 'status', operator: 'in', value: ['NEW'] },
+      { field: 'membership', operator: 'in', value: ['GUEST'] },
     ]);
   });
 
@@ -61,7 +64,7 @@ describe('parsePeopleFilter', () => {
   it('rejects an empty or oversized condition list', () => {
     expectBadRequest({ conditions: [] }, 'filter.conditions must be a non-empty array');
 
-    const condition = { field: 'status', operator: 'in', value: ['NEW'] };
+    const condition = { field: 'membership', operator: 'in', value: ['GUEST'] };
 
     expectBadRequest(
       { conditions: Array.from({ length: MAX_FILTER_CONDITIONS + 1 }, () => condition) },
@@ -82,15 +85,15 @@ describe('parsePeopleFilter', () => {
 
   it('rejects an operator the field kind does not support', () => {
     expectBadRequest(
-      { conditions: [{ field: 'status', operator: 'contains', value: 'NEW' }] },
+      { conditions: [{ field: 'membership', operator: 'contains', value: 'GUEST' }] },
       'filter.conditions[0].operator must be one of: in, notIn, isEmpty, isNotEmpty',
     );
   });
 
   it('rejects emptiness checks on columns that are never empty', () => {
     expectBadRequest(
-      { conditions: [{ field: 'status', operator: 'isEmpty' }] },
-      'does not apply to status',
+      { conditions: [{ field: 'membership', operator: 'isEmpty' }] },
+      'does not apply to membership',
     );
   });
 
@@ -114,8 +117,8 @@ describe('parsePeopleFilter', () => {
 
   it('rejects enum values outside the enum', () => {
     expectBadRequest(
-      { conditions: [{ field: 'status', operator: 'in', value: ['MEMBER'] }] },
-      'must only contain: NEW',
+      { conditions: [{ field: 'membership', operator: 'in', value: ['PASTOR'] }] },
+      'must only contain: SUBSCRIBER',
     );
   });
 
@@ -176,15 +179,15 @@ describe('buildPeopleFilterWhere', () => {
 
   it('joins conditions with AND for all and OR for any', () => {
     const conditions = [
-      { field: 'status', operator: 'in', value: ['NEW'] },
+      { field: 'membership', operator: 'in', value: ['GUEST'] },
       { field: 'followUp', operator: 'in', value: ['NOT_DONE'] },
     ];
 
     expect(buildPeopleFilterWhere(parsePeopleFilter({ match: 'all', conditions }))).toEqual({
-      AND: [{ status: { in: ['NEW'] } }, { followUp: { in: ['NOT_DONE'] } }],
+      AND: [{ membership: { in: ['GUEST'] } }, { followUp: { in: ['NOT_DONE'] } }],
     });
     expect(buildPeopleFilterWhere(parsePeopleFilter({ match: 'any', conditions }))).toEqual({
-      OR: [{ status: { in: ['NEW'] } }, { followUp: { in: ['NOT_DONE'] } }],
+      OR: [{ membership: { in: ['GUEST'] } }, { followUp: { in: ['NOT_DONE'] } }],
     });
   });
 
@@ -232,8 +235,10 @@ describe('buildPeopleFilterWhere', () => {
 
   describe('enum', () => {
     it('matches a set of values', () => {
-      expect(clauseFor({ field: 'status', operator: 'notIn', value: ['INACTIVE'] })).toEqual({
-        status: { notIn: ['INACTIVE'] },
+      expect(
+        clauseFor({ field: 'membership', operator: 'notIn', value: ['FORMER_MEMBER'] }),
+      ).toEqual({
+        membership: { notIn: ['FORMER_MEMBER'] },
       });
     });
   });
@@ -261,15 +266,31 @@ describe('buildPeopleFilterWhere', () => {
     });
 
     it('matches any or none of the selected ministries', () => {
-      expect(clauseFor({ field: 'ministries', operator: 'in', value: [COMMUNITY_ID] })).toEqual({
-        ministries: { some: { id: { in: [COMMUNITY_ID] } } },
+      expect(clauseFor({ field: 'ministries', operator: 'in', value: [MINISTRY_ID] })).toEqual({
+        ministryAssignments: { some: { ministryId: { in: [MINISTRY_ID] }, until: null } },
       });
-      expect(clauseFor({ field: 'ministries', operator: 'notIn', value: [COMMUNITY_ID] })).toEqual({
-        ministries: { none: { id: { in: [COMMUNITY_ID] } } },
+      expect(clauseFor({ field: 'ministries', operator: 'notIn', value: [MINISTRY_ID] })).toEqual({
+        ministryAssignments: { none: { ministryId: { in: [MINISTRY_ID] }, until: null } },
       });
       expect(clauseFor({ field: 'ministries', operator: 'isEmpty' })).toEqual({
-        ministries: { none: {} },
+        ministryAssignments: { none: { until: null } },
       });
+    });
+
+    it('finds leaders by the role their assignment carries', () => {
+      expect(clauseFor({ field: 'ministryRole', operator: 'in', value: ['LEADER'] })).toEqual({
+        ministryAssignments: { some: { role: { in: ['LEADER'] }, until: null } },
+      });
+      expect(clauseFor({ field: 'ministryRole', operator: 'notIn', value: ['LEADER'] })).toEqual({
+        ministryAssignments: { none: { role: { in: ['LEADER'] }, until: null } },
+      });
+    });
+
+    it('rejects a role outside the three the church uses', () => {
+      expectBadRequest(
+        { conditions: [{ field: 'ministryRole', operator: 'in', value: ['PASTOR'] }] },
+        'must only contain: MEMBER, HELPER, LEADER',
+      );
     });
 
     it('matches any or none of the selected trainings', () => {
@@ -315,8 +336,8 @@ describe('buildPeopleFilterWhere', () => {
       expect(clauseFor({ field: 'lastSeenAt', operator: 'moreThanDaysAgo', value: 60 })).toEqual({
         lastSeenAt: { lt: day('2026-07-17') },
       });
-      expect(clauseFor({ field: 'nextActionAt', operator: 'withinNextDays', value: 0 })).toEqual({
-        nextActionAt: { gte: day('2026-09-15'), lt: day('2026-09-16') },
+      expect(clauseFor({ field: 'firstVisitAt', operator: 'withinNextDays', value: 0 })).toEqual({
+        firstVisitAt: { gte: day('2026-09-15'), lt: day('2026-09-16') },
       });
     });
 
@@ -324,6 +345,58 @@ describe('buildPeopleFilterWhere', () => {
       expect(clauseFor({ field: 'lastSeenAt', operator: 'isEmpty' })).toEqual({
         lastSeenAt: null,
       });
+    });
+  });
+
+  describe('steps', () => {
+    const STEP_TYPE_ID = '00000000-0000-4000-8000-000000000020';
+
+    it('separates steps in progress from steps already done', () => {
+      expect(clauseFor({ field: 'openSteps', operator: 'in', value: [STEP_TYPE_ID] })).toEqual({
+        steps: {
+          some: { stepTypeId: { in: [STEP_TYPE_ID] }, state: { in: ['PLANNED', 'IN_PROGRESS'] } },
+        },
+      });
+      expect(clauseFor({ field: 'completedSteps', operator: 'in', value: [STEP_TYPE_ID] })).toEqual(
+        {
+          steps: { some: { stepTypeId: { in: [STEP_TYPE_ID] }, state: { equals: 'DONE' } } },
+        },
+      );
+    });
+
+    it('finds people with nothing planned at all', () => {
+      expect(clauseFor({ field: 'openSteps', operator: 'isEmpty' })).toEqual({
+        steps: { none: { state: { in: ['PLANNED', 'IN_PROGRESS'] } } },
+      });
+    });
+
+    it('counts a step as overdue only while it is still in progress', () => {
+      const day = new Date('2026-09-15T00:00:00.000Z');
+
+      expect(clauseFor({ field: 'stepOverdue', operator: 'is', value: true })).toEqual({
+        steps: { some: { state: { in: ['PLANNED', 'IN_PROGRESS'] }, dueAt: { lt: day } } },
+      });
+      expect(clauseFor({ field: 'stepOverdue', operator: 'is', value: false })).toEqual({
+        steps: { none: { state: { in: ['PLANNED', 'IN_PROGRESS'] }, dueAt: { lt: day } } },
+      });
+    });
+  });
+
+  describe('care flag', () => {
+    it('matches the flag either way', () => {
+      expect(clauseFor({ field: 'careNeeded', operator: 'is', value: true })).toEqual({
+        careNeeded: true,
+      });
+      expect(clauseFor({ field: 'careNeeded', operator: 'is', value: false })).toEqual({
+        careNeeded: false,
+      });
+    });
+
+    it('rejects anything but a boolean', () => {
+      expectBadRequest(
+        { conditions: [{ field: 'careNeeded', operator: 'is', value: 'yes' }] },
+        'must be true or false',
+      );
     });
   });
 
@@ -424,8 +497,10 @@ describe('buildPeopleFilterWhere', () => {
   });
 
   it('works with the enum values Prisma generates', () => {
-    expect(whereFor({ field: 'status', operator: 'in', value: [PersonStatus.CARE] })).toEqual({
-      AND: [{ status: { in: ['CARE'] } }],
+    expect(
+      whereFor({ field: 'membership', operator: 'in', value: [MembershipStatus.MEMBER] }),
+    ).toEqual({
+      AND: [{ membership: { in: ['MEMBER'] } }],
     });
   });
 });

@@ -1,4 +1,5 @@
 import { RestService } from './abstracts/rest-service';
+import type { PersonStep } from './step-service';
 import type { Community } from './community-service';
 import type { HomeGroup } from './home-group-service';
 import type { Ministry } from './ministry-service';
@@ -8,7 +9,8 @@ import type { Training } from './training-service';
 export const PEOPLE_SORTS = [
   'name',
   'gender',
-  'status',
+  'membership',
+  'activity',
   'homeGroup',
   'lastSeenAt',
   'phone',
@@ -22,10 +24,7 @@ export const PEOPLE_SORTS = [
   'birthday',
   'followUp',
   'connectedBy',
-  'nextStep',
   'responsible',
-  'nextAction',
-  'nextActionAt',
   'firstVisitAt',
   'baptizedAt',
   'memberSince',
@@ -51,7 +50,7 @@ export type PeopleFilterCondition = {
   field: PeopleFilterField;
   operator: PeopleFilterOperator;
   /** Omitted for `isEmpty` / `isNotEmpty`; the API checks the shape per field. */
-  value?: string | number | string[] | number[];
+  value?: string | number | boolean | string[] | number[];
 };
 
 export type PeopleFilterField =
@@ -65,19 +64,22 @@ export type PeopleFilterField =
   | 'district'
   | 'region'
   | 'connectedBy'
-  | 'nextStep'
+  | 'openSteps'
+  | 'completedSteps'
+  | 'stepOverdue'
   | 'responsible'
-  | 'nextAction'
   | 'notes'
-  | 'status'
+  | 'membership'
+  | 'activity'
+  | 'careNeeded'
   | 'followUp'
   | 'ministries'
+  | 'ministryRole'
   | 'trainings'
   | 'communities'
   | 'homeGroup'
   | 'firstVisitAt'
   | 'lastSeenAt'
-  | 'nextActionAt'
   | 'birthDate'
   | 'birthday'
   | 'baptizedAt'
@@ -94,6 +96,7 @@ export type PeopleFilterOperator =
   | 'in'
   | 'notIn'
   | 'inMonths'
+  | 'is'
   | 'on'
   | 'before'
   | 'after'
@@ -112,7 +115,6 @@ export type PeopleQuery = {
   page?: number;
   limit?: number;
   search?: string;
-  status?: PersonStatus;
   minAge?: number;
   maxAge?: number;
   communityId?: string;
@@ -122,6 +124,28 @@ export type PeopleQuery = {
   filter?: PeopleFilter;
   sort?: PeopleSort;
   order?: SortOrder;
+};
+
+/** Одна дія над багатьма людьми. Для домашньої групи `mode: 'remove'` означає «прибрати з групи». */
+export type BulkPeoplePayload = {
+  personIds: string[];
+  action:
+    | 'ministry'
+    | 'community'
+    | 'training'
+    | 'homeGroup'
+    | 'step'
+    | 'membership'
+    | 'activity'
+    | 'careNeeded';
+  mode?: 'add' | 'remove';
+  targetId?: string | null;
+  role?: MinistryRole;
+  membership?: MembershipStatus;
+  activity?: ActivityState;
+  careNeeded?: boolean;
+  dueAt?: string;
+  responsible?: string;
 };
 
 export type Paginated<T> = {
@@ -152,6 +176,21 @@ class PersonServiceClass extends RestService<Person> {
       // Axios would flatten a nested object into `filter[conditions][0]…`; the API reads JSON.
       params: { ...query, ...(filter ? { filter: JSON.stringify(filter) } : {}) },
     });
+
+    return response.data;
+  }
+
+  /** Тільки ідентифікатори за фільтром — для «вибрати всіх знайдених». */
+  public async listIds({ filter, ...query }: PeopleQuery = {}): Promise<string[]> {
+    const response = await this.api.get<string[]>(`${this.anchor}/ids`, {
+      params: { ...query, ...(filter ? { filter: JSON.stringify(filter) } : {}) },
+    });
+
+    return response.data;
+  }
+
+  public async bulk(payload: BulkPeoplePayload): Promise<{ affected: number }> {
+    const response = await this.api.post<{ affected: number }>(`${this.anchor}/bulk`, payload);
 
     return response.data;
   }
@@ -190,18 +229,44 @@ class PersonServiceClass extends RestService<Person> {
   }
 }
 
-export const PersonStatus = {
-  NEW: 'NEW',
-  CONNECTED: 'CONNECTED',
-  NEXT_STEP: 'NEXT_STEP',
-  COMMUNITY: 'COMMUNITY',
-  SERVING: 'SERVING',
-  CARE: 'CARE',
-  ABROAD: 'ABROAD',
-  INACTIVE: 'INACTIVE',
+export const MembershipStatus = {
+  SUBSCRIBER: 'SUBSCRIBER',
+  GUEST: 'GUEST',
+  ATTENDER: 'ATTENDER',
+  MEMBER: 'MEMBER',
+  FORMER_MEMBER: 'FORMER_MEMBER',
 } as const;
 
-export type PersonStatus = (typeof PersonStatus)[keyof typeof PersonStatus];
+export type MembershipStatus = (typeof MembershipStatus)[keyof typeof MembershipStatus];
+
+export const ActivityState = {
+  ACTIVE: 'ACTIVE',
+  ABROAD: 'ABROAD',
+  INACTIVE: 'INACTIVE',
+  MOVED: 'MOVED',
+} as const;
+
+export type ActivityState = (typeof ActivityState)[keyof typeof ActivityState];
+
+export const MinistryRole = {
+  MEMBER: 'MEMBER',
+  HELPER: 'HELPER',
+  LEADER: 'LEADER',
+} as const;
+
+export type MinistryRole = (typeof MinistryRole)[keyof typeof MinistryRole];
+
+/** Участь людини в служінні: роль належить участі, а не людині. */
+export type MinistryAssignment = {
+  id: string;
+  ministryId: string;
+  role: MinistryRole;
+  since: string | null;
+  until: string | null;
+  ministry: Pick<Ministry, 'id' | 'name'> & {
+    community: Pick<Community, 'id' | 'name'> | null;
+  };
+};
 
 export const FollowUpState = {
   NOT_DONE: 'NOT_DONE',
@@ -232,21 +297,19 @@ export interface Person {
   postalCode: string | null;
   district: string | null;
   region: string | null;
-  status: PersonStatus;
+  membership: MembershipStatus;
+  activity: ActivityState;
+  careNeeded: boolean;
   firstVisitAt: string | null;
   lastSeenAt: string | null;
   connectedBy: string | null;
   followUp: FollowUpState;
-  nextStep: string | null;
+  steps: PersonStep[];
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
-  ministries: (Pick<Ministry, 'id' | 'name'> & {
-    community: Pick<Community, 'id' | 'name'> | null;
-  })[];
+  ministryAssignments: MinistryAssignment[];
   trainings: Pick<Training, 'id' | 'name'>[];
   responsible: string | null;
-  nextAction: string | null;
-  nextActionAt: string | null;
   birthDate: string | null;
   baptizedAt: string | null;
   memberSince: string | null;
