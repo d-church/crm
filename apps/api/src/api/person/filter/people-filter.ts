@@ -56,6 +56,7 @@ const OPERATORS = {
   boolean: ['is'],
   ministryRole: ['in', 'notIn'],
   step: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
+  churchRole: ['in', 'notIn', 'isEmpty', 'isNotEmpty'],
   overdueStep: ['is'],
   birthday: ['inMonths', 'withinNextDays', 'isEmpty', 'isNotEmpty'],
 } as const;
@@ -107,6 +108,8 @@ type FieldDefinition =
   | { kind: 'ministryRole' }
   /** Кроки з довідника: або ті, що в роботі, або вже завершені. */
   | { kind: 'step'; done: boolean }
+  /** Діючий сан у церкві — диякон, пресвітер, пастор. */
+  | { kind: 'churchRole' }
   /** Чи є хоч один крок у роботі, дедлайн якого вже минув. */
   | { kind: 'overdueStep' }
   /** Day and month only — the year a person was born says nothing about their birthday. */
@@ -138,6 +141,7 @@ const FIELDS = {
   homeGroup: { kind: 'relation', relation: 'homeGroup' },
   ministries: { kind: 'relation', relation: 'ministries' },
   ministryRole: { kind: 'ministryRole' },
+  churchRole: { kind: 'churchRole' },
   openSteps: { kind: 'step', done: false },
   completedSteps: { kind: 'step', done: true },
   stepOverdue: { kind: 'overdueStep' },
@@ -331,6 +335,7 @@ const parseValue = (
 
       return value;
 
+    case 'churchRole':
     case 'step':
       return parseList(value, path, (item) => {
         if (typeof item !== 'string' || !DATABASE_UUID_PATTERN.test(item)) {
@@ -398,6 +403,9 @@ const toWhere = (
 
     case 'step':
       return toStepWhere(definition.done, operator, value as string[]);
+
+    case 'churchRole':
+      return toChurchRoleWhere(operator, value as string[]);
 
     case 'overdueStep':
       return toOverdueStepWhere(value as boolean, today);
@@ -533,6 +541,26 @@ const toStepWhere = (done: boolean, operator: FilterOperator, ids: string[]): Wh
 
     case 'isNotEmpty':
       return { steps: { some: { state } } };
+
+    default:
+      return unsupported(operator);
+  }
+};
+
+/** Сан рахується лише діючий: завершений — це історія, а не поточний стан. */
+const toChurchRoleWhere = (operator: FilterOperator, ids: string[]): Where => {
+  switch (operator) {
+    case 'in':
+      return { churchRoles: { some: { roleTypeId: { in: ids }, until: null } } };
+
+    case 'notIn':
+      return { churchRoles: { none: { roleTypeId: { in: ids }, until: null } } };
+
+    case 'isEmpty':
+      return { churchRoles: { none: { until: null } } };
+
+    case 'isNotEmpty':
+      return { churchRoles: { some: { until: null } } };
 
     default:
       return unsupported(operator);
@@ -764,6 +792,7 @@ const canBeEmpty = (definition: FieldDefinition) => {
       return false;
 
     case 'step':
+    case 'churchRole':
       return true;
 
     default:

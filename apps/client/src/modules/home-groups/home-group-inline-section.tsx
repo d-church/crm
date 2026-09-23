@@ -12,7 +12,7 @@ import { usePersonChoices } from '@/modules/people';
 import { homeGroupSchema, type HomeGroupValues } from './home-group-form';
 import { useUpdateHomeGroup } from './hooks';
 import { HOME_GROUP_CATEGORIES, HOME_GROUP_CATEGORY_LABELS } from './category';
-import { LeaderCombobox } from './leader-combobox';
+import { PersonCombobox } from '@/components/person-combobox';
 
 export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) => {
   const { data: people = [] } = usePersonChoices();
@@ -93,7 +93,8 @@ export const HomeGroupInlineSection = ({ homeGroup }: { homeGroup: HomeGroup }) 
             control={control}
             name="leaderId"
             render={({ field }) => (
-              <LeaderCombobox
+              <PersonCombobox
+                label="Лідер"
                 id="leaderId"
                 people={people}
                 value={field.value}

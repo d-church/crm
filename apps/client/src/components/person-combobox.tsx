@@ -5,26 +5,40 @@ import { Input, Label } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { getPersonName, type PersonChoice } from '@/services';
 
-type LeaderComboboxProps = {
+type PersonComboboxProps = {
   id: string;
   people: PersonChoice[];
   value: string;
   onChange: (value: string) => void;
+  /** Підпис над полем. Без нього лишається сама лише коробка з пошуком. */
+  label?: string;
+  /** Чим поле представляється читачу екрана, коли видимого підпису немає. */
+  ariaLabel?: string;
+  placeholder?: string;
+  /** Як називається порожній вибір — «Не призначено», «Не вказано» тощо. */
+  emptyLabel?: string;
+  /** Компактні форми задають свою висоту поля. */
+  inputClassName?: string;
   error?: string;
   disabled?: boolean;
 };
 
 const MAX_RESULTS = 50;
 
-/** Search-first leader picker. It avoids mounting a native select with every person. */
-export const LeaderCombobox = ({
+/** Search-first person picker. It avoids mounting a native select with every person. */
+export const PersonCombobox = ({
   id,
   people,
   value,
   onChange,
+  label,
+  ariaLabel,
+  placeholder = 'Пошук людини',
+  emptyLabel = 'Не призначено',
+  inputClassName,
   error,
   disabled,
-}: LeaderComboboxProps) => {
+}: PersonComboboxProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +73,7 @@ export const LeaderCombobox = ({
 
   return (
     <div className="grid gap-1.5" ref={containerRef}>
-      <Label htmlFor={id}>Лідер</Label>
+      {label ? <Label htmlFor={id}>{label}</Label> : null}
       <div className="relative">
         <Search className="text-ink-faint pointer-events-none absolute top-1/2 left-3.5 z-10 size-4 -translate-y-1/2" />
         <Input
@@ -68,12 +82,13 @@ export const LeaderCombobox = ({
           aria-autocomplete="list"
           aria-controls={isOpen ? listboxId : undefined}
           aria-expanded={isOpen}
+          aria-label={label ? undefined : (ariaLabel ?? placeholder)}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
           value={isOpen ? query : selectedPerson ? getPersonName(selectedPerson) : ''}
-          placeholder={selectedPerson ? undefined : 'Пошук людини'}
+          placeholder={selectedPerson ? undefined : placeholder}
           disabled={disabled}
-          className="pr-10 pl-10"
+          className={cn('pr-10 pl-10', inputClassName)}
           onFocus={() => {
             setQuery('');
             setIsOpen(true);
@@ -92,8 +107,8 @@ export const LeaderCombobox = ({
         {selectedPerson ? (
           <button
             type="button"
-            title="Очистити лідера"
-            aria-label="Очистити лідера"
+            title="Очистити вибір"
+            aria-label="Очистити вибір"
             disabled={disabled}
             className="text-ink-faint hover:text-foreground absolute top-1/2 right-3 z-10 -translate-y-1/2 transition-colors disabled:opacity-50"
             onMouseDown={(event) => event.preventDefault()}
@@ -106,7 +121,7 @@ export const LeaderCombobox = ({
           <div
             id={listboxId}
             role="listbox"
-            aria-label="Результати пошуку лідера"
+            aria-label="Результати пошуку людини"
             className="bg-popover border-input-border absolute z-30 mt-1 w-full overflow-hidden rounded-md border py-1 shadow-lg"
           >
             <button
@@ -119,7 +134,7 @@ export const LeaderCombobox = ({
               <span className="grid size-4 place-items-center">
                 {!value ? <Check className="text-primary size-3.5" /> : null}
               </span>
-              Не призначено
+              {emptyLabel}
             </button>
             <div className="border-border-muted border-t" />
             {normalizedQuery.length === 0 ? (

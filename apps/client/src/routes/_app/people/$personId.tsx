@@ -1,71 +1,58 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { z } from 'zod';
 
-import { PageHeader } from '@/components/layout';
-import { Button } from '@/components/ui';
 import {
-  DeletePersonDialog,
-  getPersonMeta,
+  PersonDetails,
+  PersonHero,
+  PersonTimeline,
   personQueryOptions,
-  PersonInlineSections,
-  PersonStepsSection,
+  personTimelineQueryOptions,
   usePerson,
 } from '@/modules/people';
-import { getPersonName } from '@/services';
+
+const searchSchema = z.object({ view: z.enum(['card', 'timeline']).optional() });
 
 export const Route = createFileRoute('/_app/people/$personId')({
-  loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(personQueryOptions(params.personId)),
+  validateSearch: (search: Record<string, unknown>) => {
+    const parsed = searchSchema.safeParse(search);
+
+    return parsed.success ? parsed.data : {};
+  },
+  loader: ({ context, params }) => {
+    // Хронологію підвантажуємо заздалегідь: перемикач має спрацьовувати миттєво.
+    void context.queryClient.prefetchQuery(personTimelineQueryOptions(params.personId));
+
+    return context.queryClient.ensureQueryData(personQueryOptions(params.personId));
+  },
   component: PersonDetailPage,
 });
 
 function PersonDetailPage() {
   const { personId } = Route.useParams();
-  const navigate = useNavigate();
+  const { view = 'card' } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
 
   // Read through the query, not the loader data, so saving an edit re-renders here.
   const { data: person } = usePerson(personId);
   if (!person) return null;
 
-  const name = getPersonName(person);
-  const meta = getPersonMeta(person);
-
   return (
-    <>
-      <PageHeader
-        eyebrow={
-          <Link
-            to="/people"
-            className="rounded-sm transition-colors hover:text-foreground hover:underline"
-            aria-label="Повернутися до списку людей"
-          >
-            Люди
-          </Link>
+    <div className="grid gap-4">
+      <PersonHero
+        person={person}
+        view={view}
+        // Вигляд живе в URL, тож посилання на хронологію можна скинути колезі.
+        onViewChange={(next) =>
+          void navigate({ search: next === 'card' ? {} : { view: next }, replace: true })
         }
-        title={name}
-        description={meta || undefined}
-        actions={
-          <>
-            <Button asChild variant="outline">
-              <Link to="/people">
-                <ArrowLeft />
-                До списку
-              </Link>
-            </Button>
-
-            <DeletePersonDialog person={person} onDeleted={() => void navigate({ to: '/people' })}>
-              <Button variant="outline" className="text-destructive">
-                <Trash2 />
-                Видалити
-              </Button>
-            </DeletePersonDialog>
-          </>
-        }
+        onDeleted={() => void navigate({ to: '/people' })}
       />
 
-      <PersonStepsSection person={person} />
-
-      <PersonInlineSections person={person} />
-    </>
+      {view === 'timeline' ? (
+        <PersonTimeline personId={person.id} />
+      ) : (
+        <PersonDetails person={person} />
+      )}
+    </div>
   );
 }

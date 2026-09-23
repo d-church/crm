@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 import { Button, Card, CardContent, Field } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { LeaderCombobox } from '@/modules/home-groups/leader-combobox';
+import { PersonCombobox } from '@/components/person-combobox';
 import { usePersonChoices } from '@/modules/people';
 import type { Training } from '@/services';
 
@@ -62,7 +62,8 @@ export const TrainingInlineSection = ({ training }: { training: Training }) => {
             control={control}
             name="leaderId"
             render={({ field }) => (
-              <LeaderCombobox
+              <PersonCombobox
+                label="Лідер"
                 id="leaderId"
                 people={people}
                 value={field.value}

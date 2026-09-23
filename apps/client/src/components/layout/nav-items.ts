@@ -11,11 +11,12 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { label: 'Домашні групи', to: '/home-groups' },
   { label: 'Служіння', to: '/ministries' },
   { label: 'Навчання', to: '/trainings' },
-  { label: 'Кроки зростання', to: '/steps' },
 ];
+
+const ADMIN_NAV_ITEM: NavItem = { label: 'Адміністрування', to: '/admin' };
 
 export const getNavItems = (role: UserRole): NavItem[] =>
   role === 'SUPERADMIN'
-    ? [...BASE_NAV_ITEMS, { label: 'Користувачі CRM', to: '/users' }]
-    : BASE_NAV_ITEMS;
+    ? [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM, { label: 'Користувачі CRM', to: '/users' }]
+    : [...BASE_NAV_ITEMS, ADMIN_NAV_ITEM];
 import type { UserRole } from '@/services';

@@ -1,7 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
-import { Authorization } from '@/common/decorators';
+import type { Actor } from '@/api/activity/activity.service';
+import { Authorization, CurrentActor } from '@/common/decorators';
 
 import { CreateStepDto } from './dto/create-step.dto';
 import { CreateStepTypeDto, ReorderStepTypesDto, UpdateStepTypeDto } from './dto/step-type.dto';
@@ -59,8 +60,12 @@ export class StepController {
   @Authorization()
   @ApiOperation({ summary: 'Призначити людині крок' })
   @Post('people/:personId/steps')
-  public create(@Param('personId') personId: string, @Body() dto: CreateStepDto) {
-    return this.stepService.create(personId, dto);
+  public create(
+    @Param('personId') personId: string,
+    @Body() dto: CreateStepDto,
+    @CurrentActor() actor: Actor,
+  ) {
+    return this.stepService.create(personId, dto, actor);
   }
 
   @Authorization()
@@ -70,14 +75,19 @@ export class StepController {
     @Param('personId') personId: string,
     @Param('id') id: string,
     @Body() dto: UpdateStepDto,
+    @CurrentActor() actor: Actor,
   ) {
-    return this.stepService.update(personId, id, dto);
+    return this.stepService.update(personId, id, dto, actor);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Прибрати крок' })
   @Delete('people/:personId/steps/:id')
-  public remove(@Param('personId') personId: string, @Param('id') id: string) {
-    return this.stepService.remove(personId, id);
+  public remove(
+    @Param('personId') personId: string,
+    @Param('id') id: string,
+    @CurrentActor() actor: Actor,
+  ) {
+    return this.stepService.remove(personId, id, actor);
   }
 }

@@ -78,26 +78,36 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
     defaultValues: initial,
   });
 
-  const onSubmit = handleSubmit(async (values) => {
-    try {
-      const payload = toPersonPayload(values, isEdit);
+  const onSubmit = handleSubmit(
+    async (values) => {
+      try {
+        const payload = toPersonPayload(values, isEdit);
 
-      if (isEdit) {
-        await updatePerson(payload);
-        toast.success('Зміни збережено');
-      } else {
-        await createPerson(payload);
-        toast.success('Людину додано');
-        reset(EMPTY_PERSON_VALUES);
+        if (isEdit) {
+          await updatePerson(payload);
+          toast.success('Зміни збережено');
+        } else {
+          await createPerson(payload);
+          toast.success('Людину додано');
+          reset(EMPTY_PERSON_VALUES);
+        }
+
+        setIsOpen(false);
+      } catch (error) {
+        toast.error(
+          getApiErrorMessage(error, isEdit ? 'Не вдалося зберегти' : 'Не вдалося додати людину'),
+        );
       }
-
-      setIsOpen(false);
-    } catch (error) {
+    },
+    // Без цього невалідне поле поза межами видимої частини форми просто нічого не робить.
+    (invalid) =>
       toast.error(
-        getApiErrorMessage(error, isEdit ? 'Не вдалося зберегти' : 'Не вдалося додати людину'),
-      );
-    }
-  });
+        Object.values(invalid)
+          .map((error) => error?.message)
+          .filter(Boolean)
+          .join('; ') || 'Перевірте заповнені поля',
+      ),
+  );
 
   return (
     <Dialog

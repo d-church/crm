@@ -1,5 +1,6 @@
 import { formatDate } from '@/lib/format';
 import type {
+  ChurchRoleType,
   Community,
   HomeGroup,
   Ministry,
@@ -109,6 +110,12 @@ export const FILTER_FIELDS: FilterFieldDefinition[] = [
 
   { field: 'communities', label: 'Спільноти', kind: 'relation', group: 'Спільноти й служіння' },
   { field: 'homeGroup', label: 'Домашня група', kind: 'relation', group: 'Спільноти й служіння' },
+  {
+    field: 'churchRole',
+    label: 'Сан у церкві',
+    kind: 'relation',
+    group: 'Спільноти й служіння',
+  },
   {
     field: 'ministryRole',
     label: 'Роль у служінні',
@@ -220,6 +227,7 @@ export type FilterOptionSources = {
   homeGroups: Pick<HomeGroup, 'id' | 'name'>[];
   ministries: Pick<Ministry, 'id' | 'name' | 'community'>[];
   stepTypes: Pick<StepType, 'id' | 'name'>[];
+  churchRoleTypes: Pick<ChurchRoleType, 'id' | 'name'>[];
   trainings: Pick<Training, 'id' | 'name'>[];
 };
 
@@ -263,6 +271,9 @@ export const getFilterOptions = (
     case 'openSteps':
     case 'completedSteps':
       return sources.stepTypes.map(({ id, name }) => ({ value: id, label: name }));
+
+    case 'churchRole':
+      return sources.churchRoleTypes.map(({ id, name }) => ({ value: id, label: name }));
 
     case 'birthday':
       return MONTHS.map((label, index) => ({ value: String(index + 1), label }));

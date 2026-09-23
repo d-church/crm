@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
-import { Route as AppStepsRouteImport } from './routes/_app/steps'
 import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
 import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
@@ -40,14 +40,14 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStepsRoute = AppStepsRouteImport.update({
-  id: '/steps',
-  path: '/steps',
   getParentRoute: () => AppRoute,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
@@ -111,8 +111,8 @@ const AppTrainingsTrainingIdRoute = AppTrainingsTrainingIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
+  '/admin': typeof AppAdminRoute
   '/profile': typeof AppProfileRoute
-  '/steps': typeof AppStepsRoute
   '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
@@ -127,8 +127,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
+  '/admin': typeof AppAdminRoute
   '/profile': typeof AppProfileRoute
-  '/steps': typeof AppStepsRoute
   '/users': typeof AppUsersRoute
   '/': typeof AppIndexRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
@@ -146,8 +146,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/admin': typeof AppAdminRoute
   '/_app/profile': typeof AppProfileRoute
-  '/_app/steps': typeof AppStepsRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/': typeof AppIndexRoute
   '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
@@ -166,8 +166,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/admin'
     | '/profile'
-    | '/steps'
     | '/users'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
@@ -182,8 +182,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
+    | '/admin'
     | '/profile'
-    | '/steps'
     | '/users'
     | '/'
     | '/communities/$communityId'
@@ -200,8 +200,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/login'
+    | '/_app/admin'
     | '/_app/profile'
-    | '/_app/steps'
     | '/_app/users'
     | '/_app/'
     | '/_app/communities/$communityId'
@@ -244,18 +244,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/steps': {
-      id: '/_app/steps'
-      path: '/steps'
-      fullPath: '/steps'
-      preLoaderRoute: typeof AppStepsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/users': {
@@ -339,8 +339,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
   AppProfileRoute: typeof AppProfileRoute
-  AppStepsRoute: typeof AppStepsRoute
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
@@ -356,8 +356,8 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
   AppProfileRoute: AppProfileRoute,
-  AppStepsRoute: AppStepsRoute,
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,

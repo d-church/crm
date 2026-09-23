@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Button, Card, CardContent, Field, Label, Select } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
-import { LeaderCombobox } from '@/modules/home-groups/leader-combobox';
+import { PersonCombobox } from '@/components/person-combobox';
 import { usePersonChoices } from '@/modules/people';
 import type { Ministry } from '@/services';
 
@@ -93,7 +93,8 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
             control={control}
             name="leaderId"
             render={({ field }) => (
-              <LeaderCombobox
+              <PersonCombobox
+                label="Лідер"
                 id="leaderId"
                 people={people}
                 value={field.value}

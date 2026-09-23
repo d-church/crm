@@ -1,6 +1,7 @@
 import type { AxiosError } from 'axios';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
+import { ACT_AS_SYSTEM_HEADER, isActingAsSystem } from '../system-actor';
 import { TokenStorage } from './token-storage';
 
 /**
@@ -38,6 +39,11 @@ export abstract class ApiService {
 
         if (accessToken) {
           config.headers.Authorization = `Bearer ${accessToken}`;
+        }
+
+        // Сервер сам перевірить роль: заголовок діє лише для суперадмінів.
+        if (isActingAsSystem()) {
+          config.headers[ACT_AS_SYSTEM_HEADER] = 'true';
         }
 
         return config;

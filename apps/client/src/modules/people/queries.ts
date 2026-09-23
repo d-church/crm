@@ -31,6 +31,12 @@ export const peopleChoicesQueryOptions = () =>
     queryFn: () => PersonService.choices(),
   });
 
+export const personTimelineQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: [...PERSON_KEY, id, 'timeline'] as const,
+    queryFn: () => PersonService.timeline(id),
+  });
+
 export const personQueryOptions = (id: string) =>
   queryOptions({
     queryKey: [...PERSON_KEY, id],

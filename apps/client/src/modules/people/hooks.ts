@@ -1,8 +1,14 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
-import { PersonService, type PeopleQuery } from '@/services';
+import {
+  PersonEventService,
+  PersonService,
+  type PeopleQuery,
+  type PersonEventPayload,
+} from '@/services';
 
 import {
+  PEOPLE_QUERY_KEY,
   PEOPLE_LIST_KEY,
   PEOPLE_CHOICES_KEY,
   PEOPLE_STATS_KEY,
@@ -11,6 +17,7 @@ import {
   peopleQueryOptions,
   peopleStatsQueryOptions,
   personQueryOptions,
+  personTimelineQueryOptions,
 } from './queries';
 import type { PersonPayload } from './person-form';
 
@@ -24,6 +31,45 @@ export const usePeopleStats = (includeInactive = false) =>
 export const usePersonChoices = () => useQuery(peopleChoicesQueryOptions());
 
 export const usePerson = (id: string) => useQuery(personQueryOptions(id));
+
+export const usePersonTimeline = (id: string) => useQuery(personTimelineQueryOptions(id));
+
+/** Чистка журналу впливає лише на хронологію, тож оновлюємо саме її. */
+export const useRemoveActivities = (personId: string) => {
+  const queryClient = useQueryClient();
+
+  const { mutateAsync: removeActivities, isPending } = useMutation({
+    mutationFn: (ids: string[]) => PersonService.removeActivities(personId, ids),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: [...PERSON_KEY, personId, 'timeline'] }),
+  });
+
+  return { removeActivities, isPending };
+};
+
+/** Події людини змінюють і картку, і хронологію, тож оновлюємо все дерево людей. */
+export const usePersonEvents = (personId: string) => {
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: PEOPLE_QUERY_KEY });
+
+  const { mutateAsync: addEvent, isPending: isAdding } = useMutation({
+    mutationFn: (payload: PersonEventPayload) => PersonEventService.create(personId, payload),
+    onSuccess: invalidate,
+  });
+
+  const { mutateAsync: updateEvent } = useMutation({
+    mutationFn: ({ id, ...payload }: PersonEventPayload & { id: string }) =>
+      PersonEventService.update(personId, id, payload),
+    onSuccess: invalidate,
+  });
+
+  const { mutateAsync: removeEvent } = useMutation({
+    mutationFn: (id: string) => PersonEventService.remove(personId, id),
+    onSuccess: invalidate,
+  });
+
+  return { addEvent, isAdding, updateEvent, removeEvent };
+};
 
 /** A write changes the page, totals and available people for relation pickers. */
 const invalidateCollections = (queryClient: QueryClient) =>

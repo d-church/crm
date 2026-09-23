@@ -1,5 +1,6 @@
 import { PersonService } from './person.service';
 
+import type { ActivityService } from '@/api/activity/activity.service';
 import { ActivityState, PersonGender, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
@@ -234,6 +235,9 @@ describe('buildPeopleOrderBy', () => {
   });
 });
 
+/** Журнал у цих тестах не перевіряється, тож досить заглушки. */
+const activityService = { log: jest.fn(), logMany: jest.fn() } as unknown as ActivityService;
+
 describe('PersonService stats', () => {
   it('excludes inactive people from all totals by default', async () => {
     const now = new Date('2026-09-21T12:00:00.000Z');
@@ -244,7 +248,10 @@ describe('PersonService stats', () => {
       .mockResolvedValueOnce(4)
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(1);
-    const service = new PersonService({ person: { count } } as unknown as PrismaService);
+    const service = new PersonService(
+      { person: { count } } as unknown as PrismaService,
+      activityService,
+    );
 
     try {
       await expect(service.stats()).resolves.toMatchObject({
@@ -286,7 +293,10 @@ describe('PersonService stats', () => {
 
   it('includes inactive people when requested', async () => {
     const count = jest.fn().mockResolvedValue(0);
-    const service = new PersonService({ person: { count } } as unknown as PrismaService);
+    const service = new PersonService(
+      { person: { count } } as unknown as PrismaService,
+      activityService,
+    );
 
     await service.stats(true);
 

@@ -126,6 +126,9 @@ export const toPersonValues = (person: Person): PersonValues =>
 
       if (value == null) return [key, fallback];
 
+      // Прапорці лишаються булевими: рядок "false" не пройшов би валідацію схеми.
+      if (typeof fallback === 'boolean') return [key, Boolean(value)];
+
       return [
         key,
         DATE_KEY_SET.has(key as PersonField) ? toDateInputValue(String(value)) : String(value),

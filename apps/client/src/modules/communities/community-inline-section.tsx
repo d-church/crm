@@ -11,7 +11,7 @@ import { usePersonChoices } from '@/modules/people';
 
 import { communitySchema, type CommunityValues } from './community-form';
 import { useUpdateCommunity } from './hooks';
-import { LeaderCombobox } from '../home-groups/leader-combobox';
+import { PersonCombobox } from '@/components/person-combobox';
 
 export const CommunityInlineSection = ({ community }: { community: Community }) => {
   const { data: people = [] } = usePersonChoices();
@@ -83,7 +83,8 @@ export const CommunityInlineSection = ({ community }: { community: Community }) 
             control={control}
             name="leaderId"
             render={({ field }) => (
-              <LeaderCombobox
+              <PersonCombobox
+                label="Лідер"
                 id="leaderId"
                 people={people}
                 value={field.value}

@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { Prisma } from '@generated/prisma/client';
+import { ActivityKind, Prisma } from '@generated/prisma/client';
+import { ActivityService, type Actor } from '@/api/activity/activity.service';
 import { PrismaService, StepState } from '@/infra/prisma/prisma.service';
 
 import { CreateStepDto } from './dto/create-step.dto';
@@ -18,7 +19,10 @@ export const OPEN_STEP_STATES = [StepState.PLANNED, StepState.IN_PROGRESS];
 
 @Injectable()
 export class StepService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly activityService: ActivityService,
+  ) {}
 
   /** Довідник кроків. Архівні потрібні лише на сторінці керування. */
   public async findTypes(includeArchived = false): Promise<StepType[]> {
@@ -109,27 +113,66 @@ export class StepService {
     });
   }
 
-  public async create(personId: string, dto: CreateStepDto): Promise<Step> {
-    return this.prismaService.personStep.create({
+  public async create(personId: string, dto: CreateStepDto, actor: Actor): Promise<Step> {
+    const step = await this.prismaService.personStep.create({
       data: { personId, ...toStepData(dto), stepTypeId: dto.stepTypeId },
       include: STEP_INCLUDE,
     });
+
+    await this.activityService.log(
+      personId,
+      [{ kind: ActivityKind.STEP_ADDED, subject: 'step', target: step.stepType.name }],
+      actor,
+    );
+
+    return step;
   }
 
-  public async update(personId: string, id: string, dto: UpdateStepDto): Promise<Step> {
-    await this.findOne(personId, id);
+  public async update(
+    personId: string,
+    id: string,
+    dto: UpdateStepDto,
+    actor: Actor,
+  ): Promise<Step> {
+    const before = await this.findOne(personId, id);
 
-    return this.prismaService.personStep.update({
+    const step = await this.prismaService.personStep.update({
       where: { id },
       data: toStepData(dto),
       include: STEP_INCLUDE,
     });
+
+    // Зміну стану видно в журналі, а дедлайн чи відповідального — ні: це дрібниця.
+    if (step.state !== before.state) {
+      await this.activityService.log(
+        personId,
+        [
+          {
+            kind: ActivityKind.STEP_CHANGED,
+            subject: 'step',
+            target: step.stepType.name,
+            oldValue: before.state,
+            newValue: step.state,
+          },
+        ],
+        actor,
+      );
+    }
+
+    return step;
   }
 
-  public async remove(personId: string, id: string): Promise<Step> {
-    await this.findOne(personId, id);
+  public async remove(personId: string, id: string, actor: Actor): Promise<Step> {
+    const step = await this.findOne(personId, id);
 
-    return this.prismaService.personStep.delete({ where: { id }, include: STEP_INCLUDE });
+    await this.prismaService.personStep.delete({ where: { id } });
+    await this.activityService.log(
+      personId,
+      [{ kind: ActivityKind.STEP_REMOVED, subject: 'step', target: step.stepType.name }],
+      actor,
+    );
+
+    return step;
   }
 
   private async findOne(personId: string, id: string): Promise<Step> {

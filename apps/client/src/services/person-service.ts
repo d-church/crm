@@ -1,4 +1,6 @@
 import { RestService } from './abstracts/rest-service';
+import type { ChurchRole } from './church-role-service';
+import type { PersonEvent } from './person-event-service';
 import type { PersonStep } from './step-service';
 import type { Community } from './community-service';
 import type { HomeGroup } from './home-group-service';
@@ -64,6 +66,7 @@ export type PeopleFilterField =
   | 'district'
   | 'region'
   | 'connectedBy'
+  | 'churchRole'
   | 'openSteps'
   | 'completedSteps'
   | 'stepOverdue'
@@ -135,6 +138,7 @@ export type BulkPeoplePayload = {
     | 'training'
     | 'homeGroup'
     | 'step'
+    | 'churchRole'
     | 'membership'
     | 'activity'
     | 'careNeeded';
@@ -191,6 +195,22 @@ class PersonServiceClass extends RestService<Person> {
 
   public async bulk(payload: BulkPeoplePayload): Promise<{ affected: number }> {
     const response = await this.api.post<{ affected: number }>(`${this.anchor}/bulk`, payload);
+
+    return response.data;
+  }
+
+  /** Прибирає записи журналу — доступно лише суперадміну. */
+  public async removeActivities(personId: string, ids: string[]): Promise<{ removed: number }> {
+    const response = await this.api.delete<{ removed: number }>(
+      `${this.anchor}/${personId}/activities`,
+      { data: { ids } },
+    );
+
+    return response.data;
+  }
+
+  public async timeline(personId: string): Promise<TimelineItem[]> {
+    const response = await this.api.get<TimelineItem[]>(`${this.anchor}/${personId}/timeline`);
 
     return response.data;
   }
@@ -305,6 +325,8 @@ export interface Person {
   connectedBy: string | null;
   followUp: FollowUpState;
   steps: PersonStep[];
+  churchRoles: ChurchRole[];
+  events: PersonEvent[];
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
   ministryAssignments: MinistryAssignment[];
@@ -325,3 +347,17 @@ export const getPersonName = ({ firstName, lastName }: Pick<Person, 'firstName' 
   [firstName, lastName].filter(Boolean).join(' ');
 
 export const PersonService = new PersonServiceClass();
+
+/** Один пункт хронології людини. */
+export type TimelineItem = {
+  id: string;
+  at: string;
+  /** Подія життя людини чи операція з її карткою. */
+  category: 'life' | 'card';
+  kind: string;
+  subject: string;
+  target?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
+  actorName?: string | null;
+};

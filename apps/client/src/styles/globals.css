@@ -57,7 +57,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Poppins', Helvetica, Arial, sans-serif;
+  /* Onest має і латиницю, і кирилицю: інакше українські назви малює системний шрифт. */
+  --font-sans: 'Onest', Helvetica, Arial, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -114,7 +115,7 @@
     @apply bg-background text-foreground font-sans font-light antialiased;
   }
 
-  /* The design leans on Poppins 300/400 — headings never go heavier than 400. */
+  /* The design leans on 300/400 — headings never go heavier than 400. */
   h1,
   h2,
   h3 {

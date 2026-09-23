@@ -24,6 +24,7 @@ export const BULK_ACTIONS = [
   'training',
   'homeGroup',
   'step',
+  'churchRole',
   'membership',
   'activity',
   'careNeeded',

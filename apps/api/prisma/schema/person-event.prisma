@@ -1,0 +1,36 @@
+/// Що саме записали: подію життя чи контакт представника церкви з людиною.
+enum PersonEventKind {
+  EVENT
+  CALL
+  MEETING
+  CONSULTATION
+
+  @@map("person_event_kinds")
+}
+
+/// Подія життя («Одруження») або контакт («Зустріч з Петром»). Обидва лягають
+/// у хронологію людини, тому живуть в одній таблиці з різним видом.
+model PersonEvent {
+  id String @id @default(uuid())
+
+  personId String @map("person_id")
+  person   Person @relation("PersonEvents", fields: [personId], references: [id], onDelete: Cascade)
+
+  kind PersonEventKind @default(EVENT)
+
+  /// Назва потрібна події; у контакту її заміняє вид і співрозмовник.
+  title      String?
+  occurredAt DateTime @map("occurred_at") @db.Date
+  note       String?
+
+  /// Хто з представників церкви контактував. Людину можуть видалити — звʼязок обнулиться.
+  withPersonId String? @map("with_person_id")
+  withPerson   Person? @relation("PersonContacts", fields: [withPersonId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId, occurredAt])
+  @@index([withPersonId])
+  @@map("person_events")
+}
