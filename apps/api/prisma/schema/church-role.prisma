@@ -1,0 +1,40 @@
+/// Довідник санів: диякон, пресвітер, пастор. Церква може додати свої.
+model ChurchRoleType {
+  id String @id @default(uuid())
+
+  name String @unique
+  sortOrder Int @default(0) @map("sort_order")
+  /// Архівний сан не пропонується для нових призначень, але старі лишаються.
+  isArchived Boolean @default(false) @map("is_archived")
+
+  roles ChurchRole[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("church_role_types")
+}
+
+/// Сан людини в церкві загалом — на відміну від ролі в конкретному служінні.
+/// Диякон може керувати служінням, і це два незалежні факти.
+model ChurchRole {
+  id String @id @default(uuid())
+
+  personId String @map("person_id")
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  /// Сан із довідника не можна видалити, поки він комусь призначений.
+  roleTypeId String         @map("role_type_id")
+  roleType   ChurchRoleType @relation(fields: [roleTypeId], references: [id], onDelete: Restrict)
+
+  /// Порожній until означає, що людина служить у цьому сані досі.
+  since DateTime? @db.Date
+  until DateTime? @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([roleTypeId])
+  @@map("church_roles")
+}

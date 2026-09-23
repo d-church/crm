@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useChurchRoleTypes } from '@/modules/church-roles';
 import { useStepTypes } from '@/modules/steps';
 import { useTrainings } from '@/modules/trainings';
 import {
@@ -69,6 +70,7 @@ function PeoplePage() {
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
   const { data: stepTypes = [] } = useStepTypes();
+  const { data: churchRoleTypes = [] } = useChurchRoleTypes();
   const { data: trainings = [] } = useTrainings();
 
   // The input is local and the request is debounced, so typing stays smooth.
@@ -113,6 +115,7 @@ function PeoplePage() {
     homeGroups,
     ministries,
     stepTypes,
+    churchRoleTypes,
     trainings,
   };
 

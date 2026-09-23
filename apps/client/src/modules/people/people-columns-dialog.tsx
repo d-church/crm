@@ -85,6 +85,8 @@ export const PeopleColumnsDialog = ({ open, onOpenChange }: PeopleColumnsDialogP
               const column = getColumn(key);
               const isRequired = key === REQUIRED_COLUMN_KEY;
 
+              if (!column) return null;
+
               return (
                 <li
                   key={key}

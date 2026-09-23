@@ -382,6 +382,28 @@ describe('buildPeopleFilterWhere', () => {
     });
   });
 
+  describe('church roles', () => {
+    const ROLE_TYPE_ID = '00000000-0000-4000-8000-000000000030';
+
+    it('counts only the rank a person holds right now', () => {
+      expect(clauseFor({ field: 'churchRole', operator: 'in', value: [ROLE_TYPE_ID] })).toEqual({
+        churchRoles: { some: { roleTypeId: { in: [ROLE_TYPE_ID] }, until: null } },
+      });
+      expect(clauseFor({ field: 'churchRole', operator: 'notIn', value: [ROLE_TYPE_ID] })).toEqual({
+        churchRoles: { none: { roleTypeId: { in: [ROLE_TYPE_ID] }, until: null } },
+      });
+    });
+
+    it('separates people with any rank from people with none', () => {
+      expect(clauseFor({ field: 'churchRole', operator: 'isNotEmpty' })).toEqual({
+        churchRoles: { some: { until: null } },
+      });
+      expect(clauseFor({ field: 'churchRole', operator: 'isEmpty' })).toEqual({
+        churchRoles: { none: { until: null } },
+      });
+    });
+  });
+
   describe('care flag', () => {
     it('matches the flag either way', () => {
       expect(clauseFor({ field: 'careNeeded', operator: 'is', value: true })).toEqual({

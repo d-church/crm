@@ -191,6 +191,17 @@ export const PERSON_COLUMNS: PersonColumn[] = [
     ),
   },
   {
+    key: 'churchRole',
+    label: 'Сан у церкві',
+    width: 1,
+    minWidth: 130,
+    text: (person) =>
+      person.churchRoles
+        .filter(({ until }) => until === null)
+        .map(({ roleType }) => roleType.name)
+        .join(', '),
+  },
+  {
     key: 'ministryRole',
     label: 'Роль у служінні',
     width: 1,
@@ -382,18 +393,22 @@ export const REQUIRED_COLUMN_KEY = 'name';
 export const DEFAULT_COLUMN_KEYS = [
   'name',
   'gender',
-  'status',
+  'membership',
   'communities',
   'ministries',
   'lastSeenAt',
   'phone',
 ];
 
+/** Колишній стовпець "status" розділився на статус і активність. */
+const RENAMED_COLUMNS: Record<string, string[]> = { status: ['membership', 'activity'] };
+
 const PREVIOUS_DEFAULT_COLUMN_KEYS = DEFAULT_COLUMN_KEYS.filter((key) => key !== 'gender');
 
 const COLUMN_KEYS = PERSON_COLUMNS.map(({ key }) => key);
 
-export const getColumn = (key: string) => PERSON_COLUMNS.find((column) => column.key === key)!;
+export const getColumn = (key: string): PersonColumn | undefined =>
+  PERSON_COLUMNS.find((column) => column.key === key);
 
 const storageKey = (userId: string) => `dchurch-crm.people.columns.${userId}`;
 
@@ -408,7 +423,9 @@ const store = createLocalStore<ColumnSelection>((raw) => {
 
   if (!rawKeys) return DEFAULT_COLUMN_SELECTION;
 
-  const keys = [...new Set(rawKeys)].filter((key) => COLUMN_KEYS.includes(key));
+  // Збережений вибір із перейменованими стовпцями не скидаємо, а переносимо.
+  const migrated = rawKeys.flatMap((key) => RENAMED_COLUMNS[key] ?? [key]);
+  const keys = [...new Set(migrated)].filter((key) => COLUMN_KEYS.includes(key));
 
   if (keys.length === 0) return DEFAULT_COLUMN_SELECTION;
 
@@ -433,7 +450,8 @@ export const usePeopleColumns = () => {
 
   return {
     visibleKeys,
-    columns: visibleKeys.map(getColumn),
+    // Ключ, якого більше немає в реєстрі, просто пропускаємо: сторінка важливіша.
+    columns: visibleKeys.map(getColumn).filter((column) => column !== undefined),
     /** `false` when the browser refuses to store the choice. */
     setVisibleKeys: (keys: string[]) => store.write(key, { version: 2, keys }),
     reset: () => store.write(key, DEFAULT_COLUMN_SELECTION),

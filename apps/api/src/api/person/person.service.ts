@@ -1,12 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { Prisma } from '@generated/prisma/client';
+import { ActivityKind, Prisma } from '@generated/prisma/client';
 import {
   ActivityState,
   MinistryRole,
   PrismaService,
   StepState,
 } from '@/infra/prisma/prisma.service';
+
+import { ActivityService, type ActivityEntry, type Actor } from '@/api/activity/activity.service';
 
 import { BulkPeopleDto } from './dto/bulk-people.dto';
 import { CreatePersonDto, MinistryAssignmentDto } from './dto/create-person.dto';
@@ -25,6 +27,16 @@ import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
 const PERSON_INCLUDE = {
   communities: true,
   homeGroup: { select: { id: true, name: true } },
+  /// Події, внесені руками: одруження, переїзд, свідчення.
+  events: {
+    include: { withPerson: { select: { id: true, firstName: true, lastName: true } } },
+    orderBy: { occurredAt: 'desc' },
+  },
+  /// Сани разом із завершеними: картка показує і теперішнє, і історію.
+  churchRoles: {
+    include: { roleType: true },
+    orderBy: [{ until: { sort: 'asc', nulls: 'first' } }, { since: 'desc' }],
+  },
   /// Лише діючі участі — завершені лишаються в базі як історія служіння.
   ministryAssignments: {
     where: { until: null },
@@ -41,13 +53,24 @@ const PERSON_INCLUDE = {
 
 @Injectable()
 export class PersonService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly activityService: ActivityService,
+  ) {}
 
-  public async create(createPersonDto: CreatePersonDto): Promise<Person> {
-    return this.prismaService.person.create({
+  public async create(createPersonDto: CreatePersonDto, actor: Actor): Promise<Person> {
+    const person = await this.prismaService.person.create({
       data: toPersonCreateData(createPersonDto),
       include: PERSON_INCLUDE,
     });
+
+    await this.activityService.log(
+      person.id,
+      [{ kind: ActivityKind.PERSON_CREATED, subject: 'person' }],
+      actor,
+    );
+
+    return person;
   }
 
   public async findAll(query: FindPeopleDto): Promise<PaginatedPeople> {
@@ -118,7 +141,69 @@ export class PersonService {
    * Одна дія над багатьма людьми: база тільки наповнюється, тож додати два десятки
    * людей у служіння списком швидше, ніж відкривати кожну картку.
    */
-  public async bulk(dto: BulkPeopleDto): Promise<BulkResult> {
+  public async bulk(dto: BulkPeopleDto, actor: Actor): Promise<BulkResult> {
+    const result = await this.applyBulk(dto);
+
+    await this.activityService.logMany(dto.personIds, await this.describeBulk(dto), actor);
+
+    return result;
+  }
+
+  /** Людиночитний запис у журнал: назва служіння, а не її ідентифікатор. */
+  private async describeBulk(dto: BulkPeopleDto): Promise<ActivityEntry> {
+    const mode = dto.mode ?? 'add';
+    const kind = mode === 'add' ? ActivityKind.RELATION_ADDED : ActivityKind.RELATION_REMOVED;
+    const target = dto.targetId ? await this.nameOfTarget(dto.action, dto.targetId) : null;
+
+    switch (dto.action) {
+      case 'membership':
+      case 'activity':
+        return { kind: ActivityKind.FIELD_CHANGED, subject: dto.action, newValue: dto[dto.action] };
+
+      case 'careNeeded':
+        return {
+          kind: ActivityKind.FIELD_CHANGED,
+          subject: 'careNeeded',
+          newValue: String(dto.careNeeded),
+        };
+
+      case 'step':
+        return { kind: ActivityKind.STEP_ADDED, subject: 'step', target };
+
+      case 'churchRole':
+        return {
+          kind: mode === 'add' ? ActivityKind.ROLE_ASSIGNED : ActivityKind.ROLE_REMOVED,
+          subject: 'churchRole',
+          target,
+        };
+
+      default:
+        return { kind, subject: dto.action, target };
+    }
+  }
+
+  private async nameOfTarget(action: BulkPeopleDto['action'], id: string): Promise<string | null> {
+    const found = await (action === 'ministry'
+      ? this.prismaService.ministry.findUnique({ where: { id }, select: { name: true } })
+      : action === 'community'
+        ? this.prismaService.community.findUnique({ where: { id }, select: { name: true } })
+        : action === 'training'
+          ? this.prismaService.training.findUnique({ where: { id }, select: { name: true } })
+          : action === 'homeGroup'
+            ? this.prismaService.homeGroup.findUnique({ where: { id }, select: { name: true } })
+            : action === 'step'
+              ? this.prismaService.stepType.findUnique({ where: { id }, select: { name: true } })
+              : action === 'churchRole'
+                ? this.prismaService.churchRoleType.findUnique({
+                    where: { id },
+                    select: { name: true },
+                  })
+                : null);
+
+    return found?.name ?? null;
+  }
+
+  private async applyBulk(dto: BulkPeopleDto): Promise<BulkResult> {
     const personIds = dto.personIds;
     const mode = dto.mode ?? 'add';
 
@@ -150,6 +235,9 @@ export class PersonService {
 
       case 'step':
         return this.bulkStep(personIds, requireTarget(dto), dto.dueAt, dto.responsible);
+
+      case 'churchRole':
+        return this.bulkChurchRole(personIds, requireTarget(dto), mode);
 
       case 'membership':
       case 'activity':
@@ -203,6 +291,35 @@ export class PersonService {
     ]);
 
     return { affected: existingIds.size + created.count };
+  }
+
+  /** Сан не дублюємо: у кого він уже діючий, той лишається як був. */
+  private async bulkChurchRole(
+    personIds: string[],
+    roleTypeId: string,
+    mode: 'add' | 'remove',
+  ): Promise<BulkResult> {
+    if (mode === 'remove') {
+      const { count } = await this.prismaService.churchRole.deleteMany({
+        where: { personId: { in: personIds }, roleTypeId, until: null },
+      });
+
+      return { affected: count };
+    }
+
+    const existing = await this.prismaService.churchRole.findMany({
+      where: { personId: { in: personIds }, roleTypeId, until: null },
+      select: { personId: true },
+    });
+    const existingIds = new Set(existing.map(({ personId }) => personId));
+
+    const { count } = await this.prismaService.churchRole.createMany({
+      data: personIds
+        .filter((id) => !existingIds.has(id))
+        .map((personId) => ({ personId, roleTypeId })),
+    });
+
+    return { affected: count };
   }
 
   /** Спільноти й навчання — звичайні звʼязки, тож приєднуємо всіх одним запитом. */
@@ -273,8 +390,8 @@ export class PersonService {
     return person;
   }
 
-  public async update(id: string, updatePersonDto: UpdatePersonDto): Promise<Person> {
-    await this.findOne(id);
+  public async update(id: string, updatePersonDto: UpdatePersonDto, actor: Actor): Promise<Person> {
+    const before = await this.findOne(id);
 
     const { ministries, ...personDto } = updatePersonDto;
 
@@ -282,7 +399,11 @@ export class PersonService {
 
     if (ministries !== undefined) await this.syncMinistryAssignments(id, ministries ?? []);
 
-    return this.findOne(id);
+    const after = await this.findOne(id);
+
+    await this.activityService.log(id, diffPeople(before, after), actor);
+
+    return after;
   }
 
   /**
@@ -431,6 +552,126 @@ export type PeopleStats = {
 };
 
 export type PersonChoice = { id: string; firstName: string; lastName: string | null };
+
+/** Поля, зміну яких варто бачити в журналі. Службові (updatedAt) пропускаємо. */
+const TRACKED_FIELDS = [
+  'firstName',
+  'lastName',
+  'gender',
+  'membership',
+  'activity',
+  'careNeeded',
+  'followUp',
+  'phone',
+  'homePhone',
+  'workPhone',
+  'email',
+  'city',
+  'address',
+  'postalCode',
+  'district',
+  'region',
+  'birthDate',
+  'baptizedAt',
+  'memberSince',
+  'leftAt',
+  'firstVisitAt',
+  'lastSeenAt',
+  'connectedBy',
+  'responsible',
+  'notes',
+] as const satisfies readonly (keyof Person)[];
+
+/**
+ * Різниця між станом до і після збереження. Звʼязки порівнюються за назвами,
+ * бо ідентифікатор у журналі нічого не каже тому, хто його читає.
+ */
+export const diffPeople = (before: Person, after: Person): ActivityEntry[] => [
+  ...TRACKED_FIELDS.flatMap((field) => {
+    const oldValue = toText(before[field]);
+    const newValue = toText(after[field]);
+
+    return oldValue === newValue
+      ? []
+      : [{ kind: ActivityKind.FIELD_CHANGED, subject: field, oldValue, newValue }];
+  }),
+  ...diffRelation(
+    'community',
+    before.communities.map(({ name }) => name),
+    after.communities.map(({ name }) => name),
+  ),
+  ...diffRelation(
+    'training',
+    before.trainings.map(({ name }) => name),
+    after.trainings.map(({ name }) => name),
+  ),
+  ...diffRelation(
+    'homeGroup',
+    before.homeGroup ? [before.homeGroup.name] : [],
+    after.homeGroup ? [after.homeGroup.name] : [],
+  ),
+  ...diffMinistries(before, after),
+];
+
+const diffRelation = (subject: string, before: string[], after: string[]): ActivityEntry[] => [
+  ...after
+    .filter((name) => !before.includes(name))
+    .map((name) => ({ kind: ActivityKind.RELATION_ADDED, subject, target: name })),
+  ...before
+    .filter((name) => !after.includes(name))
+    .map((name) => ({ kind: ActivityKind.RELATION_REMOVED, subject, target: name })),
+];
+
+/** Служіння порівнюємо разом із роллю: зміна ролі — теж подія. */
+const diffMinistries = (before: Person, after: Person): ActivityEntry[] => {
+  const describe = ({ ministry, role }: Person['ministryAssignments'][number]) =>
+    ({ name: ministry.name, role }) as const;
+  const was = before.ministryAssignments.map(describe);
+  const now = after.ministryAssignments.map(describe);
+
+  return [
+    ...now
+      .filter(({ name }) => !was.some((item) => item.name === name))
+      .map(({ name, role }) => ({
+        kind: ActivityKind.RELATION_ADDED,
+        subject: 'ministry',
+        target: name,
+        newValue: role,
+      })),
+    ...was
+      .filter(({ name }) => !now.some((item) => item.name === name))
+      .map(({ name }) => ({
+        kind: ActivityKind.RELATION_REMOVED,
+        subject: 'ministry',
+        target: name,
+      })),
+    ...now.flatMap(({ name, role }) => {
+      const previous = was.find((item) => item.name === name);
+
+      return previous && previous.role !== role
+        ? [
+            {
+              kind: ActivityKind.FIELD_CHANGED,
+              subject: 'ministryRole',
+              target: name,
+              oldValue: previous.role,
+              newValue: role,
+            },
+          ]
+        : [];
+    }),
+  ];
+};
+
+/** У журнал пишемо лише прості значення: звʼязки порівнюються окремо, за назвами. */
+const toText = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+
+  return null;
+};
 
 export type BulkResult = {
   /** Скільки людей дія реально зачепила. */

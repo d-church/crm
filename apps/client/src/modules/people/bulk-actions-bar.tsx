@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
 import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
+import { useChurchRoleTypes } from '@/modules/church-roles';
 import { useStepTypes } from '@/modules/steps';
 import { useTrainings } from '@/modules/trainings';
 import { PersonService, type BulkPeoplePayload, type MinistryRole } from '@/services';
@@ -22,13 +23,14 @@ const ACTION_LABELS: Record<BulkAction, string> = {
   homeGroup: 'Домашня група',
   training: 'Навчання',
   step: 'Наступний крок',
+  churchRole: 'Сан у церкві',
   membership: 'Статус',
   activity: 'Активність',
   careNeeded: 'Потребує уваги',
 };
 
 /** Дії, де можна не лише додати, а й прибрати. */
-const REMOVABLE: BulkAction[] = ['ministry', 'community', 'training', 'homeGroup'];
+const REMOVABLE: BulkAction[] = ['ministry', 'community', 'training', 'homeGroup', 'churchRole'];
 
 type BulkActionsBarProps = {
   selectedIds: string[];
@@ -56,6 +58,7 @@ export const BulkActionsBar = ({
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: trainings = [] } = useTrainings();
   const { data: stepTypes = [] } = useStepTypes();
+  const { data: churchRoleTypes = [] } = useChurchRoleTypes();
 
   const [action, setAction] = useState<BulkAction>('ministry');
   const [mode, setMode] = useState<'add' | 'remove'>('add');
@@ -75,17 +78,19 @@ export const BulkActionsBar = ({
             ? trainings
             : action === 'step'
               ? stepTypes
-              : action === 'membership'
-                ? MEMBERSHIP_STATUSES.map((value) => ({
-                    id: value,
-                    name: MEMBERSHIP_LABELS[value],
-                  }))
-                : action === 'activity'
-                  ? ACTIVITY_STATES.map((value) => ({ id: value, name: ACTIVITY_LABELS[value] }))
-                  : [
-                      { id: 'true', name: 'так' },
-                      { id: 'false', name: 'ні' },
-                    ];
+              : action === 'churchRole'
+                ? churchRoleTypes
+                : action === 'membership'
+                  ? MEMBERSHIP_STATUSES.map((value) => ({
+                      id: value,
+                      name: MEMBERSHIP_LABELS[value],
+                    }))
+                  : action === 'activity'
+                    ? ACTIVITY_STATES.map((value) => ({ id: value, name: ACTIVITY_LABELS[value] }))
+                    : [
+                        { id: 'true', name: 'так' },
+                        { id: 'false', name: 'ні' },
+                      ];
 
   const needsTarget = !(mode === 'remove' && action === 'homeGroup');
   const isReady = !needsTarget || targetId !== '';

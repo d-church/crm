@@ -83,6 +83,14 @@ model Person {
   leadingHomeGroups HomeGroup[] @relation("HomeGroupLeader")
   /// A leader may lead several communities without being a member of them.
   leadingCommunities Community[] @relation("CommunityLeader")
+  /// Події, які команда вносить руками: одруження, переїзд, свідчення.
+  events PersonEvent[] @relation("PersonEvents")
+  /// Контакти, де ця людина була представником церкви.
+  contacts PersonEvent[] @relation("PersonContacts")
+  /// Журнал операцій над карткою — хто і що змінив.
+  activities PersonActivity[]
+  /// Сан у церкві: диякон, пресвітер, пастор — незалежно від служінь.
+  churchRoles ChurchRole[]
   /// Служіння з роллю в кожному — керівник, помічник чи учасник.
   ministryAssignments MinistryAssignment[]
   /// A person can complete any number of trainings.

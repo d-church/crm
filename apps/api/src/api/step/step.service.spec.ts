@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 
+import type { ActivityService } from '@/api/activity/activity.service';
 import { StepState, type PrismaService } from '@/infra/prisma/prisma.service';
 
 import { StepService, toStepData } from './step.service';
@@ -36,12 +37,18 @@ describe('toStepData', () => {
   });
 });
 
+/** Журнал тут не перевіряється, тож досить заглушки. */
+const activityStub = { log: jest.fn(), logMany: jest.fn() } as unknown as ActivityService;
+
 describe('StepService catalog', () => {
   const findUnique = jest.fn();
   const remove = jest.fn();
-  const service = new StepService({
-    stepType: { findUnique, delete: remove },
-  } as unknown as PrismaService);
+  const service = new StepService(
+    {
+      stepType: { findUnique, delete: remove },
+    } as unknown as PrismaService,
+    activityStub,
+  );
 
   beforeEach(() => jest.resetAllMocks());
 
