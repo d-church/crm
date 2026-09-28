@@ -11,6 +11,7 @@ import {
   type Writable,
 } from '@/services';
 
+import { HOME_GROUP_ROLES } from './home-group-roles';
 import { MINISTRY_ROLES } from './ministry-roles';
 import { ACTIVITY_STATES, FOLLOW_UP_STATES, MEMBERSHIP_STATUSES } from './status';
 import { databaseUuidSchema } from './uuid';
@@ -42,6 +43,7 @@ export const personSchema = z.object({
   connectedBy: optionalText(80),
   communityIds: z.array(databaseUuidSchema),
   homeGroupId: z.union([z.literal(''), databaseUuidSchema]).optional(),
+  homeGroupRole: z.union([z.literal(''), z.enum(HOME_GROUP_ROLES)]).optional(),
   ministries: z.array(z.object({ ministryId: databaseUuidSchema, role: z.enum(MINISTRY_ROLES) })),
   trainingIds: z.array(databaseUuidSchema),
   responsible: optionalText(80),
@@ -88,6 +90,7 @@ export const EMPTY_PERSON_VALUES: PersonValues = {
   connectedBy: '',
   communityIds: [],
   homeGroupId: '',
+  homeGroupRole: '',
   ministries: [],
   trainingIds: [],
   responsible: '',

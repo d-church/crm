@@ -32,8 +32,10 @@ export const PersonStepsSection = ({ person }: { person: Person }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const open = person.steps.filter(({ state }) => isStepOpen(state));
-  const closed = person.steps.filter(({ state }) => !isStepOpen(state));
+  // Кроки — пасторський шар: без опіки сервер їх не віддає.
+  const steps = person.steps ?? [];
+  const open = steps.filter(({ state }) => isStepOpen(state));
+  const closed = steps.filter(({ state }) => !isStepOpen(state));
 
   const run = async (action: Promise<unknown>, failure: string) => {
     try {
@@ -85,7 +87,7 @@ export const PersonStepsSection = ({ person }: { person: Person }) => {
         </Select>
       ) : null}
 
-      {person.steps.length === 0 ? (
+      {steps.length === 0 ? (
         <p className="text-ink-faint text-[12.5px]">Нічого не заплановано</p>
       ) : (
         <ul className="divide-border-subtle -my-1 divide-y">

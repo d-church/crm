@@ -324,7 +324,7 @@ export const PERSON_COLUMNS: PersonColumn[] = [
     width: 1.4,
     minWidth: 170,
     text: (person) =>
-      person.steps
+      (person.steps ?? [])
         .filter(({ state }) => isStepOpen(state))
         .map(({ stepType }) => stepType.name)
         .join(', '),

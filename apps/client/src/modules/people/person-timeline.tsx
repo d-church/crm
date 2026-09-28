@@ -277,10 +277,15 @@ const describe = (item: TimelineItem): string => {
       return 'Картку створено';
 
     case 'RELATION_ADDED':
-      return `Додано${target ? ` до${target}` : ''}${valueSuffix(item)}`;
+      // Опіка — не належність до групи, тому й говоримо про неї інакше.
+      return item.subject === 'care'
+        ? `Призначено попечителя${target ? `: ${item.target}` : ''}`
+        : `Додано${target ? ` до${target}` : ''}${valueSuffix(item)}`;
 
     case 'RELATION_REMOVED':
-      return `Прибрано${target ? ` з${target}` : ''}`;
+      return item.subject === 'care'
+        ? `Завершено опіку${target ? `: ${item.target}` : ''}`
+        : `Прибрано${target ? ` з${target}` : ''}`;
 
     case 'STEP_ADDED':
       return `Призначено крок${target}`;
@@ -339,6 +344,8 @@ const fieldLabel = (subject: string): string => {
       step: 'Крок',
       event: 'Подія',
       talk: 'Спілкування',
+      care: 'Опіка',
+      careNeeded: 'Потребує уваги',
       churchRole: 'Сан',
       person: 'Картка',
     }[subject] ?? subject

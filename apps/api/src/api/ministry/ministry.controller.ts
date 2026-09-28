@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { CreateMinistryDto } from './dto/create-ministry.dto';
 import { FindMinistriesDto } from './dto/find-ministries.dto';
@@ -27,21 +28,21 @@ export class MinistryController {
     return this.ministryService.findOne(id);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Create a ministry' })
   @Post()
   public create(@Body() dto: CreateMinistryDto) {
     return this.ministryService.create(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Update a ministry' })
   @Patch(':id')
   public update(@Param('id') id: string, @Body() dto: UpdateMinistryDto) {
     return this.ministryService.update(id, dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Delete a ministry and clear its memberships' })
   @Delete(':id')
   public remove(@Param('id') id: string) {

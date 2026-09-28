@@ -43,9 +43,14 @@ model PersonStep {
   dueAt       DateTime? @map("due_at") @db.Date
   completedAt DateTime? @map("completed_at") @db.Date
 
-  /// Хто з команди веде цей крок.
+  /// Хто з команди веде цей крок. Вільний текст лишається, поки код не перейшов
+  /// на посилання; передавати крок між служителями можна лише через `responsibleId`.
   responsible String?
-  note        String?
+  /// Відповідальний як людина з бази — потрібно, щоб конект передавав фолов-ап колезі.
+  responsibleId     String? @map("responsible_id")
+  responsiblePerson Person? @relation("StepResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+
+  note String?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

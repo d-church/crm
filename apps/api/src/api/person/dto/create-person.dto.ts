@@ -19,8 +19,11 @@ import {
 import {
   ActivityState,
   FollowUpState,
+  HomeGroupRole,
   MembershipStatus,
+  MaritalStatus,
   MinistryRole,
+  OrphanStatus,
   PersonGender,
 } from '@/infra/prisma/prisma.service';
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
@@ -130,6 +133,36 @@ export class CreatePersonDto {
   @IsOptional()
   @IsBoolean()
   careNeeded?: boolean;
+
+  @ApiPropertyOptional({ enum: OrphanStatus, description: 'Сирота чи напівсирота.' })
+  @IsOptional()
+  @IsEnum(OrphanStatus)
+  orphanStatus?: OrphanStatus | null;
+
+  @ApiPropertyOptional({ enum: HomeGroupRole, description: 'Спосіб участі в домашній групі.' })
+  @IsOptional()
+  @IsEnum(HomeGroupRole)
+  homeGroupRole?: HomeGroupRole | null;
+
+  @ApiPropertyOptional({ enum: MaritalStatus })
+  @IsOptional()
+  @IsEnum(MaritalStatus)
+  maritalStatus?: MaritalStatus | null;
+
+  @ApiPropertyOptional({ description: 'Наречений, наречена або подружжя.' })
+  @IsOptional()
+  @Matches(DATABASE_UUID_PATTERN, { message: 'partnerId must be a UUID' })
+  partnerId?: string | null;
+
+  @ApiPropertyOptional({ example: '2019-06-15', description: 'Заручини або одруження.' })
+  @IsOptional()
+  @IsDateString()
+  maritalSince?: string | null;
+
+  @ApiPropertyOptional({ description: 'Служить або служила у війську.' })
+  @IsOptional()
+  @IsBoolean()
+  isMilitary?: boolean;
 
   @ApiPropertyOptional({ example: '2026-08-09', description: 'Перший візит (ISO 8601).' })
   @IsOptional()

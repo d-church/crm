@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { CreateTrainingDto } from './dto/create-training.dto';
 import { UpdateTrainingDto } from './dto/update-training.dto';
@@ -26,21 +27,21 @@ export class TrainingController {
     return this.trainingService.findOne(id);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Create a training' })
   @Post()
   public create(@Body() dto: CreateTrainingDto) {
     return this.trainingService.create(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Update a training' })
   @Patch(':id')
   public update(@Param('id') id: string, @Body() dto: UpdateTrainingDto) {
     return this.trainingService.update(id, dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Delete a training and clear its completions' })
   @Delete(':id')
   public remove(@Param('id') id: string) {

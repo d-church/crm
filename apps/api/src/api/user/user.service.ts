@@ -7,9 +7,16 @@ import {
 } from '@nestjs/common';
 import { hash, verify } from 'argon2';
 
-import { PrismaService, UserModel } from '@/infra/prisma/prisma.service';
+import { Prisma } from '@generated/prisma/client';
+import {
+  PrismaService,
+  ScopeLevel,
+  UserModel,
+  UserScopeModel,
+} from '@/infra/prisma/prisma.service';
 import { RedisService } from '@/infra/redis/redis.service';
 
+import { CreateUserScopeDto, LinkUserPersonDto, UpdateUserRolesDto } from './dto/access.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -49,9 +56,9 @@ export class UserService {
     return user;
   }
 
-  public async findAll(): Promise<User[]> {
+  public async findAll(): Promise<UserWithAccess[]> {
     return await this.prismaService.user.findMany({
-      select: userSelect,
+      select: userWithAccessSelect,
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
   }
@@ -156,20 +163,106 @@ export class UserService {
     return user;
   }
 
-  public async findByIdForAuth(id: string): Promise<User> {
-    const user = await this.redisService.retrieve<User | null>({
+  public async findByIdForAuth(id: string): Promise<AuthUser> {
+    const user = await this.redisService.retrieve<AuthUser | null>({
       key: `user:id:${id}`,
       ttl: USER_CACHE_TTL_SECONDS,
       strategy: async () =>
         this.prismaService.user.findUnique({
           where: { id },
-          select: userSelect,
+          select: authUserSelect,
         }),
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    return user;
+  }
+
+  /**
+   * Ролі набором. Суперадмін не міняє їх собі — інакше можна зняти собі доступ
+   * і лишити систему без жодного суперадміна.
+   */
+  public async updateRoles(
+    currentUserId: string,
+    userId: string,
+    { roles }: UpdateUserRolesDto,
+  ): Promise<UserWithAccess> {
+    this.assertDifferentUser(currentUserId, userId, 'змінювати власні ролі');
+    await this.findOne(userId);
+
+    return this.saveAccess(userId, { roles });
+  }
+
+  /** Звʼязок з людиною: звідси беруться підопічні й підказки про лідерство. */
+  public async linkPerson(
+    userId: string,
+    { personId }: LinkUserPersonDto,
+  ): Promise<UserWithAccess> {
+    await this.findOne(userId);
+
+    if (personId) {
+      const person = await this.prismaService.person.findUnique({
+        where: { id: personId },
+        select: { id: true },
+      });
+
+      if (!person) throw new NotFoundException('Person not found');
+    }
+
+    return this.saveAccess(userId, {
+      person: personId ? { connect: { id: personId } } : { disconnect: true },
+    });
+  }
+
+  public async addScope(userId: string, dto: CreateUserScopeDto): Promise<UserScope> {
+    await this.findOne(userId);
+
+    const { level, ...targets } = dto;
+    const chosen = Object.values(targets).filter((value) => value !== undefined);
+
+    if (chosen.length !== 1) {
+      throw new BadRequestException(
+        'Область вказує рівно на одну спільноту, групу, служіння або навчання',
+      );
+    }
+
+    const scope = await this.prismaService.userScope.create({
+      data: { userId, ...targets, ...(level === undefined ? {} : { level }) },
+    });
+
+    await this.redisService.del(`user:id:${userId}`);
+
+    return scope;
+  }
+
+  public async removeScope(userId: string, scopeId: string): Promise<UserScope> {
+    const scope = await this.prismaService.userScope.findFirst({
+      where: { id: scopeId, userId },
+    });
+
+    if (!scope) throw new NotFoundException('Scope not found');
+
+    await this.prismaService.userScope.delete({ where: { id: scopeId } });
+    await this.redisService.del(`user:id:${userId}`);
+
+    return scope;
+  }
+
+  /**
+   * Будь-яка зміна доступу скидає кеш користувача: інакше новий доступ почне діяти
+   * лише за хвилину, а знятий — так само пізно, що гірше.
+   */
+  private async saveAccess(userId: string, data: Prisma.UserUpdateInput): Promise<UserWithAccess> {
+    const user = await this.prismaService.user.update({
+      where: { id: userId },
+      data,
+      select: userWithAccessSelect,
+    });
+
+    await this.redisService.del(`user:id:${userId}`);
 
     return user;
   }
@@ -187,21 +280,67 @@ const userSelect = {
   firstName: true,
   lastName: true,
   role: true,
+  // Ролі й звʼязок з людиною потрібні на кожному запиті: з них рахується видимість.
+  roles: true,
+  personId: true,
   createdAt: true,
   updatedAt: true,
 };
 
+/**
+ * Те, що їде в кожному запиті: ролі й області, з яких рахується видимість.
+ * Лежить у тому самому кеші, що й користувач, тож зайвих запитів не додає.
+ */
+const authUserSelect = {
+  ...userSelect,
+  scopes: {
+    select: {
+      communityId: true,
+      homeGroupId: true,
+      ministryId: true,
+      trainingId: true,
+      level: true,
+    },
+  },
+};
+
+const name = { select: { id: true, name: true } };
+
+/** Те, що показує адмінка: області з назвами, а не з ідентифікаторами. */
+const userWithAccessSelect = {
+  ...userSelect,
+  person: { select: { id: true, firstName: true, lastName: true } },
+  scopes: {
+    select: {
+      id: true,
+      level: true,
+      community: name,
+      homeGroup: name,
+      ministry: name,
+      training: name,
+    },
+    orderBy: { createdAt: 'asc' },
+  },
+} as const satisfies Prisma.UserSelect;
+
 export type User = Pick<UserModel, keyof typeof userSelect>;
-export type UserWithPassword = UserModel;
+export type UserWithPassword = User & Pick<UserModel, 'password'>;
+export type UserScope = UserScopeModel;
+export type UserWithAccess = Prisma.UserGetPayload<{ select: typeof userWithAccessSelect }>;
+export type AuthUser = User & {
+  scopes: {
+    communityId: string | null;
+    homeGroupId: string | null;
+    ministryId: string | null;
+    trainingId: string | null;
+    level: ScopeLevel;
+  }[];
+};
 
 export function toSafeUser(user: UserWithPassword): User {
-  return {
-    id: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: user.role,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  };
+  const safe = { ...user } as Partial<UserWithPassword>;
+
+  delete safe.password;
+
+  return safe as User;
 }

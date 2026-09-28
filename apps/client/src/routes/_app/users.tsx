@@ -1,12 +1,10 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { Plus, Trash2, UsersRound } from 'lucide-react';
-import { toast } from 'sonner';
+import { KeyRound, Plus, Trash2, UsersRound } from 'lucide-react';
 
 import { PageHeader } from '@/components/layout';
 import {
   Badge,
   Button,
-  Select,
   Skeleton,
   Table,
   TableBody,
@@ -21,11 +19,24 @@ import {
   CreateUserDialog,
   DeleteUserDialog,
   USER_ROLE_LABELS,
-  useUpdateUserRole,
+  UserAccessDialog,
   useUsers,
   usersQueryOptions,
 } from '@/modules/users';
-import { UserRole, type UserRole as UserRoleType } from '@/services';
+import { UserRole, type User } from '@/services';
+
+/**
+ * Кого користувач бачить — одним рядком поруч з ролями. Суперадмін бачить усе
+ * незалежно від областей, тож для нього їх кількість нічого не каже.
+ */
+const describeScopes = ({ roles, scopes }: User): string => {
+  const own = roles ?? [];
+
+  if (own.includes(UserRole.SUPERADMIN)) return 'уся база';
+  if ((scopes ?? []).length > 0) return `областей: ${scopes!.length}`;
+
+  return own.includes(UserRole.ADMIN) ? 'уся база' : 'лише підопічні';
+};
 
 export const Route = createFileRoute('/_app/users')({
   beforeLoad: ({ context }) => {
@@ -40,17 +51,6 @@ export const Route = createFileRoute('/_app/users')({
 function UsersPage() {
   const { user: currentUser } = Route.useRouteContext();
   const { data: users = [], isPending, error } = useUsers();
-  const { updateUserRole, isPending: isUpdatingRole } = useUpdateUserRole();
-
-  const onRoleChange = async (id: string, role: UserRoleType) => {
-    try {
-      await updateUserRole({ id, role });
-      toast.success('Роль оновлено');
-    } catch (updateError) {
-      toast.error(getApiErrorMessage(updateError, 'Не вдалося оновити роль'));
-    }
-  };
-
   return (
     <>
       <PageHeader
@@ -85,7 +85,7 @@ function UsersPage() {
               <TableRow>
                 <TableHead>Користувач</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Роль</TableHead>
+                <TableHead>Ролі й області</TableHead>
                 <TableHead>Створено</TableHead>
                 <TableHead className="w-14">
                   <span className="sr-only">Дії</span>
@@ -108,25 +108,24 @@ function UsersPage() {
                     </TableCell>
                     <TableCell className="text-ink-soft text-[13px]">{user.email}</TableCell>
                     <TableCell>
-                      {isCurrentUser ? (
-                        <Badge variant="secondary">{USER_ROLE_LABELS[user.role]}</Badge>
-                      ) : (
-                        <Select
-                          aria-label={`Роль ${getFullName(user)}`}
-                          value={user.role}
-                          disabled={isUpdatingRole}
-                          className="h-9 min-w-36 text-[12.5px]"
-                          onChange={(event) =>
-                            void onRoleChange(user.id, event.target.value as UserRoleType)
-                          }
-                        >
-                          {Object.entries(USER_ROLE_LABELS).map(([role, label]) => (
-                            <option key={role} value={role}>
-                              {label}
-                            </option>
-                          ))}
-                        </Select>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {(user.roles ?? []).length === 0 ? (
+                          <span className="text-destructive text-[12px]">Без доступу</span>
+                        ) : (
+                          (user.roles ?? []).map((role) => (
+                            <Badge key={role} variant="secondary">
+                              {USER_ROLE_LABELS[role]}
+                            </Badge>
+                          ))
+                        )}
+                        <span className="text-ink-faint text-[11.5px]">{describeScopes(user)}</span>
+                        <UserAccessDialog user={user}>
+                          <Button type="button" variant="outline" size="sm" className="ml-auto">
+                            <KeyRound />
+                            Доступи
+                          </Button>
+                        </UserAccessDialog>
+                      </div>
                     </TableCell>
                     <TableCell className="text-ink-faint text-[12.5px]">
                       {formatDate(user.createdAt)}

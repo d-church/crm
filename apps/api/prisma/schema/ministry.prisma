@@ -43,6 +43,8 @@ model Ministry {
   community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
 
   assignments MinistryAssignment[]
+  /// Кому довірено це служіння.
+  userScopes UserScope[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

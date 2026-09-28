@@ -13,7 +13,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppConnectRouteImport } from './routes/_app/connect'
+import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppStructureRouteImport } from './routes/_app/structure'
 import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
 import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
@@ -45,9 +48,24 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConnectRoute = AppConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOverviewRoute = AppOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStructureRoute = AppStructureRouteImport.update({
+  id: '/structure',
+  path: '/structure',
   getParentRoute: () => AppRoute,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
@@ -112,7 +130,10 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/connect': typeof AppConnectRoute
+  '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
+  '/structure': typeof AppStructureRoute
   '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
@@ -128,7 +149,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/connect': typeof AppConnectRoute
+  '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
+  '/structure': typeof AppStructureRoute
   '/users': typeof AppUsersRoute
   '/': typeof AppIndexRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
@@ -147,7 +171,10 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/admin': typeof AppAdminRoute
+  '/_app/connect': typeof AppConnectRoute
+  '/_app/overview': typeof AppOverviewRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/structure': typeof AppStructureRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/': typeof AppIndexRoute
   '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
@@ -167,7 +194,10 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/connect'
+    | '/overview'
     | '/profile'
+    | '/structure'
     | '/users'
     | '/communities/$communityId'
     | '/home-groups/$homeGroupId'
@@ -183,7 +213,10 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/admin'
+    | '/connect'
+    | '/overview'
     | '/profile'
+    | '/structure'
     | '/users'
     | '/'
     | '/communities/$communityId'
@@ -201,7 +234,10 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/admin'
+    | '/_app/connect'
+    | '/_app/overview'
     | '/_app/profile'
+    | '/_app/structure'
     | '/_app/users'
     | '/_app/'
     | '/_app/communities/$communityId'
@@ -251,11 +287,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/connect': {
+      id: '/_app/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof AppConnectRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/overview': {
+      id: '/_app/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof AppOverviewRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profile': {
       id: '/_app/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/structure': {
+      id: '/_app/structure'
+      path: '/structure'
+      fullPath: '/structure'
+      preLoaderRoute: typeof AppStructureRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/users': {
@@ -340,7 +397,10 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
+  AppConnectRoute: typeof AppConnectRoute
+  AppOverviewRoute: typeof AppOverviewRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppStructureRoute: typeof AppStructureRoute
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
@@ -357,7 +417,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
+  AppConnectRoute: AppConnectRoute,
+  AppOverviewRoute: AppOverviewRoute,
   AppProfileRoute: AppProfileRoute,
+  AppStructureRoute: AppStructureRoute,
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,

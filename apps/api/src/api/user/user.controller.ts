@@ -14,6 +14,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Authorization, CurrentUser } from '@/common/decorators';
 import { Role } from '@/infra/prisma/prisma.service';
 
+import { CreateUserScopeDto, LinkUserPersonDto, UpdateUserRolesDto } from './dto/access.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -77,6 +78,38 @@ export class UserController {
     @Body() updateUserRoleDto: UpdateUserRoleDto,
   ) {
     return this.userService.updateRole(currentUserId, userId, updateUserRoleDto);
+  }
+
+  @Authorization(Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Ролі користувача — повним набором' })
+  @Patch(':id/roles')
+  public updateRoles(
+    @CurrentUser('id') currentUserId: string,
+    @Param('id') userId: string,
+    @Body() dto: UpdateUserRolesDto,
+  ) {
+    return this.userService.updateRoles(currentUserId, userId, dto);
+  }
+
+  @Authorization(Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Звʼязати користувача з людиною в базі' })
+  @Patch(':id/person')
+  public linkPerson(@Param('id') userId: string, @Body() dto: LinkUserPersonDto) {
+    return this.userService.linkPerson(userId, dto);
+  }
+
+  @Authorization(Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Довірити користувачу спільноту, групу, служіння чи навчання' })
+  @Post(':id/scopes')
+  public addScope(@Param('id') userId: string, @Body() dto: CreateUserScopeDto) {
+    return this.userService.addScope(userId, dto);
+  }
+
+  @Authorization(Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Забрати область' })
+  @Delete(':id/scopes/:scopeId')
+  public removeScope(@Param('id') userId: string, @Param('scopeId') scopeId: string) {
+    return this.userService.removeScope(userId, scopeId);
   }
 
   @Authorization(Role.SUPERADMIN)

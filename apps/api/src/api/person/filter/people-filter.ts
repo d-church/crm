@@ -5,7 +5,10 @@ import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
 import {
   ActivityState,
   FollowUpState,
+  HomeGroupRole,
+  MaritalStatus,
   MembershipStatus,
+  OrphanStatus,
   MinistryRole,
   PersonGender,
   StepState,
@@ -96,14 +99,21 @@ type FieldDefinition =
   | { kind: 'text'; columns: readonly TextColumn[] }
   | {
       kind: 'enum';
-      column: 'membership' | 'activity' | 'followUp' | 'gender';
+      column:
+        | 'membership'
+        | 'activity'
+        | 'followUp'
+        | 'gender'
+        | 'orphanStatus'
+        | 'maritalStatus'
+        | 'homeGroupRole';
       values: readonly string[];
     }
   | { kind: 'relation'; relation: 'communities' | 'homeGroup' | 'ministries' | 'trainings' }
   | { kind: 'date'; column: DateColumn; operators?: readonly FilterOperator[] }
   | { kind: 'age' }
   /** A yes/no flag, such as "потребує уваги". */
-  | { kind: 'boolean'; column: 'careNeeded' }
+  | { kind: 'boolean'; column: 'careNeeded' | 'isMilitary' }
   /** Роль у будь-якому з діючих служінь людини. */
   | { kind: 'ministryRole' }
   /** Кроки з довідника: або ті, що в роботі, або вже завершені. */
@@ -135,6 +145,19 @@ const FIELDS = {
   membership: { kind: 'enum', column: 'membership', values: Object.values(MembershipStatus) },
   activity: { kind: 'enum', column: 'activity', values: Object.values(ActivityState) },
   careNeeded: { kind: 'boolean', column: 'careNeeded' },
+  // Обставини, за якими церква шукає найчастіше: кого треба відвідати.
+  isMilitary: { kind: 'boolean', column: 'isMilitary' },
+  homeGroupRole: {
+    kind: 'enum',
+    column: 'homeGroupRole',
+    values: Object.values(HomeGroupRole),
+  },
+  maritalStatus: {
+    kind: 'enum',
+    column: 'maritalStatus',
+    values: Object.values(MaritalStatus),
+  },
+  orphanStatus: { kind: 'enum', column: 'orphanStatus', values: Object.values(OrphanStatus) },
   gender: { kind: 'enum', column: 'gender', values: Object.values(PersonGender) },
   followUp: { kind: 'enum', column: 'followUp', values: Object.values(FollowUpState) },
   communities: { kind: 'relation', relation: 'communities' },
@@ -460,7 +483,14 @@ const toTextWhere = (columns: readonly TextColumn[], operator: FilterOperator, v
 };
 
 const toEnumWhere = (
-  column: 'membership' | 'activity' | 'followUp' | 'gender',
+  column:
+    | 'membership'
+    | 'activity'
+    | 'followUp'
+    | 'gender'
+    | 'orphanStatus'
+    | 'maritalStatus'
+    | 'homeGroupRole',
   operator: FilterOperator,
   values: string[],
 ): Where => {
@@ -761,7 +791,7 @@ const toBirthdayWhere = (
 };
 
 /** The MMDD number the database stores for that day: 1 March is 301. */
-const toMonthDay = (day: Date) => (day.getUTCMonth() + 1) * 100 + day.getUTCDate();
+export const toMonthDay = (day: Date) => (day.getUTCMonth() + 1) * 100 + day.getUTCDate();
 
 const isBlank = (column: string): Where =>
   REQUIRED_COLUMNS.has(column) ? { [column]: '' } : { OR: [{ [column]: null }, { [column]: '' }] };
@@ -870,10 +900,10 @@ const parseInteger = (value: unknown, path: string, min: number, max: number): n
 
 const toDay = (isoDate: string) => new Date(`${isoDate}T00:00:00.000Z`);
 
-const addDays = (day: Date, days: number) => new Date(day.getTime() + days * DAY_MS);
+export const addDays = (day: Date, days: number) => new Date(day.getTime() + days * DAY_MS);
 
 /** Today's date in the church's time zone, as the midnight-UTC value a date column holds. */
-const toChurchDay = (now: Date) =>
+export const toChurchDay = (now: Date) =>
   toDay(new Intl.DateTimeFormat('en-CA', { timeZone: CHURCH_TIME_ZONE }).format(now));
 
 const yearsAgo = (date: Date, years: number) => {

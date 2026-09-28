@@ -27,6 +27,35 @@ enum FollowUpState {
   @@map("follow_up_states")
 }
 
+/// Ким людина є в домашній групі. Лідера в переліку немає: він задається в групі.
+enum HomeGroupRole {
+  HELPER
+  REGULAR
+  IRREGULAR
+  GUEST
+
+  @@map("home_group_roles")
+}
+
+/// Сімейний стан людини — одне значення за раз.
+enum MaritalStatus {
+  SINGLE
+  ENGAGED
+  MARRIED
+  DIVORCED
+  WIDOWED
+
+  @@map("marital_statuses")
+}
+
+/// Сирота чи напівсирота — різниця істотна для пасторської опіки.
+enum OrphanStatus {
+  FULL
+  HALF
+
+  @@map("orphan_statuses")
+}
+
 enum PersonGender {
   MALE
   FEMALE
@@ -63,6 +92,22 @@ model Person {
   /// Потребує пасторської уваги — прапорець, а не статус: він поєднується з будь-яким.
   careNeeded Boolean          @default(false) @map("care_needed")
 
+  /// Обставини, які церква памʼятає про людину. Порожнє означає «не стосується»,
+  /// тому в картці вони й не показуються, поки їх не заповнили.
+  orphanStatus OrphanStatus? @map("orphan_status")
+  isMilitary   Boolean       @default(false) @map("is_military")
+
+  /// Сімейний стан. Вдівство — його значення, а не окремий прапорець: людина
+  /// не буває водночас заміжня і вдова.
+  maritalStatus MaritalStatus? @map("marital_status")
+  /// Наречений, наречена або подружжя.
+  partnerId     String?        @unique @map("partner_id")
+  partner       Person?        @relation("PersonPartner", fields: [partnerId], references: [id], onDelete: SetNull)
+  /// Зворотний бік пари: картка має показувати звʼязок, з якого б боку його не внесли.
+  partnerOf     Person?        @relation("PersonPartner")
+  /// Дата заручин або одруження — залежно від стану.
+  maritalSince  DateTime?      @map("marital_since") @db.Date
+
   /// Перший візит — when the person first showed up.
   firstVisitAt DateTime? @map("first_visit_at") @db.Date
   /// Остання зустріч — last time they were seen at a gathering.
@@ -77,6 +122,9 @@ model Person {
   /// Спільноти — a person can participate in any number of communities.
   communities Community[]
   /// A person can belong to at most one home group.
+  /// Спосіб участі в групі: помічник, регулярний, нерегулярний, гість.
+  /// Лідера тут немає — він один і живе в самій групі.
+  homeGroupRole HomeGroupRole? @map("home_group_role")
   homeGroupId String?    @map("home_group_id")
   homeGroup   HomeGroup? @relation("HomeGroupMembers", fields: [homeGroupId], references: [id], onDelete: SetNull)
   /// A leader may lead several home groups without being a member of them.
@@ -97,6 +145,17 @@ model Person {
   trainings Training[]
   /// A leader may lead several trainings without completing them.
   leadingTrainings Training[] @relation("TrainingLeader")
+
+  /// Хто відповідає за цю людину — попечителів може бути кілька.
+  careReceived PersonCare[] @relation("CareSubject")
+  /// Кого веде вона сама.
+  careGiven    PersonCare[] @relation("Caregiver")
+  /// Записи в картці: командні й пасторські, кожен з автором.
+  noteEntries  PersonNote[]
+  /// Кроки, за які ця людина відповідає.
+  responsibleSteps PersonStep[] @relation("StepResponsible")
+  /// Обліковий запис CRM, якщо ця людина ним користується.
+  user User?
 
   /// Відповідальний — team member carrying this person.
   responsible  String?

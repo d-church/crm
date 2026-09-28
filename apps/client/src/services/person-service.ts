@@ -247,6 +247,13 @@ class PersonServiceClass extends RestService<Person> {
       page += 1;
     }
   }
+  /**
+   * Передати людину попечителю: лідер команди бачить проблему, але пасторський шар
+   * йому закритий — тож він не мовчить і не лізе, а сигналить.
+   */
+  public async signal(id: string, note: string): Promise<void> {
+    await this.api.post(`${this.anchor}/${id}/signal`, { note });
+  }
 }
 
 export const MembershipStatus = {
@@ -320,17 +327,33 @@ export interface Person {
   membership: MembershipStatus;
   activity: ActivityState;
   careNeeded: boolean;
+  /** Обставини пасторської уваги. Порожнє означає «не стосується». */
+  orphanStatus?: OrphanStatus | null;
+  isMilitary?: boolean;
+  maritalStatus?: MaritalStatus | null;
+  partnerId?: string | null;
+  /** Пару видно з обох боків: звʼязок вносять на одній картці. */
+  partner?: PersonPartner | null;
+  partnerOf?: PersonPartner | null;
+  maritalSince?: string | null;
   firstVisitAt: string | null;
   lastSeenAt: string | null;
   connectedBy: string | null;
   followUp: FollowUpState;
-  steps: PersonStep[];
+  /** Пасторський шар: без опіки над людиною сервер їх не віддає. */
+  steps?: PersonStep[];
+  events?: PersonEvent[];
   churchRoles: ChurchRole[];
-  events: PersonEvent[];
   communities: Pick<Community, 'id' | 'name'>[];
   homeGroup: Pick<HomeGroup, 'id' | 'name'> | null;
+  /** Спосіб участі в групі. Лідера тут немає — він задається в самій групі. */
+  homeGroupRole?: HomeGroupRole | null;
   ministryAssignments: MinistryAssignment[];
   trainings: Pick<Training, 'id' | 'name'>[];
+  /** Що людина веде — структурний шар, видно кожному, хто бачить саму людину. */
+  leadingCommunities: Pick<Community, 'id' | 'name'>[];
+  leadingHomeGroups: Pick<HomeGroup, 'id' | 'name'>[];
+  leadingTrainings: Pick<Training, 'id' | 'name'>[];
   responsible: string | null;
   birthDate: string | null;
   baptizedAt: string | null;
@@ -341,6 +364,47 @@ export interface Person {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Який шар картки відкритий. Без цього «немає нотаток» не відрізнити від
+   * «нотатки вам закриті», і картка мовчки брехала б.
+   */
+  access?: PersonAccess;
+}
+
+/**
+ * Пара в картці. `canOpen` каже, чи відкриється її картка: імʼя видно завжди,
+ * а от доступ може бути й закритий — тоді посилання вело б у нікуди.
+ */
+export type PersonPartner = PersonChoice & { canOpen?: boolean };
+
+export const HomeGroupRole = {
+  HELPER: 'HELPER',
+  REGULAR: 'REGULAR',
+  IRREGULAR: 'IRREGULAR',
+  GUEST: 'GUEST',
+} as const;
+
+export type HomeGroupRole = (typeof HomeGroupRole)[keyof typeof HomeGroupRole];
+
+export const MaritalStatus = {
+  SINGLE: 'SINGLE',
+  ENGAGED: 'ENGAGED',
+  MARRIED: 'MARRIED',
+  DIVORCED: 'DIVORCED',
+  WIDOWED: 'WIDOWED',
+} as const;
+
+export type MaritalStatus = (typeof MaritalStatus)[keyof typeof MaritalStatus];
+
+export const OrphanStatus = {
+  FULL: 'FULL',
+  HALF: 'HALF',
+} as const;
+
+export type OrphanStatus = (typeof OrphanStatus)[keyof typeof OrphanStatus];
+
+export interface PersonAccess {
+  pastoral: boolean;
 }
 
 export const getPersonName = ({ firstName, lastName }: Pick<Person, 'firstName' | 'lastName'>) =>

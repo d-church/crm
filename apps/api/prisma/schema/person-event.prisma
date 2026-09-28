@@ -8,6 +8,25 @@ enum PersonEventKind {
   @@map("person_event_kinds")
 }
 
+/// Довідник заходів, на яких знайомляться з новими людьми. Вільний текст тут не годиться:
+/// «Альфа», «альфа-курс» і «Alpha» стали б трьома різними подіями.
+model EventType {
+  id String @id @default(uuid())
+
+  name String @unique
+  /// Порядок у списку — команда сама вирішує, що пропонувати першим.
+  sortOrder Int @default(0) @map("sort_order")
+  /// Архівний захід не пропонують для нових знайомств, але старі записи лишаються.
+  isArchived Boolean @default(false) @map("is_archived")
+
+  events PersonEvent[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("event_types")
+}
+
 /// Подія життя («Одруження») або контакт («Зустріч з Петром»). Обидва лягають
 /// у хронологію людини, тому живуть в одній таблиці з різним видом.
 model PersonEvent {
@@ -26,6 +45,10 @@ model PersonEvent {
   /// Хто з представників церкви контактував. Людину можуть видалити — звʼязок обнулиться.
   withPersonId String? @map("with_person_id")
   withPerson   Person? @relation("PersonContacts", fields: [withPersonId], references: [id], onDelete: SetNull)
+
+  /// Захід із довідника — заповнюється для події знайомства, яку заводить конект.
+  eventTypeId String?    @map("event_type_id")
+  eventType   EventType? @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

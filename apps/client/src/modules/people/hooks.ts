@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import {
+  CareService,
   PersonEventService,
   PersonService,
   type PeopleQuery,
@@ -16,6 +17,7 @@ import {
   peopleChoicesQueryOptions,
   peopleQueryOptions,
   peopleStatsQueryOptions,
+  personCaresQueryOptions,
   personQueryOptions,
   personTimelineQueryOptions,
 } from './queries';
@@ -132,4 +134,47 @@ export const useDeletePerson = () => {
   });
 
   return { deletePerson, isPending, error };
+};
+
+export const usePersonCares = (personId: string) => useQuery(personCaresQueryOptions(personId));
+
+/**
+ * Опіка міняє те, що користувач бачить у картці, тому разом з нею оновлюємо
+ * і саму картку: інакше пасторські секції лишилися б порожніми до перезавантаження.
+ */
+const invalidateCare = (queryClient: QueryClient, personId: string) =>
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: [...PERSON_KEY, personId, 'cares'] }),
+    queryClient.invalidateQueries({ queryKey: [...PERSON_KEY, personId] }),
+  ]);
+
+export const useAssignCare = (personId: string) => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (caregiverId: string) => CareService.assign(personId, caregiverId),
+    onSuccess: () => invalidateCare(queryClient, personId),
+  });
+
+  return { assignCare: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useCloseCare = (personId: string) => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (id: string) => CareService.close(personId, id),
+    onSuccess: () => invalidateCare(queryClient, personId),
+  });
+
+  return { closeCare: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useSignalCaregiver = (personId: string) => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (note: string) => PersonService.signal(personId, note),
+    // Сигнал ставить «потребує уваги», тож картку треба перечитати.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [...PERSON_KEY, personId] }),
+  });
+
+  return { signal: mutation.mutateAsync, isPending: mutation.isPending };
 };

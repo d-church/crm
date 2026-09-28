@@ -1,0 +1,44 @@
+/// Звідки взялася опіка. Автоматичну система закриває сама, коли зникає підстава;
+/// призначену руками не чіпає ніколи.
+enum CareOrigin {
+  /// Призначив пастор або адмін.
+  ASSIGNED
+  /// Лідер домашньої групи — попечитель її учасників за самим фактом участі.
+  HOME_GROUP
+  /// Служитель конекту, який завів людину в базу.
+  CONNECT
+
+  @@map("care_origins")
+}
+
+/// Хто відповідає за людину. Опіка не залежить від структури: попечителем може бути
+/// і пастор, і наставник, і лідер домашньої групи. Попечителів може бути кілька одночасно —
+/// головного серед них не виділяємо.
+///
+/// Саме опіка відкриває пасторський шар картки; участь у команді — ні.
+model PersonCare {
+  id String @id @default(uuid())
+
+  /// Підопічний.
+  personId String @map("person_id")
+  person   Person @relation("CareSubject", fields: [personId], references: [id], onDelete: Cascade)
+
+  /// Попечитель — теж людина церкви, а не обовʼязково користувач CRM.
+  caregiverId String @map("caregiver_id")
+  caregiver   Person @relation("Caregiver", fields: [caregiverId], references: [id], onDelete: Cascade)
+
+  origin CareOrigin @default(ASSIGNED)
+
+  /// Порожній until означає, що опіка триває. Закриті записи лишаються історією:
+  /// новий попечитель має бачити, хто вів людину до нього.
+  since DateTime  @default(now()) @db.Date
+  until DateTime? @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([caregiverId])
+  @@index([until])
+  @@map("person_cares")
+}

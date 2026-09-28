@@ -1,8 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
+import { AccessService } from '@/api/access/access.service';
+import type { Viewer } from '@/api/access/visibility';
 import type { Actor } from '@/api/activity/activity.service';
-import { Authorization, CurrentActor } from '@/common/decorators';
+import { Authorization, CurrentActor, CurrentViewer } from '@/common/decorators';
 
 import { ChurchRoleService } from './church-role.service';
 import {
@@ -16,7 +18,10 @@ import {
 @ApiTags('Church roles')
 @Controller()
 export class ChurchRoleController {
-  constructor(private readonly churchRoleService: ChurchRoleService) {}
+  constructor(
+    private readonly churchRoleService: ChurchRoleService,
+    private readonly accessService: AccessService,
+  ) {}
 
   @Authorization()
   @ApiOperation({ summary: 'Довідник санів' })
@@ -57,41 +62,52 @@ export class ChurchRoleController {
   @Authorization()
   @ApiOperation({ summary: 'Сани людини, разом із завершеними' })
   @Get('people/:personId/church-roles')
-  public findForPerson(@Param('personId') personId: string) {
+  public async findForPerson(@Param('personId') personId: string, @CurrentViewer() viewer: Viewer) {
+    await this.accessService.assertVisible(personId, viewer);
+
     return this.churchRoleService.findForPerson(personId);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Призначити людині сан' })
   @Post('people/:personId/church-roles')
-  public create(
+  public async create(
     @Param('personId') personId: string,
     @Body() dto: CreateChurchRoleDto,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.churchRoleService.create(personId, dto, actor);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Змінити період сану' })
   @Patch('people/:personId/church-roles/:id')
-  public update(
+  public async update(
     @Param('personId') personId: string,
     @Param('id') id: string,
     @Body() dto: UpdateChurchRoleDto,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.churchRoleService.update(personId, id, dto, actor);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Прибрати сан' })
   @Delete('people/:personId/church-roles/:id')
-  public remove(
+  public async remove(
     @Param('personId') personId: string,
     @Param('id') id: string,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.churchRoleService.remove(personId, id, actor);
   }
 }

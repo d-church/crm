@@ -27,6 +27,7 @@ const today = () => new Date().toLocaleDateString('sv-SE');
  * ми навмисно не називаємо — так у картці звуться телефон і адреса.
  */
 export const PersonEventsSection = ({ person }: { person: Person }) => {
+  const events = person.events ?? [];
   const { addEvent, isAdding, updateEvent, removeEvent } = usePersonEvents(person.id);
   const [draft, setDraft] = useState<PersonEventPayload | null>(null);
 
@@ -59,11 +60,7 @@ export const PersonEventsSection = ({ person }: { person: Person }) => {
 
   return (
     <SectionCard
-      title={
-        person.events.length > 0
-          ? `Події та спілкування · ${person.events.length}`
-          : 'Події та спілкування'
-      }
+      title={events.length > 0 ? `Події та спілкування · ${events.length}` : 'Події та спілкування'}
       action={
         draft ? null : (
           <div className="flex items-center gap-2">
@@ -73,9 +70,9 @@ export const PersonEventsSection = ({ person }: { person: Person }) => {
         )
       }
     >
-      {person.events.length > 0 ? (
+      {events.length > 0 ? (
         <ul className="divide-border-subtle -my-1 divide-y">
-          {person.events.map((event) => (
+          {events.map((event) => (
             <EventRow
               key={event.id}
               event={event}
@@ -96,7 +93,7 @@ export const PersonEventsSection = ({ person }: { person: Person }) => {
           onSave={() => void save()}
           onCancel={() => setDraft(null)}
         />
-      ) : person.events.length === 0 ? (
+      ) : events.length === 0 ? (
         <p className="text-ink-faint text-[12.5px]">Записів ще немає</p>
       ) : null}
     </SectionCard>

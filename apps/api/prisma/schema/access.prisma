@@ -1,0 +1,44 @@
+/// Що користувач робить зі своєю областю: тільки дивиться чи ще й веде.
+enum ScopeLevel {
+  VIEW
+  MANAGE
+
+  @@map("scope_levels")
+}
+
+/// Явний запис «цьому користувачу довірено ось цю спільноту / домашню групу /
+/// служіння / навчання». Області задаються руками, а не виводяться з того, хто де лідер:
+/// лідерство в картці міняють мимохідь, а доступ до персональних даних так мінятися не має.
+///
+/// Тип області окремою колонкою не зберігаємо — він читається з того, яке посилання
+/// заповнене, а CHECK у базі стежить, щоб воно було рівно одне.
+model UserScope {
+  id String @id @default(uuid())
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  communityId String?    @map("community_id")
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  homeGroupId String?    @map("home_group_id")
+  homeGroup   HomeGroup? @relation(fields: [homeGroupId], references: [id], onDelete: Cascade)
+
+  ministryId String?   @map("ministry_id")
+  ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  trainingId String?   @map("training_id")
+  training   Training? @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  level ScopeLevel @default(VIEW)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([communityId])
+  @@index([homeGroupId])
+  @@index([ministryId])
+  @@index([trainingId])
+  @@map("user_scopes")
+}

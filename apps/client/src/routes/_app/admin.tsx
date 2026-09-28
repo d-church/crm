@@ -1,5 +1,6 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ListChecks, ShieldCheck, Wrench } from 'lucide-react';
+import { CalendarHeart, ListChecks, ShieldCheck, Wrench } from 'lucide-react';
 import { useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 
@@ -13,7 +14,15 @@ import {
   useChurchRoleTypes,
 } from '@/modules/church-roles';
 import { stepTypesQueryOptions, useStepTypeActions, useStepTypes } from '@/modules/steps';
-import { isActingAsSystem, setActingAsSystem, subscribeToSystemActor, UserRole } from '@/services';
+import {
+  ConnectService,
+  isActingAsSystem,
+  setActingAsSystem,
+  subscribeToSystemActor,
+  UserRole,
+} from '@/services';
+
+const EVENT_TYPES_KEY = ['event-types', 'all'] as const;
 
 export const Route = createFileRoute('/_app/admin')({
   loader: ({ context }) => {
@@ -26,6 +35,7 @@ export const Route = createFileRoute('/_app/admin')({
 const TABS = [
   { value: 'steps', label: 'Кроки зростання', icon: ListChecks },
   { value: 'church-roles', label: 'Сани', icon: ShieldCheck },
+  { value: 'event-types', label: 'Заходи', icon: CalendarHeart },
 ] as const;
 
 type Tab = (typeof TABS)[number]['value'];
@@ -64,7 +74,13 @@ function AdminPage() {
           ))}
         </nav>
 
-        {tab === 'steps' ? <StepsCatalog /> : <ChurchRolesCatalog />}
+        {tab === 'steps' ? (
+          <StepsCatalog />
+        ) : tab === 'church-roles' ? (
+          <ChurchRolesCatalog />
+        ) : (
+          <EventTypesCatalog />
+        )}
       </div>
     </>
   );
@@ -106,6 +122,39 @@ const ChurchRolesCatalog = () => {
       onUpdate={updateType}
       onReorder={reorderTypes}
       onRemove={removeType}
+    />
+  );
+};
+
+/** Заходи, на яких знайомляться з новими людьми: з них конект заводить картку. */
+const EventTypesCatalog = () => {
+  const queryClient = useQueryClient();
+  const {
+    data: eventTypes = [],
+    isPending,
+    error,
+  } = useQuery({ queryKey: EVENT_TYPES_KEY, queryFn: () => ConnectService.eventTypes(true) });
+
+  const run = async <T,>(action: Promise<T>): Promise<T> => {
+    const result = await action;
+
+    await queryClient.invalidateQueries({ queryKey: ['event-types'] });
+
+    return result;
+  };
+
+  return (
+    <CatalogManager
+      items={eventTypes}
+      isPending={isPending}
+      error={error}
+      placeholder="Новий захід, напр. «Альфа-курс»"
+      usageLabel={(count) => (count === 0 ? 'ще не згадувався' : `у ${count} подіях`)}
+      hint="Захід, який уже згадується в подіях, видалити не можна — заархівуйте його. Архівний захід не пропонується для нових знайомств, але лишається в картках."
+      onAdd={(name) => run(ConnectService.createEventType(name))}
+      onUpdate={(payload) => run(ConnectService.updateEventType(payload))}
+      onReorder={(ids) => run(ConnectService.reorderEventTypes(ids))}
+      onRemove={(id) => run(ConnectService.removeEventType(id))}
     />
   );
 };

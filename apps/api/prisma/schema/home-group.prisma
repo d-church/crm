@@ -20,6 +20,9 @@ model HomeGroup {
   leader   Person? @relation("HomeGroupLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   people   Person[] @relation("HomeGroupMembers")
 
+  /// Кому довірено цю групу.
+  userScopes UserScope[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

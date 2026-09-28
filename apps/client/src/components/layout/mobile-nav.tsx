@@ -29,7 +29,7 @@ export const MobileNav = ({ user }: { user: User }) => (
     </div>
 
     <nav className="flex gap-1 overflow-x-auto px-4 pb-3">
-      {getNavItems(user.role).map((item) => (
+      {getNavItems(user).map((item) => (
         <Link
           key={item.to}
           to={item.to}

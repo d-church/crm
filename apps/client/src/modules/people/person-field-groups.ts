@@ -97,6 +97,10 @@ export const PERSON_FIELDS: Record<PersonScalarField, FieldDefinition> = {
   notes: { field: 'notes', label: 'Нотатки', type: 'textarea', maxLength: 2000 },
 };
 
+/** Підпис поля в картці. Гендерно залежні підписи живуть у власній секції. */
+export const getFieldLabel = (_person: Person, field: PersonScalarField): string =>
+  PERSON_FIELDS[field].label;
+
 /**
  * Три секції картки. «Шлях у церкві» свідомо тримає разом дати й супровід: для
  * пастора це одна історія людини, а не два різні списки. «Деталі» — довідкове,
@@ -126,7 +130,7 @@ export const PERSON_FIELD_GROUPS: {
   {
     title: 'Деталі',
     fields: [
-      'lastName',
+      // Імʼя й прізвище редагуються в шапці картки, де вони й показані.
       'gender',
       'birthDate',
       'homePhone',

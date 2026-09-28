@@ -1,6 +1,6 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 
-import { PersonService, type PeopleQuery } from '@/services';
+import { CareService, PersonService, type PeopleQuery } from '@/services';
 
 export const PEOPLE_QUERY_KEY = ['people'] as const;
 
@@ -41,4 +41,10 @@ export const personQueryOptions = (id: string) =>
   queryOptions({
     queryKey: [...PERSON_KEY, id],
     queryFn: () => PersonService.get(id),
+  });
+
+export const personCaresQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: [...PERSON_KEY, id, 'cares'] as const,
+    queryFn: () => CareService.findForPerson(id),
   });

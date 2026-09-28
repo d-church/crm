@@ -9,7 +9,8 @@ type PeopleTableProps = {
   people: Person[];
   /** Передається лише там, де є масові дії; без цього галочок немає взагалі. */
   selection?: {
-    selectedIds: Set<string>;
+    /** Лише читаємо: змінювати набір — справа того, хто ним володіє. */
+    selectedIds: ReadonlySet<string>;
     onToggle: (id: string) => void;
     onTogglePage: (ids: string[], selected: boolean) => void;
   };

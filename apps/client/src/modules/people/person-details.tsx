@@ -12,16 +12,20 @@ import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
 import { InlineField } from './inline-field';
+import { PersonCareSection } from './person-care-section';
 import { PersonChurchLifeSection } from './person-church-life-section';
 import { PersonChurchRoles } from './person-church-roles-section';
 import { PersonEventsSection } from './person-events-section';
+import { PersonPersonalSection } from './person-personal-section';
 import {
   getFieldHint,
+  getFieldLabel,
   getFieldValue,
   PERSON_FIELD_GROUPS,
   PERSON_FIELDS,
   type PersonScalarField,
 } from './person-field-groups';
+import { PersonSignalCard } from './person-signal-card';
 import { PersonStepsSection } from './person-steps-section';
 import { SectionCard } from './section-card';
 
@@ -30,6 +34,9 @@ import { SectionCard } from './section-card';
  * небагато, тож кожна має власний заголовок — шукати поле не доводиться.
  */
 export const PersonDetails = ({ person }: { person: Person }) => {
+  // Сервер сам каже, що віддав. Старі відповіді без цієї позначки вважаємо повними.
+  const hasPastoral = person.access?.pastoral !== false;
+
   const groups = (column: 'main' | 'side') =>
     PERSON_FIELD_GROUPS.filter((group) => (group.column ?? 'side') === column).map((group) => (
       <FieldGroupCard
@@ -37,19 +44,28 @@ export const PersonDetails = ({ person }: { person: Person }) => {
         person={person}
         {...group}
         withChurchRoles={group.title === 'Шлях у церкві'}
+        canAddFields={hasPastoral}
       />
     ));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,21rem)] lg:items-start">
       <div className="grid gap-4">
-        <PersonStepsSection person={person} />
-        <NotesCard person={person} />
+        {hasPastoral ? (
+          <>
+            <PersonStepsSection person={person} />
+            <NotesCard person={person} />
+            <PersonPersonalSection person={person} />
+          </>
+        ) : (
+          <PersonSignalCard person={person} />
+        )}
         {groups('main')}
-        <PersonEventsSection person={person} />
+        {hasPastoral ? <PersonEventsSection person={person} /> : null}
       </div>
 
       <div className="grid gap-4">
+        <PersonCareSection person={person} />
         <PersonChurchLifeSection person={person} />
         {groups('side')}
       </div>
@@ -83,6 +99,8 @@ type FieldGroupCardProps = {
   collapsed?: boolean;
   /** Сан живе всередині «Шляху в церкві»: окрема секція для нього була б зайвою. */
   withChurchRoles?: boolean;
+  /** Без пасторського доступу порожні поля не пропонуємо: зберегти їх однаково не вийде. */
+  canAddFields?: boolean;
 };
 
 const FieldGroupCard = ({
@@ -91,6 +109,7 @@ const FieldGroupCard = ({
   fields,
   collapsed = false,
   withChurchRoles = false,
+  canAddFields = true,
 }: FieldGroupCardProps) => {
   const save = useFieldSaver(person);
   const [isOpen, setIsOpen] = useState(!collapsed);
@@ -132,10 +151,10 @@ const FieldGroupCard = ({
       action={
         <div className="flex items-center gap-2">
           <AddFieldMenu
-            fields={missing}
+            fields={canAddFields ? missing : []}
             onAdd={reveal}
             extra={
-              withChurchRoles
+              withChurchRoles && canAddFields
                 ? { label: 'Сан у церкві', onSelect: () => setIsAddingRole(true) }
                 : undefined
             }
@@ -163,7 +182,7 @@ const FieldGroupCard = ({
             return (
               <InlineField
                 key={field}
-                label={definition.label}
+                label={getFieldLabel(person, field)}
                 value={getFieldValue(person, field)}
                 type={definition.type}
                 options={definition.options}
@@ -235,5 +254,7 @@ const useFieldSaver = (person: Person) => {
   const { updatePerson } = useUpdatePerson(person.id);
 
   return (field: PersonScalarField, value: string) =>
-    updatePerson({ [field]: value === '' ? null : value });
+    updatePerson({
+      [field]: value === '' ? null : value,
+    });
 };
