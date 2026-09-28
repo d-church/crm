@@ -1,0 +1,32 @@
+/// Рівень запису визначає, хто його бачить: командний — лідери команд і попечителі,
+/// пасторський — лише попечителі, пастор і адміни.
+enum NoteLevel {
+  TEAM
+  PASTORAL
+
+  @@map("note_levels")
+}
+
+/// Запис у картці людини. Одного текстового поля на картку замало: не видно, хто писав,
+/// і не можна розділити шари. Тому нотатки — список записів з автором, датою і рівнем.
+model PersonNote {
+  id String @id @default(uuid())
+
+  personId String @map("person_id")
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  /// Автор лишається знімком імені: користувача можуть прибрати, а запис має лишитись підписаним.
+  authorId   String? @map("author_id")
+  author     User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName String? @map("author_name")
+
+  level NoteLevel @default(PASTORAL)
+  body  String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([personId])
+  @@index([level])
+  @@map("person_notes")
+}

@@ -28,7 +28,7 @@ export const Sidebar = ({ user, peopleCount }: SidebarProps) => (
       </div>
     </Link>
 
-    <NavSection title="Основне" items={getNavItems(user.role)} counts={{ Люди: peopleCount }} />
+    <NavSection title="Основне" items={getNavItems(user)} counts={{ Люди: peopleCount }} />
 
     <div className="mt-auto flex items-center gap-1.5">
       <Link

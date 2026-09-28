@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { UserService, type CreateUserPayload, type UserRole } from '@/services';
+import { UserService, type CreateUserPayload, type ScopePayload, type UserRole } from '@/services';
 
 import { USERS_QUERY_KEY, usersQueryOptions } from './queries';
 
@@ -35,4 +35,48 @@ export const useDeleteUser = () => {
   });
 
   return { deleteUser: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useUpdateUserRoles = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ id, roles }: { id: string; roles: UserRole[] }) =>
+      UserService.updateRoles(id, roles),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+  });
+
+  return { updateRoles: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useLinkUserPerson = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ id, personId }: { id: string; personId: string | null }) =>
+      UserService.linkPerson(id, personId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+  });
+
+  return { linkPerson: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useAddUserScope = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ id, ...payload }: { id: string } & ScopePayload) =>
+      UserService.addScope(id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+  });
+
+  return { addScope: mutation.mutateAsync, isPending: mutation.isPending };
+};
+
+export const useRemoveUserScope = () => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ id, scopeId }: { id: string; scopeId: string }) =>
+      UserService.removeScope(id, scopeId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_QUERY_KEY }),
+  });
+
+  return { removeScope: mutation.mutateAsync, isPending: mutation.isPending };
 };

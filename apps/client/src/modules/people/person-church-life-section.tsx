@@ -24,6 +24,7 @@ import { useTrainings } from '@/modules/trainings';
 import { MinistryRole, type Person } from '@/services';
 
 import { CommunityCheckboxes } from './community-checkboxes';
+import { HOME_GROUP_ROLE_LABELS, HOME_GROUP_ROLES, homeGroupRoleLabel } from './home-group-roles';
 import { useUpdatePerson } from './hooks';
 import { MinistryAssignmentsField } from './ministry-assignments-field';
 import { MINISTRY_ROLE_BADGES, MINISTRY_ROLE_LABELS } from './ministry-roles';
@@ -37,7 +38,14 @@ import {
 } from './person-form';
 import { TrainingCheckboxes } from './training-checkboxes';
 
-const RELATION_FIELDS = ['communityIds', 'homeGroupId', 'ministries', 'trainingIds'] as const;
+const RELATION_FIELDS = [
+  'communityIds',
+  'homeGroupId',
+  // Спосіб участі зберігається разом із самою групою: це одна дія для користувача.
+  'homeGroupRole',
+  'ministries',
+  'trainingIds',
+] as const;
 
 const describeInvalid = (errors: FieldErrors<PersonValues>): string => {
   const problems = Object.entries(errors)
@@ -98,13 +106,20 @@ export const PersonChurchLifeSection = ({ person }: { person: Person }) => {
 
             <Row label="Домашня група">
               {person.homeGroup ? (
-                <Link
-                  to="/home-groups/$homeGroupId"
-                  params={{ homeGroupId: person.homeGroup.id }}
-                  className="text-ink underline-offset-3 hover:underline"
-                >
-                  {person.homeGroup.name}
-                </Link>
+                <span className="flex flex-wrap items-center gap-1">
+                  <Link
+                    to="/home-groups/$homeGroupId"
+                    params={{ homeGroupId: person.homeGroup.id }}
+                    className="text-ink underline-offset-3 hover:underline"
+                  >
+                    {person.homeGroup.name}
+                  </Link>
+                  {homeGroupRoleLabel(person) ? (
+                    <span className="text-ink-faint text-[11.5px]">
+                      {homeGroupRoleLabel(person)}
+                    </span>
+                  ) : null}
+                </span>
               ) : null}
             </Row>
 
@@ -213,14 +228,47 @@ const ChurchLifeDialog = ({ person, onClose }: { person: Person; onClose: () => 
 
             <div className="grid gap-1.5">
               <Label htmlFor="homeGroupId">Домашня група</Label>
-              <Select id="homeGroupId" {...register('homeGroupId')}>
-                <option value="">Не призначено</option>
-                {homeGroups.map((homeGroup) => (
-                  <option key={homeGroup.id} value={homeGroup.id}>
-                    {homeGroup.name}
+              {/*
+               * Керований, а не через register: список груп приїжджає окремим
+               * запитом, і некерований select, зареєстрований до появи опцій,
+               * мовчки скидався в «Не призначено» — а збереження виносило людину
+               * з групи, хоч її ніхто не чіпав.
+               */}
+              <Controller
+                control={control}
+                name="homeGroupId"
+                render={({ field }) => (
+                  <Select
+                    id="homeGroupId"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                  >
+                    <option value="">Не призначено</option>
+                    {homeGroups.map((homeGroup) => (
+                      <option key={homeGroup.id} value={homeGroup.id}>
+                        {homeGroup.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label htmlFor="homeGroupRole">Участь у групі</Label>
+              <Select id="homeGroupRole" {...register('homeGroupRole')}>
+                <option value="">Не вказано</option>
+                {HOME_GROUP_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {HOME_GROUP_ROLE_LABELS[role]}
                   </option>
                 ))}
               </Select>
+              {/* Лідера обирають у самій групі: там він один і звідти ж іде опіка. */}
+              <p className="text-ink-faint text-[11.5px]">
+                Лідер задається на сторінці самої групи.
+              </p>
             </div>
 
             <Controller

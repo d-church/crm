@@ -1,8 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
+import { AccessService } from '@/api/access/access.service';
+import type { Viewer } from '@/api/access/visibility';
 import type { Actor } from '@/api/activity/activity.service';
-import { Authorization, CurrentActor } from '@/common/decorators';
+import { Authorization, CurrentActor, CurrentViewer } from '@/common/decorators';
 
 import { CreateStepDto } from './dto/create-step.dto';
 import { CreateStepTypeDto, ReorderStepTypesDto, UpdateStepTypeDto } from './dto/step-type.dto';
@@ -12,7 +14,10 @@ import { StepService } from './step.service';
 @ApiTags('Steps')
 @Controller()
 export class StepController {
-  constructor(private readonly stepService: StepService) {}
+  constructor(
+    private readonly stepService: StepService,
+    private readonly accessService: AccessService,
+  ) {}
 
   @Authorization()
   @ApiOperation({ summary: 'Довідник кроків зростання' })
@@ -53,41 +58,52 @@ export class StepController {
   @Authorization()
   @ApiOperation({ summary: 'Кроки людини, разом із завершеними' })
   @Get('people/:personId/steps')
-  public findForPerson(@Param('personId') personId: string) {
+  public async findForPerson(@Param('personId') personId: string, @CurrentViewer() viewer: Viewer) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.stepService.findForPerson(personId);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Призначити людині крок' })
   @Post('people/:personId/steps')
-  public create(
+  public async create(
     @Param('personId') personId: string,
     @Body() dto: CreateStepDto,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.stepService.create(personId, dto, actor);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Змінити крок: стан, дедлайн, відповідального' })
   @Patch('people/:personId/steps/:id')
-  public update(
+  public async update(
     @Param('personId') personId: string,
     @Param('id') id: string,
     @Body() dto: UpdateStepDto,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.stepService.update(personId, id, dto, actor);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Прибрати крок' })
   @Delete('people/:personId/steps/:id')
-  public remove(
+  public async remove(
     @Param('personId') personId: string,
     @Param('id') id: string,
     @CurrentActor() actor: Actor,
+    @CurrentViewer() viewer: Viewer,
   ) {
+    await this.accessService.assertPastoral(personId, viewer);
+
     return this.stepService.remove(personId, id, actor);
   }
 }

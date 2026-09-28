@@ -1,6 +1,10 @@
+/// Роль каже, що людина вміє робити в системі. Кого саме вона при цьому бачить —
+/// визначають області (`UserScope`) і опіка (`PersonCare`), а не роль.
 enum Role {
   SUPERADMIN
   ADMIN
+  LEADER
+  CONNECT
 
   @@map("roles")
 }
@@ -13,7 +17,21 @@ model User {
 
   firstName String @map("first_name")
   lastName  String @map("last_name")
-  role      Role   @default(SUPERADMIN)
+
+  /// Ролі набором: лідер домашньої групи цілком може служити ще й у конекті.
+  /// Порожній набір — це відсутність прав, а не адмін: нову людину має налаштувати суперадмін.
+  roles Role[] @default([])
+  /// Стара одинична роль. Лишається, поки код не перейшов на `roles`; знімемо окремою міграцією.
+  role  Role   @default(SUPERADMIN)
+
+  /// Ким цей користувач є в базі людей — звідси видно його лідерство й опіку.
+  personId String? @unique @map("person_id")
+  person   Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  /// Кого йому довірено: спільноти, домашні групи, служіння, навчання.
+  scopes UserScope[]
+  /// Записи, які він залишив у картках людей.
+  notes  PersonNote[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

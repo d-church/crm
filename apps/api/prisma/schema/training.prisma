@@ -8,6 +8,9 @@ model Training {
   leader   Person? @relation("TrainingLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   people   Person[]
 
+  /// Кому довірено це навчання.
+  userScopes UserScope[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

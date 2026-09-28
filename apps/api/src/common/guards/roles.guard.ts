@@ -34,7 +34,8 @@ export class RolesGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    if (!requiredRoles.includes(user.role)) {
+    // Ролі — набір: лідер домашньої групи цілком може служити ще й у конекті.
+    if (!user.roles.some((role) => requiredRoles.includes(role))) {
       throw new ForbiddenException(`Requires one of roles: ${requiredRoles.join(', ')}`);
     }
 

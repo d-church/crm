@@ -1,5 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, HeartHandshake, History, IdCard, Trash2 } from 'lucide-react';
+import { useState, type FocusEvent, type KeyboardEvent } from 'react';
+import { toast } from 'sonner';
 
 import {
   Button,
@@ -8,9 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui';
+import { Input } from '@/components/ui';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { getAge, getInitials } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { ActivityState, getPersonName, type Person } from '@/services';
+import { ActivityState, getPersonName, MinistryRole, type Person } from '@/services';
 
 import { DeletePersonDialog } from './delete-person-dialog';
 import { useUpdatePerson } from './hooks';
@@ -25,6 +29,20 @@ import {
   MEMBERSHIP_LABELS,
   MEMBERSHIP_STATUSES,
 } from './status';
+
+/**
+ * Чим людина керує. Для церкви це таке саме «хто вона», як і сан, тож стоїть
+ * поруч із ним, а не десь у секціях. Керівництво служінням читається з ролі
+ * в участі, решта — з окремих звʼязків.
+ */
+const leadsOf = (person: Person): string[] => [
+  ...person.leadingCommunities.map(({ name }) => `Лідер ${name}`),
+  ...person.leadingHomeGroups.map(({ name }) => `Лідер ${name}`),
+  ...person.ministryAssignments
+    .filter(({ role }) => role === MinistryRole.LEADER)
+    .map(({ ministry }) => `Керівник ${ministry.name}`),
+  ...person.leadingTrainings.map(({ name }) => `Веде ${name}`),
+];
 
 const BADGE =
   'inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[12.5px] leading-4 sm:py-0.5 sm:text-[11.5px] sm:leading-5';
@@ -54,9 +72,13 @@ export const PersonHero = ({ person, onDeleted, view, onViewChange }: PersonHero
           {getInitials(name)}
         </span>
 
-        <h1 className="min-w-0 flex-1 text-[19px] leading-snug font-light break-words sm:hidden">
-          {name}
-        </h1>
+        <div className="min-w-0 flex-1 sm:hidden">
+          <PersonNameField
+            person={person}
+            onSave={updatePerson}
+            className="text-[19px] leading-snug font-light break-words"
+          />
+        </div>
 
         {/* На телефоні дії стоять поруч з іменем, щоб не з'їдати окремий рядок. */}
         <div className="flex shrink-0 items-center gap-1.5 sm:hidden">
@@ -84,9 +106,13 @@ export const PersonHero = ({ person, onDeleted, view, onViewChange }: PersonHero
 
       <div className="grid min-w-0 gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <h1 className="hidden min-w-0 truncate text-[20px] leading-tight font-light sm:block">
-            {name}
-          </h1>
+          <div className="hidden min-w-0 sm:block">
+            <PersonNameField
+              person={person}
+              onSave={updatePerson}
+              className="truncate text-[20px] leading-tight font-light"
+            />
+          </div>
 
           <PickerBadge
             label={MEMBERSHIP_LABELS[person.membership]}
@@ -118,6 +144,12 @@ export const PersonHero = ({ person, onDeleted, view, onViewChange }: PersonHero
                 {roleType.name}
               </span>
             ))}
+
+          {leadsOf(person).map((what) => (
+            <span key={what} className={cn(BADGE, 'bg-[#e4ecf4] text-[#3a5a78]')}>
+              {what}
+            </span>
+          ))}
 
           {person.careNeeded ? <CareBadge /> : null}
         </div>
@@ -161,6 +193,99 @@ export const PersonHero = ({ person, onDeleted, view, onViewChange }: PersonHero
           </Button>
         </DeletePersonDialog>
       </div>
+    </div>
+  );
+};
+
+/**
+ * Імʼя редагується там, де воно й показане, — у шапці. Окреме поле десь у
+ * «Деталях» читалося б як службове, хоча це найперше, що про людину знають.
+ */
+const PersonNameField = ({
+  person,
+  onSave,
+  className,
+}: {
+  person: Person;
+  onSave: (payload: { firstName?: string; lastName?: string | null }) => Promise<unknown>;
+  className?: string;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  const start = () => {
+    setFirstName(person.firstName);
+    setLastName(person.lastName ?? '');
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    const first = firstName.trim();
+    const last = lastName.trim();
+
+    setIsEditing(false);
+
+    if (first.length < 2) {
+      toast.error('Імʼя не може бути коротшим за два символи');
+
+      return;
+    }
+
+    if (first === person.firstName && last === (person.lastName ?? '')) return;
+
+    try {
+      await onSave({ firstName: first, lastName: last || null });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Не вдалося зберегти імʼя'));
+    }
+  };
+
+  // Поля два, тож зберігаємо, лише коли фокус іде з обох: інакше перехід
+  // з імені на прізвище рахувався б за завершення редагування.
+  const onBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+
+    void save();
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter') void save();
+    if (event.key === 'Escape') setIsEditing(false);
+  };
+
+  if (!isEditing) {
+    return (
+      <button
+        type="button"
+        title="Змінити імʼя"
+        onClick={start}
+        className={cn('w-full cursor-pointer text-left', className)}
+      >
+        {getPersonName(person)}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5" onBlur={onBlur} onKeyDown={onKeyDown}>
+      <Input
+        autoFocus
+        value={firstName}
+        maxLength={50}
+        aria-label="Імʼя"
+        placeholder="Імʼя"
+        className="h-9 w-32 text-[15px]"
+        onChange={(event) => setFirstName(event.target.value)}
+      />
+      <Input
+        value={lastName}
+        maxLength={50}
+        aria-label="Прізвище"
+        placeholder="Прізвище"
+        className="h-9 w-36 text-[15px]"
+        onChange={(event) => setLastName(event.target.value)}
+      />
     </div>
   );
 };

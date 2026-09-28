@@ -1,9 +1,23 @@
-import { PersonService } from './person.service';
-
+import type { AccessService } from '@/api/access/access.service';
+import type { Viewer } from '@/api/access/visibility';
 import type { ActivityService } from '@/api/activity/activity.service';
-import { ActivityState, PersonGender, type PrismaService } from '@/infra/prisma/prisma.service';
+import {
+  ActivityState,
+  PersonGender,
+  Role,
+  type PrismaService,
+} from '@/infra/prisma/prisma.service';
 
+import { PersonService } from './person.service';
 import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
+
+const accessService = {
+  assertVisible: jest.fn(),
+  assertPastoral: jest.fn(),
+} as unknown as AccessService;
+
+/** Глобальний адмін бачить усю базу — саме те, що ці тести перевіряли досі. */
+const GLOBAL_ADMIN: Viewer = { id: 'admin', personId: null, roles: [Role.SUPERADMIN], scopes: [] };
 
 describe('toPersonData', () => {
   it('leaves untouched fields out so a PATCH stays partial', () => {
@@ -251,10 +265,11 @@ describe('PersonService stats', () => {
     const service = new PersonService(
       { person: { count } } as unknown as PrismaService,
       activityService,
+      accessService,
     );
 
     try {
-      await expect(service.stats()).resolves.toMatchObject({
+      await expect(service.stats(false, GLOBAL_ADMIN)).resolves.toMatchObject({
         total: 10,
         inCommunity: 4,
         newThisMonth: 2,
@@ -268,23 +283,27 @@ describe('PersonService stats', () => {
 
     expect(count).toHaveBeenNthCalledWith(1, { where: visiblePeople });
     expect(count).toHaveBeenNthCalledWith(2, {
-      where: { ...visiblePeople, communities: { some: {} } },
+      where: { AND: [visiblePeople, { communities: { some: {} } }] },
     });
     expect(count).toHaveBeenNthCalledWith(3, {
-      where: { ...visiblePeople, createdAt: { gte: monthAgo } },
+      where: { AND: [visiblePeople, { createdAt: { gte: monthAgo } }] },
     });
     expect(count).toHaveBeenNthCalledWith(4, {
       where: {
-        ...visiblePeople,
-        OR: [
-          { careNeeded: true },
+        AND: [
+          visiblePeople,
           {
-            steps: {
-              some: {
-                state: { in: ['PLANNED', 'IN_PROGRESS'] },
-                dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
+            OR: [
+              { careNeeded: true },
+              {
+                steps: {
+                  some: {
+                    state: { in: ['PLANNED', 'IN_PROGRESS'] },
+                    dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
+                  },
+                },
               },
-            },
+            ],
           },
         ],
       },
@@ -296,11 +315,14 @@ describe('PersonService stats', () => {
     const service = new PersonService(
       { person: { count } } as unknown as PrismaService,
       activityService,
+      accessService,
     );
 
-    await service.stats(true);
+    await service.stats(true, GLOBAL_ADMIN);
 
     expect(count).toHaveBeenNthCalledWith(1, { where: {} });
-    expect(count).toHaveBeenNthCalledWith(2, { where: { communities: { some: {} } } });
+    expect(count).toHaveBeenNthCalledWith(2, {
+      where: { AND: [{}, { communities: { some: {} } }] },
+    });
   });
 });

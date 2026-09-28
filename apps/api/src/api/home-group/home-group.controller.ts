@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { CreateHomeGroupDto } from './dto/create-home-group.dto';
 import { FindHomeGroupsDto } from './dto/find-home-groups.dto';
@@ -27,21 +28,21 @@ export class HomeGroupController {
     return this.homeGroupService.findOne(id);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Create a home group' })
   @Post()
   public create(@Body() dto: CreateHomeGroupDto) {
     return this.homeGroupService.create(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Update a home group' })
   @Patch(':id')
   public update(@Param('id') id: string, @Body() dto: UpdateHomeGroupDto) {
     return this.homeGroupService.update(id, dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Delete a home group and clear its memberships' })
   @Delete(':id')
   public remove(@Param('id') id: string) {

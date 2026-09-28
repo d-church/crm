@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { ActivityKind, Prisma } from '@generated/prisma/client';
+import { ActivityKind, CareOrigin, NoteLevel, Prisma } from '@generated/prisma/client';
 import {
   ActivityState,
   MinistryRole,
@@ -22,6 +22,16 @@ import {
   type SortOrder,
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
+import { AccessService } from '@/api/access/access.service';
+import { applyLayer } from '@/api/access/layers';
+import { narrow, visibilityFor, type Viewer } from '@/api/access/visibility';
+import {
+  assertBulkActionAllowed,
+  assertStructuralAllowed,
+  bulkTouchesPastoral,
+  touchesPastoral,
+} from '@/api/access/writes';
+
 import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
 
 const PERSON_INCLUDE = {
@@ -44,6 +54,13 @@ const PERSON_INCLUDE = {
     orderBy: { ministry: { name: 'asc' } },
   },
   trainings: true,
+  /// Що людина веде: у шапці картки це так само важливо, як і сан.
+  /// Пару показуємо з будь-якого боку: звʼязок вносять на одній картці, а бачать на обох.
+  partner: { select: { id: true, firstName: true, lastName: true } },
+  partnerOf: { select: { id: true, firstName: true, lastName: true } },
+  leadingCommunities: { select: { id: true, name: true } },
+  leadingHomeGroups: { select: { id: true, name: true } },
+  leadingTrainings: { select: { id: true, name: true } },
   /// Кроки разом із завершеними: картка людини показує і план, і історію.
   steps: {
     include: { stepType: true },
@@ -56,6 +73,7 @@ export class PersonService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly activityService: ActivityService,
+    private readonly accessService: AccessService,
   ) {}
 
   public async create(createPersonDto: CreatePersonDto, actor: Actor): Promise<Person> {
@@ -73,10 +91,10 @@ export class PersonService {
     return person;
   }
 
-  public async findAll(query: FindPeopleDto): Promise<PaginatedPeople> {
+  public async findAll(query: FindPeopleDto, viewer: Viewer): Promise<PaginatedPeople> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const where = buildPeopleWhere(query);
+    const where = narrow(buildPeopleWhere(query), visibilityFor(viewer).rows);
 
     const [items, total] = await Promise.all([
       this.prismaService.person.findMany({
@@ -91,14 +109,26 @@ export class PersonService {
       this.prismaService.person.count({ where }),
     ]);
 
-    return { items, total, page, limit, pages: Math.max(1, Math.ceil(total / limit)) };
+    return {
+      items: await this.byLayer(items, viewer),
+      total,
+      page,
+      limit,
+      pages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
-  /** Dashboard totals ignore ad-hoc filters but follow inactive-person visibility. */
-  public async stats(includeInactive = false): Promise<PeopleStats> {
+  /**
+   * Лічильники на дашборді рахуються в межах видимості: інакше лідер домашньої групи
+   * дізнавався б розмір усієї бази, не бачачи жодної зайвої картки.
+   */
+  public async stats(includeInactive: boolean, viewer: Viewer): Promise<PeopleStats> {
     const now = new Date();
     const monthAgo = new Date(now.getTime() - MONTH_MS);
-    const visiblePeople = includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } };
+    const visiblePeople = narrow(
+      includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } },
+      visibilityFor(viewer).rows,
+    );
     // Крок, який мав бути зроблений до сьогодні й досі в роботі.
     const overdueStep = {
       state: { in: [StepState.PLANNED, StepState.IN_PROGRESS] },
@@ -108,15 +138,14 @@ export class PersonService {
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
       this.prismaService.person.count({ where: visiblePeople }),
       this.prismaService.person.count({
-        where: { ...visiblePeople, communities: { some: {} } },
+        where: { AND: [visiblePeople, { communities: { some: {} } }] },
       }),
       this.prismaService.person.count({
-        where: { ...visiblePeople, createdAt: { gte: monthAgo } },
+        where: { AND: [visiblePeople, { createdAt: { gte: monthAgo } }] },
       }),
       this.prismaService.person.count({
         where: {
-          ...visiblePeople,
-          OR: [{ careNeeded: true }, { steps: { some: overdueStep } }],
+          AND: [visiblePeople, { OR: [{ careNeeded: true }, { steps: { some: overdueStep } }] }],
         },
       }),
     ]);
@@ -128,9 +157,9 @@ export class PersonService {
    * Тільки ідентифікатори за поточним фільтром — щоб «вибрати всіх знайдених»
    * не тягнуло сотні повних карток.
    */
-  public async findIds(query: FindPeopleDto): Promise<string[]> {
+  public async findIds(query: FindPeopleDto, viewer: Viewer): Promise<string[]> {
     const people = await this.prismaService.person.findMany({
-      where: buildPeopleWhere(query),
+      where: narrow(buildPeopleWhere(query), visibilityFor(viewer).rows),
       select: { id: true },
     });
 
@@ -141,12 +170,56 @@ export class PersonService {
    * Одна дія над багатьма людьми: база тільки наповнюється, тож додати два десятки
    * людей у служіння списком швидше, ніж відкривати кожну картку.
    */
-  public async bulk(dto: BulkPeopleDto, actor: Actor): Promise<BulkResult> {
-    const result = await this.applyBulk(dto);
+  public async bulk(dto: BulkPeopleDto, actor: Actor, viewer: Viewer): Promise<BulkResult> {
+    // Масова дія — найтихіший спосіб зачепити чужу людину: id приходять списком,
+    // повз будь-який фільтр. Тому звужуємо список, а не довіряємо йому.
+    assertBulkActionAllowed(viewer, dto.action);
 
-    await this.activityService.logMany(dto.personIds, await this.describeBulk(dto), actor);
+    const personIds = await this.visibleIds(dto.personIds, viewer);
+
+    if (personIds.length === 0) return { affected: 0 };
+
+    // Пасторська дія списком застосовується лише до підопічних.
+    const allowed = bulkTouchesPastoral(viewer, dto.action)
+      ? await this.pastoralIds(personIds, viewer)
+      : personIds;
+
+    if (allowed.length === 0) return { affected: 0 };
+
+    const scoped = { ...dto, personIds: allowed };
+    const result = await this.applyBulk(scoped);
+
+    await this.activityService.logMany(allowed, await this.describeBulk(scoped), actor);
 
     return result;
+  }
+
+  /** Підмножина, над якою користувач має опіку. */
+  private async pastoralIds(personIds: string[], viewer: Viewer): Promise<string[]> {
+    const { pastoral } = visibilityFor(viewer);
+
+    if (pastoral === undefined) return personIds;
+
+    const people = await this.prismaService.person.findMany({
+      where: narrow({ id: { in: personIds } }, pastoral),
+      select: { id: true },
+    });
+
+    return people.map(({ id }) => id);
+  }
+
+  /** Перетин переданих ідентифікаторів з тим, що користувачу видно. */
+  private async visibleIds(personIds: string[], viewer: Viewer): Promise<string[]> {
+    const { rows } = visibilityFor(viewer);
+
+    if (rows === undefined) return personIds;
+
+    const people = await this.prismaService.person.findMany({
+      where: narrow({ id: { in: personIds } }, rows),
+      select: { id: true },
+    });
+
+    return people.map(({ id }) => id);
   }
 
   /** Людиночитний запис у журнал: назва служіння, а не її ідентифікатор. */
@@ -225,10 +298,20 @@ export class PersonService {
       case 'homeGroup': {
         // Порожня ціль означає «прибрати з групи».
         const homeGroupId = mode === 'remove' ? null : (dto.targetId ?? null);
+        const previous = await this.prismaService.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, homeGroupId: true },
+        });
         const { count } = await this.prismaService.person.updateMany({
           where: { id: { in: personIds } },
           data: { homeGroupId },
         });
+
+        // Опіка лідера групи ходить за участю — інакше людина лишилася б під
+        // наглядом того, хто її вже не веде.
+        for (const [groupId, ids] of groupBy(previous)) {
+          await this.syncHomeGroupCare(ids, groupId, homeGroupId);
+        }
 
         return { affected: count };
       }
@@ -371,27 +454,95 @@ export class PersonService {
   }
 
   /** Small relation-picker payload — avoids loading full person cards for a select. */
-  public async choices(): Promise<PersonChoice[]> {
+  /** Список для пікерів — теж у межах видимості: імена чужих людей теж є даними. */
+  public async choices(viewer: Viewer): Promise<PersonChoice[]> {
     return this.prismaService.person.findMany({
+      where: visibilityFor(viewer).rows,
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ lastName: { sort: 'asc', nulls: 'last' } }, { firstName: 'asc' }],
     });
   }
 
-  public async findOne(id: string): Promise<Person> {
-    const person = await this.prismaService.person.findUnique({
-      where: { id },
+  /**
+   * Картка за прямим посиланням. Невидима людина віддається як «не знайдено», а не
+   * як «заборонено»: інакше сам факт існування картки ставав би відомим.
+   */
+  public async findOne(id: string, viewer: Viewer): Promise<Person> {
+    const person = await this.prismaService.person.findFirst({
+      where: narrow({ id }, visibilityFor(viewer).rows),
       include: PERSON_INCLUDE,
     });
     if (!person) {
       throw new NotFoundException('Person not found');
     }
 
-    return person;
+    const [visible] = await this.byLayer([person], viewer);
+
+    return visible;
   }
 
-  public async update(id: string, updatePersonDto: UpdatePersonDto, actor: Actor): Promise<Person> {
-    const before = await this.findOne(id);
+  /**
+   * Пасторський шар відкритий не по всіх, кого видно: у списку поруч стоять свої
+   * підопічні й просто учасники команди. Тому один дешевий запит на сторінку —
+   * і кожна картка обрізається своїм шаром.
+   */
+  private async byLayer(people: Person[], viewer: Viewer): Promise<Person[]> {
+    const { rows, pastoral } = visibilityFor(viewer);
+    const reachable = await this.reachablePartners(people, rows);
+
+    if (pastoral === undefined) return people.map((person) => withPartners(person, reachable));
+
+    const open = await this.prismaService.person.findMany({
+      where: narrow({ id: { in: people.map(({ id }) => id) } }, pastoral),
+      select: { id: true },
+    });
+    const openIds = new Set(open.map(({ id }) => id));
+
+    return people.map((person) =>
+      applyLayer(withPartners(person, reachable), openIds.has(person.id) ? 'pastoral' : 'team'),
+    );
+  }
+
+  /**
+   * Пара може бути поза областю того, хто дивиться. Імʼя ми показуємо — імена не
+   * чутливі, — але картка не відкриється, тож клієнт має знати про це заздалегідь.
+   * Інакше посилання веде в «людину не знайдено», хоча імʼя перед очима.
+   */
+  private async reachablePartners(
+    people: Person[],
+    rows: Prisma.PersonWhereInput | undefined,
+  ): Promise<ReadonlySet<string> | null> {
+    if (rows === undefined) return null;
+
+    const ids = people
+      .flatMap((person) => [person.partner?.id, person.partnerOf?.id])
+      .filter((id): id is string => id !== undefined && id !== null);
+
+    if (ids.length === 0) return new Set();
+
+    const open = await this.prismaService.person.findMany({
+      where: narrow({ id: { in: ids } }, rows),
+      select: { id: true },
+    });
+
+    return new Set(open.map(({ id }) => id));
+  }
+
+  public async update(
+    id: string,
+    updatePersonDto: UpdatePersonDto,
+    actor: Actor,
+    viewer: Viewer,
+  ): Promise<Person> {
+    // Видимості людини мало: лідер бачить свого учасника, але переставляти його
+    // в чужу групу чи правити пасторські поля з цього не випливає.
+    assertStructuralAllowed(viewer, updatePersonDto);
+
+    if (touchesPastoral(viewer, updatePersonDto)) {
+      await this.accessService.assertPastoral(id, viewer);
+    }
+
+    const before = await this.findOne(id, viewer);
 
     const { ministries, ...personDto } = updatePersonDto;
 
@@ -399,11 +550,93 @@ export class PersonService {
 
     if (ministries !== undefined) await this.syncMinistryAssignments(id, ministries ?? []);
 
-    const after = await this.findOne(id);
+    if (personDto.homeGroupId !== undefined) {
+      await this.syncHomeGroupCare([id], before.homeGroupId, personDto.homeGroupId ?? null);
+    }
+
+    const after = await this.findOne(id, viewer);
 
     await this.activityService.log(id, diffPeople(before, after), actor);
 
     return after;
+  }
+
+  /**
+   * Сигнал попечителю. Лідер команди бачить, що з людиною щось не так, але лізти
+   * в пасторський шар не може — тож він не мовчить і не лізе, а передає далі:
+   * позначка «потребує уваги» плюс запис, який побачить лише той, хто має опіку.
+   */
+  public async signal(id: string, note: string, actor: Actor, viewer: Viewer): Promise<void> {
+    await this.accessService.assertVisible(id, viewer);
+
+    await this.prismaService.person.update({ where: { id }, data: { careNeeded: true } });
+    await this.prismaService.personNote.create({
+      data: {
+        personId: id,
+        authorId: actor.id,
+        authorName: actor.name,
+        level: NoteLevel.PASTORAL,
+        body: note,
+      },
+    });
+
+    await this.activityService.log(
+      id,
+      [{ kind: ActivityKind.FIELD_CHANGED, subject: 'signal', newValue: note }],
+      actor,
+    );
+  }
+
+  /**
+   * Лідер домашньої групи — попечитель її учасників за самим фактом участі.
+   * Тому при переході опіка старого лідера закривається, нового — відкривається.
+   * Призначену вручну опіку це не чіпає: у неї інше походження.
+   */
+  private async syncHomeGroupCare(
+    personIds: string[],
+    previousGroupId: string | null,
+    nextGroupId: string | null,
+  ): Promise<void> {
+    if (previousGroupId === nextGroupId) return;
+
+    const leaderOf = async (groupId: string | null) =>
+      groupId === null
+        ? null
+        : ((
+            await this.prismaService.homeGroup.findUnique({
+              where: { id: groupId },
+              select: { leaderId: true },
+            })
+          )?.leaderId ?? null);
+
+    const previousLeaderId = await leaderOf(previousGroupId);
+    const nextLeaderId = await leaderOf(nextGroupId);
+
+    if (previousLeaderId) {
+      await this.prismaService.personCare.updateMany({
+        where: {
+          personId: { in: personIds },
+          caregiverId: previousLeaderId,
+          origin: CareOrigin.HOME_GROUP,
+          until: null,
+        },
+        data: { until: new Date() },
+      });
+    }
+
+    if (nextLeaderId) {
+      await this.prismaService.personCare.createMany({
+        // Лідер не опікується сам собою, а повтор діючої опіки ловить унікальний індекс.
+        data: personIds
+          .filter((personId) => personId !== nextLeaderId)
+          .map((personId) => ({
+            personId,
+            caregiverId: nextLeaderId,
+            origin: CareOrigin.HOME_GROUP,
+          })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   /**
@@ -456,8 +689,8 @@ export class PersonService {
     ]);
   }
 
-  public async remove(id: string): Promise<Person> {
-    await this.findOne(id);
+  public async remove(id: string, viewer: Viewer): Promise<Person> {
+    await this.findOne(id, viewer);
 
     return this.prismaService.person.delete({ where: { id }, include: PERSON_INCLUDE });
   }
@@ -475,6 +708,16 @@ type PersonInput = { [K in keyof UpdatePersonDto]?: UpdatePersonDto[K] | null };
  * clearing the column.
  */
 const toDate = (value: string | null) => (value === null ? null : new Date(value));
+
+/** `null` означає «видно всіх» — тоді жодна пара не потребує позначки. */
+const withPartners = <T extends Person>(person: T, reachable: ReadonlySet<string> | null): T => {
+  const mark = (partner: T['partner']) =>
+    partner === null || partner === undefined
+      ? partner
+      : { ...partner, canOpen: reachable === null || reachable.has(partner.id) };
+
+  return { ...person, partner: mark(person.partner), partnerOf: mark(person.partnerOf) };
+};
 
 const toPersonData = <T extends PersonInput>({
   communityIds,
@@ -499,9 +742,14 @@ const toPersonFields = <T extends PersonInput>({
   baptizedAt,
   memberSince,
   leftAt,
+  isMilitary,
+  maritalSince,
   ...rest
 }: T) => ({
   ...rest,
+  // Колонка не допускає NULL, а «очистити» для прапорця означає «ні».
+  ...(isMilitary === undefined ? {} : { isMilitary: isMilitary ?? false }),
+  ...(maritalSince === undefined ? {} : { maritalSince: toDate(maritalSince) }),
   ...(birthDate === undefined ? {} : { birthDate: toDate(birthDate) }),
   ...(firstVisitAt === undefined ? {} : { firstVisitAt: toDate(firstVisitAt) }),
   ...(lastSeenAt === undefined ? {} : { lastSeenAt: toDate(lastSeenAt) }),
@@ -579,6 +827,11 @@ const TRACKED_FIELDS = [
   'lastSeenAt',
   'connectedBy',
   'responsible',
+  'homeGroupRole',
+  'orphanStatus',
+  'isMilitary',
+  'maritalStatus',
+  'maritalSince',
   'notes',
 ] as const satisfies readonly (keyof Person)[];
 
@@ -802,4 +1055,15 @@ export const buildPeopleWhere = (
     ...(trainingId === undefined ? {} : { trainings: { some: { id: trainingId } } }),
     ...(clauses.length === 0 ? {} : { AND: clauses }),
   };
+};
+
+/** Люди, згруповані за домашньою групою, з якої вони виходять. */
+const groupBy = (people: { id: string; homeGroupId: string | null }[]) => {
+  const groups = new Map<string | null, string[]>();
+
+  for (const { id, homeGroupId } of people) {
+    groups.set(homeGroupId, [...(groups.get(homeGroupId) ?? []), id]);
+  }
+
+  return groups;
 };

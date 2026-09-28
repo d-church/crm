@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, Trash2, UsersRound } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, UsersRound } from 'lucide-react';
 import { z } from 'zod';
 
 import { PageHeader } from '@/components/layout';
@@ -12,6 +12,7 @@ import {
   useMinistry,
 } from '@/modules/ministries';
 import {
+  AddPeopleDialog,
   PeoplePagination,
   PeopleTable,
   peopleQueryOptions,
@@ -98,11 +99,23 @@ function MinistryDetailPage() {
         <Card className="overflow-hidden">
           <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
             <span className="eyebrow text-muted-foreground">Люди служіння</span>
-            <span className="text-ink-soft text-xs tabular-nums">
-              {peoplePage
-                ? `${peoplePage.total} ${peoplePage.total === 1 ? 'людина' : 'людей'}`
-                : '…'}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="text-ink-soft text-xs tabular-nums">
+                {peoplePage
+                  ? `${peoplePage.total} ${peoplePage.total === 1 ? 'людина' : 'людей'}`
+                  : '…'}
+              </span>
+              <AddPeopleDialog
+                action="ministry"
+                targetId={ministry.id}
+                title="Додати людей у служіння"
+              >
+                <Button type="button" variant="outline" size="sm">
+                  <Plus />
+                  Додати
+                </Button>
+              </AddPeopleDialog>
+            </div>
           </div>
           {peopleError ? (
             <p className="text-destructive p-6 text-sm">{getApiErrorMessage(peopleError)}</p>

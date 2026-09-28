@@ -33,6 +33,8 @@ import {
   usePeopleStats,
   type FilterOptionSources,
   type PeopleSearch,
+  peopleSelection,
+  usePeopleSelection,
 } from '@/modules/people';
 import { PersonService } from '@/services';
 
@@ -80,30 +82,14 @@ function PeoplePage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  const toggleSelected = (id: string) =>
-    setSelectedIds((current) => {
-      const next = new Set(current);
-
-      if (!next.delete(id)) next.add(id);
-
-      return next;
-    });
-
-  const toggleSelectedPage = (ids: string[], selected: boolean) =>
-    setSelectedIds((current) => {
-      const next = new Set(current);
-
-      ids.forEach((id) => (selected ? next.add(id) : next.delete(id)));
-
-      return next;
-    });
+  // Виділення живе поза компонентом: інакше воно зникало б щоразу, коли
+  // відкриваєш картку, і «назад» повертало б порожній список.
+  const selectedIds = usePeopleSelection();
 
   /** «Вибрати всіх знайдених» тягне лише ідентифікатори, не повні картки. */
   const selectAllMatching = async () => {
     try {
-      setSelectedIds(new Set(await PersonService.listIds(query)));
+      peopleSelection.set(await PersonService.listIds(query));
     } catch (selectError) {
       toast.error(getApiErrorMessage(selectError, 'Не вдалося вибрати всіх'));
     }
@@ -232,9 +218,9 @@ function PeoplePage() {
             selectedIds={[...selectedIds]}
             totalMatching={page?.total ?? selectedIds.size}
             onSelectAllMatching={() => void selectAllMatching()}
-            onClear={() => setSelectedIds(new Set())}
+            onClear={() => peopleSelection.clear()}
             onApplied={async () => {
-              setSelectedIds(new Set());
+              peopleSelection.clear();
               await queryClient.invalidateQueries({ queryKey: PEOPLE_QUERY_KEY });
             }}
           />
@@ -269,8 +255,8 @@ function PeoplePage() {
                 people={page.items}
                 selection={{
                   selectedIds,
-                  onToggle: toggleSelected,
-                  onTogglePage: toggleSelectedPage,
+                  onToggle: peopleSelection.toggle,
+                  onTogglePage: peopleSelection.togglePage,
                 }}
                 sort={{ field: query.sort!, order: query.order! }}
                 onSortChange={({ field, order }) => patchSearch({ sort: field, order })}

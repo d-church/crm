@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Authorization } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { CommunityService } from './community.service';
 import { CreateCommunityDto } from './dto/create-community.dto';
@@ -26,21 +27,21 @@ export class CommunityController {
     return this.communityService.findOne(id);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Create a community' })
   @Post()
   public create(@Body() createCommunityDto: CreateCommunityDto) {
     return this.communityService.create(createCommunityDto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Update a community' })
   @Patch(':id')
   public update(@Param('id') id: string, @Body() updateCommunityDto: UpdateCommunityDto) {
     return this.communityService.update(id, updateCommunityDto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Delete a community and remove its memberships' })
   @Delete(':id')
   public remove(@Param('id') id: string) {

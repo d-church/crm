@@ -5,7 +5,24 @@ import { UserRole } from '@/services';
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   SUPERADMIN: 'Суперадмін',
   ADMIN: 'Адміністратор',
+  LEADER: 'Лідер',
+  CONNECT: 'Конект',
 };
+
+/** Що саме роль дозволяє — підказка під галочкою в адмінці. */
+export const USER_ROLE_HINTS: Record<UserRole, string> = {
+  SUPERADMIN: 'Уся система: користувачі, доступи, довідники, чистка журналу',
+  ADMIN: 'Повний доступ до людей у своїй області; без областей — до всієї бази',
+  LEADER: 'Веде своїх: командний шар учасників, пасторський — лише підопічних',
+  CONNECT: 'Заводить нових людей у свою спільноту і веде їх до передачі далі',
+};
+
+export const USER_ROLES: UserRole[] = [
+  UserRole.SUPERADMIN,
+  UserRole.ADMIN,
+  UserRole.LEADER,
+  UserRole.CONNECT,
+];
 
 export const createUserSchema = z
   .object({
