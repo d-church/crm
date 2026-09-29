@@ -8,6 +8,8 @@ import { ChurchRoleModule } from '@/api/church-role/church-role.module';
 import { CommunityModule } from '@/api/community/community.module';
 import { ConnectModule } from '@/api/connect/connect.module';
 import { EventTypeModule } from '@/api/event-type/event-type.module';
+import { GatheringModule } from '@/api/gathering/gathering.module';
+import { GatheringTypeModule } from '@/api/gathering-type/gathering-type.module';
 import { HomeGroupModule } from '@/api/home-group/home-group.module';
 import { MinistryModule } from '@/api/ministry/ministry.module';
 import { OverviewModule } from '@/api/overview/overview.module';
@@ -28,6 +30,8 @@ import { UserModule } from '@/api/user/user.module';
     CommunityModule,
     ConnectModule,
     EventTypeModule,
+    GatheringModule,
+    GatheringTypeModule,
     HomeGroupModule,
     MinistryModule,
     OverviewModule,

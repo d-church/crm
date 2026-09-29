@@ -2,6 +2,7 @@ import { CareOrigin, Role } from '@/infra/prisma/prisma.service';
 
 import {
   boardWhere,
+  gatheringWhere,
   narrow,
   NOBODY,
   scopeWhere,
@@ -154,5 +155,36 @@ describe('narrow', () => {
 
   it('вимагає обидві умови водночас', () => {
     expect(narrow(filter, CARE)).toEqual({ AND: [filter, CARE] });
+  });
+});
+
+describe('gatheringWhere', () => {
+  const CHURCH_WIDE = {
+    communityId: null,
+    homeGroupId: null,
+    ministryId: null,
+    trainingId: null,
+  };
+
+  it('віддає весь календар глобальному адміну', () => {
+    expect(gatheringWhere(viewer({ roles: [Role.ADMIN] }))).toBeUndefined();
+  });
+
+  it('не показує нічого користувачу без ролей', () => {
+    expect(gatheringWhere(viewer())).toEqual({ id: { in: [] } });
+  });
+
+  it('показує лідеру загальноцерковні зібрання і зібрання його групи', () => {
+    const result = gatheringWhere(
+      viewer({ roles: [Role.LEADER], scopes: [scope({ homeGroupId: HOME_GROUP_ID })] }),
+    );
+
+    expect(result).toEqual({
+      OR: [CHURCH_WIDE, { homeGroupId: { in: [HOME_GROUP_ID] } }],
+    });
+  });
+
+  it('лишає лідеру без областей лише загальноцерковні', () => {
+    expect(gatheringWhere(viewer({ roles: [Role.LEADER] }))).toEqual({ OR: [CHURCH_WIDE] });
   });
 });

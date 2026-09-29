@@ -29,6 +29,13 @@ class UserServiceClass extends RestService<User> {
     return response.data;
   }
 
+  /** Що людина веде, але ще не довірене її обліковому запису. */
+  public async suggestedScopes(id: string): Promise<SuggestedScope[]> {
+    const response = await this.api.get<SuggestedScope[]>(`${this.anchor}/${id}/suggested-scopes`);
+
+    return response.data;
+  }
+
   public async addScope(id: string, payload: ScopePayload): Promise<UserScope> {
     const response = await this.api.post<UserScope>(`${this.anchor}/${id}/scopes`, payload);
 
@@ -84,6 +91,12 @@ export interface NamedRef {
   id: string;
   name: string;
 }
+
+export type SuggestedScope = {
+  id: string;
+  name: string;
+  kind: 'community' | 'homeGroup' | 'ministry' | 'training';
+};
 
 export type ScopePayload = {
   communityId?: string;

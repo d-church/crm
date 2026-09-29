@@ -1,13 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
-import { CalendarHeart, ListChecks, ShieldCheck, Wrench } from 'lucide-react';
+import { createFileRoute, redirect } from '@tanstack/react-router';
+import { CalendarDays, CalendarHeart, ListChecks, ShieldCheck, Wrench } from 'lucide-react';
 import { useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 
 import { CatalogManager } from '@/components/catalog-manager';
 import { PageHeader } from '@/components/layout';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/modules/auth';
+import { isSuperadmin, useAuth } from '@/modules/auth';
 import {
   churchRoleTypesQueryOptions,
   useChurchRoleTypeActions,
@@ -16,6 +16,7 @@ import {
 import { stepTypesQueryOptions, useStepTypeActions, useStepTypes } from '@/modules/steps';
 import {
   ConnectService,
+  GatheringTypeService,
   isActingAsSystem,
   setActingAsSystem,
   subscribeToSystemActor,
@@ -23,8 +24,16 @@ import {
 } from '@/services';
 
 const EVENT_TYPES_KEY = ['event-types', 'all'] as const;
+const GATHERING_TYPES_KEY = ['gathering-types', 'all'] as const;
 
 export const Route = createFileRoute('/_app/admin')({
+  /**
+   * Довідники правлять кроки, сани й види зібрань для всієї церкви, тож сторінка
+   * суперадмінська. Раніше сюди пускало будь-кого, хто знав адресу.
+   */
+  beforeLoad: ({ context }) => {
+    if (!isSuperadmin(context.user)) throw redirect({ to: '/' });
+  },
   loader: ({ context }) => {
     void context.queryClient.prefetchQuery(stepTypesQueryOptions(true));
     void context.queryClient.prefetchQuery(churchRoleTypesQueryOptions(true));
@@ -36,6 +45,7 @@ const TABS = [
   { value: 'steps', label: 'Кроки зростання', icon: ListChecks },
   { value: 'church-roles', label: 'Сани', icon: ShieldCheck },
   { value: 'event-types', label: 'Заходи', icon: CalendarHeart },
+  { value: 'gathering-types', label: 'Види зібрань', icon: CalendarDays },
 ] as const;
 
 type Tab = (typeof TABS)[number]['value'];
@@ -78,8 +88,10 @@ function AdminPage() {
           <StepsCatalog />
         ) : tab === 'church-roles' ? (
           <ChurchRolesCatalog />
-        ) : (
+        ) : tab === 'event-types' ? (
           <EventTypesCatalog />
+        ) : (
+          <GatheringTypesCatalog />
         )}
       </div>
     </>
@@ -155,6 +167,42 @@ const EventTypesCatalog = () => {
       onUpdate={(payload) => run(ConnectService.updateEventType(payload))}
       onReorder={(ids) => run(ConnectService.reorderEventTypes(ids))}
       onRemove={(id) => run(ConnectService.removeEventType(id))}
+    />
+  );
+};
+
+/** Види зібрань: з них складається календар і за ними рахується відвідуваність. */
+const GatheringTypesCatalog = () => {
+  const queryClient = useQueryClient();
+  const {
+    data: types = [],
+    isPending,
+    error,
+  } = useQuery({
+    queryKey: GATHERING_TYPES_KEY,
+    queryFn: () => GatheringTypeService.findAll(true),
+  });
+
+  const run = async <T,>(action: Promise<T>): Promise<T> => {
+    const result = await action;
+
+    await queryClient.invalidateQueries({ queryKey: ['gathering-types'] });
+
+    return result;
+  };
+
+  return (
+    <CatalogManager
+      items={types}
+      isPending={isPending}
+      error={error}
+      placeholder="Новий вид, напр. «Молитовне служіння»"
+      usageLabel={(count) => (count === 0 ? 'ще не вживався' : `у ${count} зібраннях`)}
+      hint="Вид, який уже вжито в зібраннях, видалити не можна — заархівуйте його. Архівний вид не пропонується для нових зібрань, але лишається в календарі."
+      onAdd={(name) => run(GatheringTypeService.create(name))}
+      onUpdate={(payload) => run(GatheringTypeService.update(payload))}
+      onReorder={(ids) => run(GatheringTypeService.reorder(ids))}
+      onRemove={(id) => run(GatheringTypeService.remove(id))}
     />
   );
 };

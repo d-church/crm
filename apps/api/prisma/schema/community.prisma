@@ -3,6 +3,10 @@ model Community {
   id String @id @default(uuid())
 
   name String @unique
+  /// Окреме відгалуження — фактично церква в церкві, як D.Youth. Дає змогу
+  /// дивитись на базу трьома способами: уся церква, лише відгалуження, решта.
+  isBranch Boolean @default(false) @map("is_branch")
+
   /// Lower numbers are shown first in selectors, tabs and lists.
   sortOrder Int @default(100) @map("sort_order")
 
@@ -13,6 +17,8 @@ model Community {
   leaderId String? @map("leader_id")
   leader   Person? @relation("CommunityLeader", fields: [leaderId], references: [id], onDelete: SetNull)
 
+  /// Зібрання спільноти.
+  gatherings Gathering[]
   /// Кому довірено цю спільноту.
   userScopes UserScope[]
 

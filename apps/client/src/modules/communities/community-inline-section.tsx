@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { Button, Card, CardContent, Field } from '@/components/ui';
+import { Button, CardContent, Field } from '@/components/ui';
+import { SettingsSection } from '@/components/settings-section';
 import { getApiErrorMessage } from '@/lib/api-error';
 import type { Community } from '@/services';
 import { usePersonChoices } from '@/modules/people';
@@ -61,15 +62,8 @@ export const CommunityInlineSection = ({ community }: { community: Community }) 
   });
 
   return (
-    <Card>
+    <SettingsSection>
       <form onSubmit={onSubmit} noValidate>
-        <div className="border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
-          <span className="eyebrow text-muted-foreground">Основне</span>
-          <Button type="submit" size="sm" disabled={!isDirty || isPending}>
-            <Save />
-            {isPending ? 'Зберігаємо…' : 'Зберегти'}
-          </Button>
-        </div>
         <CardContent className="grid gap-4 p-5">
           <Field label="Назва" error={errors.name?.message} {...register('name')} />
           <Field
@@ -94,8 +88,14 @@ export const CommunityInlineSection = ({ community }: { community: Community }) 
               />
             )}
           />
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={!isDirty || isPending}>
+              <Save />
+              {isPending ? 'Зберігаємо…' : 'Зберегти'}
+            </Button>
+          </div>
         </CardContent>
       </form>
-    </Card>
+    </SettingsSection>
   );
 };

@@ -20,6 +20,7 @@ import {
   PeopleFilterDialog,
   PeopleFilters,
   PeoplePagination,
+  PeopleSegment,
   PeopleStats,
   PeopleTable,
   PersonDialog,
@@ -30,6 +31,7 @@ import {
   toPeopleQuery,
   usePeople,
   usePeopleColumns,
+  ALL_SEGMENT,
   usePeopleStats,
   type FilterOptionSources,
   type PeopleSearch,
@@ -67,7 +69,8 @@ function PeoplePage() {
   const query = toPeopleQuery(search);
   const { data: page, isPending, isFetching, error } = usePeople(query);
   const includeInactive = search.includeInactive ?? false;
-  const { data: stats } = usePeopleStats(includeInactive);
+  const segment = search.segment ?? ALL_SEGMENT;
+  const { data: stats } = usePeopleStats(includeInactive, segment);
   const { data: communities = [] } = useCommunities();
   const { data: homeGroups = [] } = useHomeGroups();
   const { data: ministries = [] } = useMinistries();
@@ -170,6 +173,16 @@ function PeoplePage() {
           </>
         }
       />
+
+      {/* Перемикач стоїть над цифрами: він міняє саме їх, а не лише список. */}
+      <div className="mb-3">
+        <PeopleSegment
+          value={segment}
+          onChange={(next) =>
+            patchSearch({ segment: next === ALL_SEGMENT ? undefined : next, page: undefined })
+          }
+        />
+      </div>
 
       <PeopleStats stats={stats} includeInactive={includeInactive} />
 

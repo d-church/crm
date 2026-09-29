@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -23,17 +23,67 @@ import { useHomeGroups } from '@/modules/home-groups';
 import { useMinistries } from '@/modules/ministries';
 import { usePersonChoices } from '@/modules/people';
 import { useTrainings } from '@/modules/trainings';
-import { UserRole, type ScopePayload, type User, type UserScope } from '@/services';
+import {
+  UserRole,
+  type ScopePayload,
+  type SuggestedScope,
+  type User,
+  type UserScope,
+} from '@/services';
 
 import {
   useAddUserScope,
   useLinkUserPerson,
   useRemoveUserScope,
+  useSuggestedScopes,
   useUpdateUserRoles,
 } from './hooks';
 import { USER_ROLE_HINTS, USER_ROLE_LABELS, USER_ROLES } from './user-form';
 
 type ScopeKind = 'community' | 'homeGroup' | 'ministry' | 'training';
+
+/**
+ * Лідерство саме по собі доступу не дає — його міняють у картці мимохідь. Але
+ * памʼятати всю структуру церкви напамʼять адмін не мусить, тож те, що людина
+ * веде, пропонуємо додати в один клік.
+ */
+const SuggestedScopes = ({ user }: { user: User }) => {
+  const { data: suggestions = [] } = useSuggestedScopes(user.id);
+  const { addScope, isPending } = useAddUserScope();
+
+  if (suggestions.length === 0) return null;
+
+  const add = async (suggestion: SuggestedScope) => {
+    try {
+      await addScope({ id: user.id, [`${suggestion.kind}Id`]: suggestion.id });
+      toast.success('Область додано');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Не вдалося додати область'));
+    }
+  };
+
+  return (
+    <div className="border-border-muted grid gap-1.5 rounded-lg border border-dashed p-2.5">
+      <span className="text-ink-faint text-[11.5px]">
+        Ця людина веде, але доступу до цього ще не має:
+      </span>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((suggestion) => (
+          <button
+            key={`${suggestion.kind}-${suggestion.id}`}
+            type="button"
+            disabled={isPending}
+            onClick={() => void add(suggestion)}
+            className="border-border-muted hover:border-primary/40 hover:bg-accent flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] transition-colors"
+          >
+            <Plus className="size-3" />
+            {SCOPE_LABELS[suggestion.kind]} · {suggestion.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const SCOPE_LABELS: Record<ScopeKind, string> = {
   community: 'Спільнота',
@@ -237,6 +287,8 @@ const ScopesSection = ({ user }: { user: User }) => {
           ))}
         </ul>
       )}
+
+      <SuggestedScopes user={user} />
 
       <div className="flex flex-wrap items-center gap-1.5">
         <Select

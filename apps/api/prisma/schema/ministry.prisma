@@ -43,6 +43,8 @@ model Ministry {
   community   Community? @relation(fields: [communityId], references: [id], onDelete: SetNull)
 
   assignments MinistryAssignment[]
+  /// Зібрання служіння.
+  gatherings Gathering[]
   /// Кому довірено це служіння.
   userScopes UserScope[]
 

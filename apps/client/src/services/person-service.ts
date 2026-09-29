@@ -115,6 +115,8 @@ export type PeopleFilterOperator =
 /** Mirrors the API's FindPeopleDto — every field is optional. */
 export type PeopleQuery = {
   includeInactive?: boolean;
+  /** «all», «rest» або ідентифікатор спільноти-відгалуження. */
+  segment?: string;
   page?: number;
   limit?: number;
   search?: string;
@@ -215,9 +217,12 @@ class PersonServiceClass extends RestService<Person> {
     return response.data;
   }
 
-  public async stats(includeInactive = false): Promise<PeopleStats> {
+  public async stats(includeInactive = false, segment?: string): Promise<PeopleStats> {
     const response = await this.api.get<PeopleStats>(`${this.anchor}/stats`, {
-      params: includeInactive ? { includeInactive: true } : undefined,
+      params: {
+        ...(includeInactive ? { includeInactive: true } : {}),
+        ...(segment && segment !== 'all' ? { segment } : {}),
+      },
     });
 
     return response.data;

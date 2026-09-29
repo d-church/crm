@@ -8,6 +8,8 @@ model Training {
   leader   Person? @relation("TrainingLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   people   Person[]
 
+  /// Зібрання навчання.
+  gatherings Gathering[]
   /// Кому довірено це навчання.
   userScopes UserScope[]
 

@@ -20,6 +20,8 @@ model HomeGroup {
   leader   Person? @relation("HomeGroupLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   people   Person[] @relation("HomeGroupMembers")
 
+  /// Зібрання групи.
+  gatherings Gathering[]
   /// Кому довірено цю групу.
   userScopes UserScope[]
 

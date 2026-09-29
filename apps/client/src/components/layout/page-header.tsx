@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 type PageHeaderProps = {
   eyebrow?: ReactNode;
   title: string;
-  description?: string;
+  /** Рядок фактів під назвою: рідко змінне читається, а не редагується. */
+  description?: ReactNode;
   actions?: ReactNode;
 };
 

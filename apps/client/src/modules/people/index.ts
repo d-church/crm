@@ -15,6 +15,7 @@ export * from './people-filter-chips';
 export * from './people-filter-dialog';
 export * from './people-filters';
 export * from './people-pagination';
+export * from './people-segment';
 export * from './people-selection';
 export * from './people-stats';
 export * from './people-table';

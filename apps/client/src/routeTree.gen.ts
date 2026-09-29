@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAdminRouteImport } from './routes/_app/admin'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConnectRouteImport } from './routes/_app/connect'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
@@ -20,6 +21,7 @@ import { Route as AppStructureRouteImport } from './routes/_app/structure'
 import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
 import { Route as AppCommunitiesCommunityIdRouteImport } from './routes/_app/communities/$communityId'
+import { Route as AppGatheringsGatheringIdRouteImport } from './routes/_app/gatherings/$gatheringId'
 import { Route as AppHomeGroupsIndexRouteImport } from './routes/_app/home-groups/index'
 import { Route as AppHomeGroupsHomeGroupIdRouteImport } from './routes/_app/home-groups/$homeGroupId'
 import { Route as AppMinistriesIndexRouteImport } from './routes/_app/ministries/index'
@@ -46,6 +48,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppAdminRoute = AppAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppConnectRoute = AppConnectRouteImport.update({
@@ -82,6 +89,12 @@ const AppCommunitiesCommunityIdRoute =
   AppCommunitiesCommunityIdRouteImport.update({
     id: '/communities/$communityId',
     path: '/communities/$communityId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppGatheringsGatheringIdRoute =
+  AppGatheringsGatheringIdRouteImport.update({
+    id: '/gatherings/$gatheringId',
+    path: '/gatherings/$gatheringId',
     getParentRoute: () => AppRoute,
   } as any)
 const AppHomeGroupsIndexRoute = AppHomeGroupsIndexRouteImport.update({
@@ -130,12 +143,14 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/calendar': typeof AppCalendarRoute
   '/connect': typeof AppConnectRoute
   '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
   '/structure': typeof AppStructureRoute
   '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
+  '/gatherings/$gatheringId': typeof AppGatheringsGatheringIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
@@ -149,6 +164,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/admin': typeof AppAdminRoute
+  '/calendar': typeof AppCalendarRoute
   '/connect': typeof AppConnectRoute
   '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
@@ -156,6 +172,7 @@ export interface FileRoutesByTo {
   '/users': typeof AppUsersRoute
   '/': typeof AppIndexRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
+  '/gatherings/$gatheringId': typeof AppGatheringsGatheringIdRoute
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
@@ -171,6 +188,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/admin': typeof AppAdminRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/connect': typeof AppConnectRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/profile': typeof AppProfileRoute
@@ -178,6 +196,7 @@ export interface FileRoutesById {
   '/_app/users': typeof AppUsersRoute
   '/_app/': typeof AppIndexRoute
   '/_app/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
+  '/_app/gatherings/$gatheringId': typeof AppGatheringsGatheringIdRoute
   '/_app/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/_app/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
@@ -194,12 +213,14 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/admin'
+    | '/calendar'
     | '/connect'
     | '/overview'
     | '/profile'
     | '/structure'
     | '/users'
     | '/communities/$communityId'
+    | '/gatherings/$gatheringId'
     | '/home-groups/$homeGroupId'
     | '/ministries/$ministryId'
     | '/people/$personId'
@@ -213,6 +234,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/admin'
+    | '/calendar'
     | '/connect'
     | '/overview'
     | '/profile'
@@ -220,6 +242,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/'
     | '/communities/$communityId'
+    | '/gatherings/$gatheringId'
     | '/home-groups/$homeGroupId'
     | '/ministries/$ministryId'
     | '/people/$personId'
@@ -234,6 +257,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/login'
     | '/_app/admin'
+    | '/_app/calendar'
     | '/_app/connect'
     | '/_app/overview'
     | '/_app/profile'
@@ -241,6 +265,7 @@ export interface FileRouteTypes {
     | '/_app/users'
     | '/_app/'
     | '/_app/communities/$communityId'
+    | '/_app/gatherings/$gatheringId'
     | '/_app/home-groups/$homeGroupId'
     | '/_app/ministries/$ministryId'
     | '/_app/people/$personId'
@@ -285,6 +310,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/connect': {
@@ -334,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/communities/$communityId'
       fullPath: '/communities/$communityId'
       preLoaderRoute: typeof AppCommunitiesCommunityIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/gatherings/$gatheringId': {
+      id: '/_app/gatherings/$gatheringId'
+      path: '/gatherings/$gatheringId'
+      fullPath: '/gatherings/$gatheringId'
+      preLoaderRoute: typeof AppGatheringsGatheringIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/home-groups/': {
@@ -397,6 +436,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAdminRoute: typeof AppAdminRoute
+  AppCalendarRoute: typeof AppCalendarRoute
   AppConnectRoute: typeof AppConnectRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppProfileRoute: typeof AppProfileRoute
@@ -404,6 +444,7 @@ interface AppRouteChildren {
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCommunitiesCommunityIdRoute: typeof AppCommunitiesCommunityIdRoute
+  AppGatheringsGatheringIdRoute: typeof AppGatheringsGatheringIdRoute
   AppHomeGroupsHomeGroupIdRoute: typeof AppHomeGroupsHomeGroupIdRoute
   AppMinistriesMinistryIdRoute: typeof AppMinistriesMinistryIdRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
@@ -417,6 +458,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAdminRoute: AppAdminRoute,
+  AppCalendarRoute: AppCalendarRoute,
   AppConnectRoute: AppConnectRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppProfileRoute: AppProfileRoute,
@@ -424,6 +466,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,
   AppCommunitiesCommunityIdRoute: AppCommunitiesCommunityIdRoute,
+  AppGatheringsGatheringIdRoute: AppGatheringsGatheringIdRoute,
   AppHomeGroupsHomeGroupIdRoute: AppHomeGroupsHomeGroupIdRoute,
   AppMinistriesMinistryIdRoute: AppMinistriesMinistryIdRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,

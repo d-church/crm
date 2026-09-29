@@ -5,6 +5,8 @@ export interface Community {
   id: string;
   name: string;
   sortOrder: number;
+  /** Окреме відгалуження — фактично церква в церкві, як D.Youth. */
+  isBranch: boolean;
   leader: PersonChoice | null;
   peopleCount: number;
   createdAt: string;

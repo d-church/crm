@@ -94,7 +94,10 @@ export class PersonService {
   public async findAll(query: FindPeopleDto, viewer: Viewer): Promise<PaginatedPeople> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const where = narrow(buildPeopleWhere(query), visibilityFor(viewer).rows);
+    const where = narrow(
+      narrow(buildPeopleWhere(query), await this.segmentWhere(query.segment)),
+      visibilityFor(viewer).rows,
+    );
 
     const [items, total] = await Promise.all([
       this.prismaService.person.findMany({
@@ -122,11 +125,18 @@ export class PersonService {
    * Лічильники на дашборді рахуються в межах видимості: інакше лідер домашньої групи
    * дізнавався б розмір усієї бази, не бачачи жодної зайвої картки.
    */
-  public async stats(includeInactive: boolean, viewer: Viewer): Promise<PeopleStats> {
+  public async stats(
+    includeInactive: boolean,
+    viewer: Viewer,
+    segment?: string,
+  ): Promise<PeopleStats> {
     const now = new Date();
     const monthAgo = new Date(now.getTime() - MONTH_MS);
     const visiblePeople = narrow(
-      includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } },
+      narrow(
+        includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } },
+        await this.segmentWhere(segment),
+      ),
       visibilityFor(viewer).rows,
     );
     // Крок, який мав бути зроблений до сьогодні й досі в роботі.
@@ -159,7 +169,10 @@ export class PersonService {
    */
   public async findIds(query: FindPeopleDto, viewer: Viewer): Promise<string[]> {
     const people = await this.prismaService.person.findMany({
-      where: narrow(buildPeopleWhere(query), visibilityFor(viewer).rows),
+      where: narrow(
+        narrow(buildPeopleWhere(query), await this.segmentWhere(query.segment)),
+        visibilityFor(viewer).rows,
+      ),
       select: { id: true },
     });
 
@@ -206,6 +219,28 @@ export class PersonService {
     });
 
     return people.map(({ id }) => id);
+  }
+
+  /**
+   * Чим дивимось на базу: усією церквою, лише відгалуженням чи всім іншим.
+   * D.Youth — фактично церква в церкві, і її цифри заважають тим, хто працює
+   * з рештою, так само як цифри решти заважають молодіжним адмінам.
+   */
+  private async segmentWhere(segment?: string): Promise<Prisma.PersonWhereInput | undefined> {
+    if (segment === undefined || segment === 'all') return undefined;
+
+    if (segment === 'rest') {
+      const branches = await this.prismaService.community.findMany({
+        where: { isBranch: true },
+        select: { id: true },
+      });
+
+      return branches.length === 0
+        ? undefined
+        : { NOT: { communities: { some: { id: { in: branches.map(({ id }) => id) } } } } };
+    }
+
+    return { communities: { some: { id: segment } } };
   }
 
   /** Перетин переданих ідентифікаторів з тим, що користувачу видно. */

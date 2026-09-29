@@ -80,6 +80,8 @@ export const peopleSearchSchema = z.object({
   filter: peopleFilterSchema.optional().catch(undefined),
   sort: z.enum([...PEOPLE_SORTS]).optional(),
   order: z.enum(['asc', 'desc']).optional(),
+  /** Якою частиною церкви дивимось: усією, відгалуженням чи рештою. */
+  segment: z.string().trim().max(64).optional(),
 });
 
 export type PeopleSearch = z.infer<typeof peopleSearchSchema>;
@@ -96,6 +98,7 @@ export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
   sort: search.sort ?? DEFAULT_SORT,
   order: search.order ?? (search.sort && search.sort !== DEFAULT_SORT ? 'asc' : DEFAULT_SORT_ORDER),
   ...(search.q ? { search: search.q } : {}),
+  ...(search.segment && search.segment !== 'all' ? { segment: search.segment } : {}),
   ...(search.filter ? { filter: search.filter } : {}),
   ...(search.communityId ? { communityId: search.communityId } : {}),
   ...(search.homeGroupId ? { homeGroupId: search.homeGroupId } : {}),
