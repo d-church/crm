@@ -9,6 +9,7 @@ import { hash, verify } from 'argon2';
 
 import { Prisma } from '@generated/prisma/client';
 import {
+  MinistryRole,
   PrismaService,
   ScopeLevel,
   UserModel,
@@ -217,6 +218,61 @@ export class UserService {
     });
   }
 
+  /**
+   * Що ця людина веде, але ще не довірене її обліковому запису. Лідерство саме по
+   * собі доступу не дає — його міняють у картці мимохідь, — але підказати варто:
+   * інакше адмін мусить памʼятати всю структуру церкви напамʼять.
+   */
+  public async suggestedScopes(userId: string): Promise<SuggestedScope[]> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: {
+        personId: true,
+        scopes: {
+          select: { communityId: true, homeGroupId: true, ministryId: true, trainingId: true },
+        },
+      },
+    });
+
+    if (!user?.personId) return [];
+
+    const [communities, homeGroups, ministries, trainings] = await Promise.all([
+      this.prismaService.community.findMany({
+        where: { leaderId: user.personId },
+        select: { id: true, name: true },
+      }),
+      this.prismaService.homeGroup.findMany({
+        where: { leaderId: user.personId },
+        select: { id: true, name: true },
+      }),
+      this.prismaService.ministry.findMany({
+        where: {
+          assignments: {
+            some: { personId: user.personId, role: MinistryRole.LEADER, until: null },
+          },
+        },
+        select: { id: true, name: true },
+      }),
+      this.prismaService.training.findMany({
+        where: { leaderId: user.personId },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    const taken = new Set(
+      user.scopes.flatMap((scope) =>
+        [scope.communityId, scope.homeGroupId, scope.ministryId, scope.trainingId].filter(Boolean),
+      ),
+    );
+
+    return [
+      ...communities.map((item) => ({ ...item, kind: 'community' as const })),
+      ...homeGroups.map((item) => ({ ...item, kind: 'homeGroup' as const })),
+      ...ministries.map((item) => ({ ...item, kind: 'ministry' as const })),
+      ...trainings.map((item) => ({ ...item, kind: 'training' as const })),
+    ].filter(({ id }) => !taken.has(id));
+  }
+
   public async addScope(userId: string, dto: CreateUserScopeDto): Promise<UserScope> {
     await this.findOne(userId);
 
@@ -326,6 +382,11 @@ const userWithAccessSelect = {
 export type User = Pick<UserModel, keyof typeof userSelect>;
 export type UserWithPassword = User & Pick<UserModel, 'password'>;
 export type UserScope = UserScopeModel;
+export type SuggestedScope = {
+  id: string;
+  name: string;
+  kind: 'community' | 'homeGroup' | 'ministry' | 'training';
+};
 export type UserWithAccess = Prisma.UserGetPayload<{ select: typeof userWithAccessSelect }>;
 export type AuthUser = User & {
   scopes: {

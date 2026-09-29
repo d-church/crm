@@ -71,7 +71,22 @@ const parseBoolean = ({ value }: TransformFnParams): unknown => {
   return raw;
 };
 
+/**
+ * Якою частиною церкви дивимось: усією, лише відгалуженням (D.Youth) або рештою.
+ * Значення — `all`, `rest` або ідентифікатор спільноти-відгалуження.
+ */
+export const PEOPLE_SEGMENTS = ['all', 'rest'] as const;
+
 export class FindPeopleDto {
+  @ApiPropertyOptional({
+    description: '«all», «rest» або ідентифікатор спільноти-відгалуження.',
+    default: 'all',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  segment?: string;
+
   @ApiPropertyOptional({
     default: false,
     description: 'Include people whose activity is INACTIVE.',

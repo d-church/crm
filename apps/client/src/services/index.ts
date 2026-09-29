@@ -6,6 +6,7 @@ export * from './care-service';
 export * from './church-role-service';
 export * from './connect-service';
 export * from './community-service';
+export * from './gathering-service';
 export * from './home-group-service';
 export * from './ministry-service';
 export * from './overview-service';

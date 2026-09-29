@@ -59,6 +59,12 @@ export const useLinkUserPerson = () => {
   return { linkPerson: mutation.mutateAsync, isPending: mutation.isPending };
 };
 
+export const useSuggestedScopes = (id: string) =>
+  useQuery({
+    queryKey: [...USERS_QUERY_KEY, id, 'suggested-scopes'] as const,
+    queryFn: () => UserService.suggestedScopes(id),
+  });
+
 export const useAddUserScope = () => {
   const queryClient = useQueryClient();
   const mutation = useMutation({

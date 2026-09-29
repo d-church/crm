@@ -5,6 +5,7 @@ import { AccessService } from '@/api/access/access.service';
 import type { Viewer } from '@/api/access/visibility';
 import type { Actor } from '@/api/activity/activity.service';
 import { Authorization, CurrentActor, CurrentViewer } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { CreateStepDto } from './dto/create-step.dto';
 import { CreateStepTypeDto, ReorderStepTypesDto, UpdateStepTypeDto } from './dto/step-type.dto';
@@ -27,28 +28,28 @@ export class StepController {
     return this.stepService.findTypes(includeArchived === 'true');
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Додати крок у довідник' })
   @Post('step-types')
   public createType(@Body() dto: CreateStepTypeDto) {
     return this.stepService.createType(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Перейменувати або заархівувати крок довідника' })
   @Patch('step-types/:id')
   public updateType(@Param('id') id: string, @Body() dto: UpdateStepTypeDto) {
     return this.stepService.updateType(id, dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Задати порядок кроків' })
   @Post('step-types/reorder')
   public reorderTypes(@Body() dto: ReorderStepTypesDto) {
     return this.stepService.reorderTypes(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Видалити крок довідника, якщо він нікому не призначений' })
   @Delete('step-types/:id')
   public removeType(@Param('id') id: string) {

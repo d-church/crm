@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-import { Button, Card, CardContent, Field, Label, Select } from '@/components/ui';
+import { Button, CardContent, Field, Label, Select } from '@/components/ui';
+import { SettingsSection } from '@/components/settings-section';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { useCommunities } from '@/modules/communities';
 import { PersonCombobox } from '@/components/person-combobox';
@@ -64,27 +65,37 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
   });
 
   return (
-    <Card>
+    <SettingsSection>
       <form onSubmit={onSubmit} noValidate>
-        <div className="border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
-          <span className="eyebrow text-muted-foreground">Основне</span>
-          <Button type="submit" size="sm" disabled={!isDirty || isPending}>
-            <Save />
-            {isPending ? 'Зберігаємо…' : 'Зберегти'}
-          </Button>
-        </div>
         <CardContent className="grid gap-4 p-5">
           <Field label="Назва" error={errors.name?.message} {...register('name')} />
           <div className="grid gap-1.5">
             <Label htmlFor="communityId">Спільнота</Label>
-            <Select id="communityId" {...register('communityId')}>
-              <option value="">Без спільноти (для всіх)</option>
-              {communities.map((community) => (
-                <option key={community.id} value={community.id}>
-                  {community.name}
-                </option>
-              ))}
-            </Select>
+            {/*
+             * Керований, а не через register: список спільнот приїжджає окремим
+             * запитом, і некерований select, зареєстрований до появи опцій,
+             * мовчки скидався б у «Без спільноти» — а збереження виносило б
+             * служіння зі спільноти, хоч його ніхто не чіпав.
+             */}
+            <Controller
+              control={control}
+              name="communityId"
+              render={({ field }) => (
+                <Select
+                  id="communityId"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                >
+                  <option value="">Без спільноти (для всіх)</option>
+                  {communities.map((community) => (
+                    <option key={community.id} value={community.id}>
+                      {community.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
             {errors.communityId ? (
               <p className="text-destructive text-[11.5px]">{errors.communityId.message}</p>
             ) : null}
@@ -104,8 +115,14 @@ export const MinistryInlineSection = ({ ministry }: { ministry: Ministry }) => {
               />
             )}
           />
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={!isDirty || isPending}>
+              <Save />
+              {isPending ? 'Зберігаємо…' : 'Зберегти'}
+            </Button>
+          </div>
         </CardContent>
       </form>
-    </Card>
+    </SettingsSection>
   );
 };

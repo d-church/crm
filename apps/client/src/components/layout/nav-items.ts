@@ -8,6 +8,7 @@ export type NavItem = {
 const BASE_NAV_ITEMS: NavItem[] = [
   { label: 'Огляд', to: '/overview' },
   { label: 'Люди', to: '/people' },
+  { label: 'Календар', to: '/calendar' },
   { label: 'Спільноти', to: '/communities' },
   { label: 'Домашні групи', to: '/home-groups' },
   { label: 'Служіння', to: '/ministries' },
@@ -35,15 +36,11 @@ export const getNavItems = (user: { role: UserRole; roles?: UserRole[] }): NavIt
 
   const hasConnect =
     roles.includes('CONNECT') || roles.includes('ADMIN') || roles.includes('SUPERADMIN');
-  const items = [
-    ...BASE_NAV_ITEMS,
-    ...(hasConnect ? [CONNECT_NAV_ITEM] : []),
-    STRUCTURE_NAV_ITEM,
-    ADMIN_NAV_ITEM,
-  ];
+  const items = [...BASE_NAV_ITEMS, ...(hasConnect ? [CONNECT_NAV_ITEM] : []), STRUCTURE_NAV_ITEM];
 
+  // Довідники й доступи міняють правила для всієї церкви, тож це суперадмінське.
   return roles.includes('SUPERADMIN')
-    ? [...items, { label: 'Користувачі CRM', to: '/users' }]
+    ? [...items, ADMIN_NAV_ITEM, { label: 'Користувачі CRM', to: '/users' }]
     : items;
 };
 import type { UserRole } from '@/services';

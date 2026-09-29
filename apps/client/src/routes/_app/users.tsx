@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { KeyRound, Plus, Trash2, UsersRound } from 'lucide-react';
 
 import { PageHeader } from '@/components/layout';
+import { isSuperadmin } from '@/modules/auth';
 import {
   Badge,
   Button,
@@ -40,7 +41,9 @@ const describeScopes = ({ roles, scopes }: User): string => {
 
 export const Route = createFileRoute('/_app/users')({
   beforeLoad: ({ context }) => {
-    if (context.user.role !== UserRole.SUPERADMIN) throw redirect({ to: '/' });
+    // Довідники й доступи — справа суперадміна: лідер і конект сюди не заходять
+    // навіть за прямим посиланням.
+    if (!isSuperadmin(context.user)) throw redirect({ to: '/' });
   },
   loader: ({ context }) => {
     void context.queryClient.prefetchQuery(usersQueryOptions());

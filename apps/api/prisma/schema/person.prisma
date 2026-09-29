@@ -135,6 +135,8 @@ model Person {
   events PersonEvent[] @relation("PersonEvents")
   /// Контакти, де ця людина була представником церкви.
   contacts PersonEvent[] @relation("PersonContacts")
+  /// Відмітки присутності на зібраннях.
+  attendances Attendance[]
   /// Журнал операцій над карткою — хто і що змінив.
   activities PersonActivity[]
   /// Сан у церкві: диякон, пресвітер, пастор — незалежно від служінь.

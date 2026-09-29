@@ -99,6 +99,13 @@ export class UserController {
   }
 
   @Authorization(Role.SUPERADMIN)
+  @ApiOperation({ summary: 'Що ця людина веде, але ще не довірене її обліковому запису' })
+  @Get(':id/suggested-scopes')
+  public suggestedScopes(@Param('id') userId: string) {
+    return this.userService.suggestedScopes(userId);
+  }
+
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Довірити користувачу спільноту, групу, служіння чи навчання' })
   @Post(':id/scopes')
   public addScope(@Param('id') userId: string, @Body() dto: CreateUserScopeDto) {

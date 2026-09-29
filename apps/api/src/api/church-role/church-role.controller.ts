@@ -5,6 +5,7 @@ import { AccessService } from '@/api/access/access.service';
 import type { Viewer } from '@/api/access/visibility';
 import type { Actor } from '@/api/activity/activity.service';
 import { Authorization, CurrentActor, CurrentViewer } from '@/common/decorators';
+import { Role } from '@/infra/prisma/prisma.service';
 
 import { ChurchRoleService } from './church-role.service';
 import {
@@ -31,28 +32,28 @@ export class ChurchRoleController {
     return this.churchRoleService.findTypes(includeArchived === 'true');
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Додати сан у довідник' })
   @Post('church-role-types')
   public createType(@Body() dto: CreateChurchRoleTypeDto) {
     return this.churchRoleService.createType(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Перейменувати або заархівувати сан' })
   @Patch('church-role-types/:id')
   public updateType(@Param('id') id: string, @Body() dto: UpdateChurchRoleTypeDto) {
     return this.churchRoleService.updateType(id, dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Задати порядок санів' })
   @Post('church-role-types/reorder')
   public reorderTypes(@Body() dto: ReorderChurchRoleTypesDto) {
     return this.churchRoleService.reorderTypes(dto);
   }
 
-  @Authorization()
+  @Authorization(Role.SUPERADMIN)
   @ApiOperation({ summary: 'Видалити сан, якщо він нікому не призначений' })
   @Delete('church-role-types/:id')
   public removeType(@Param('id') id: string) {

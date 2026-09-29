@@ -7,8 +7,6 @@ export interface Overview {
   needsAttention: PersonChoice[];
   overdueSteps: { id: string; person: PersonChoice; step: string; dueAt: string }[];
   birthdays: (PersonChoice & { birthDate: string })[];
-  /** Дірки, які бачить лише адмін: їх ніхто інший не закриє. */
-  gaps: { withoutCaregiver: number; stuckOnBoard: number } | null;
 }
 
 class OverviewServiceClass extends ApiService {

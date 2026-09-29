@@ -74,7 +74,7 @@ export class PersonController {
   @ApiOperation({ summary: 'Лічильники в межах видимості користувача' })
   @Get('stats')
   public stats(@Query() query: PeopleStatsDto, @CurrentViewer() viewer: Viewer) {
-    return this.personService.stats(query.includeInactive ?? false, viewer);
+    return this.personService.stats(query.includeInactive ?? false, viewer, query.segment);
   }
 
   @Authorization()

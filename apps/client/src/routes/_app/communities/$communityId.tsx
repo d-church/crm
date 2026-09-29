@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, Trash2, UsersRound } from 'lucide-react';
 import { z } from 'zod';
 
+import { DetailFacts, LeaderFact } from '@/components/detail-facts';
 import { PageHeader } from '@/components/layout';
 import { Button, Card, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -84,6 +85,14 @@ function CommunityDetailPage() {
           </Link>
         }
         title={community.name}
+        description={
+          <DetailFacts
+            items={[
+              community.isBranch ? 'Окреме відгалуження' : null,
+              <LeaderFact key="leader" label="Лідер" leader={community.leader} />,
+            ]}
+          />
+        }
         actions={
           <>
             <Button asChild variant="outline">
@@ -106,8 +115,6 @@ function CommunityDetailPage() {
       />
 
       <div className="grid gap-5">
-        <CommunityInlineSection community={community} />
-
         <Card className="overflow-hidden">
           <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-3.5">
             <span className="eyebrow text-muted-foreground">Люди спільноти</span>
@@ -148,6 +155,7 @@ function CommunityDetailPage() {
             </>
           )}
         </Card>
+        <CommunityInlineSection community={community} />
       </div>
     </>
   );

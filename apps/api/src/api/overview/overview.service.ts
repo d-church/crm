@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 
-import { CareOrigin, Prisma, StepState } from '@generated/prisma/client';
-import { isGlobalAdmin, narrow, visibilityFor, type Viewer } from '@/api/access/visibility';
+import { Prisma, StepState } from '@generated/prisma/client';
+import { careWhere, narrow, scopeWhere, type Viewer } from '@/api/access/visibility';
 import { addDays, toChurchDay, toMonthDay } from '@/api/person/filter/people-filter';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 const BRIEF = { id: true, firstName: true, lastName: true } as const;
 
+/** Порожня умова: користувач без підопічних і без областей бачить порожній огляд. */
+const NOBODY: Prisma.PersonWhereInput = { id: { in: [] } };
+
 const OPEN_STEPS = [StepState.PLANNED, StepState.IN_PROGRESS];
 
 /** Скільки днів наперед показуємо дні народження. */
 const BIRTHDAY_WINDOW_DAYS = 7;
-
-/** Скільки днів на борді конекту вважаємо застряганням. */
-const BOARD_STUCK_DAYS = 14;
 
 export type PersonBrief = { id: string; firstName: string; lastName: string | null };
 
@@ -26,32 +26,45 @@ export type Overview = {
   needsAttention: PersonBrief[];
   overdueSteps: { id: string; person: PersonBrief; step: string; dueAt: string }[];
   birthdays: (PersonBrief & { birthDate: string })[];
-  /** Дірки, які видно лише адміну: їх ніхто інший не закриє. */
-  gaps: { withoutCaregiver: number; stuckOnBoard: number } | null;
 };
 
 /**
- * Стартова сторінка лідера. Весь список людей церкви їй не потрібен: потрібні ті,
- * за кого він відповідає, і те, що з ними треба зробити найближчим часом.
+ * Стартова сторінка: тільки своє.
+ *
+ * «Своє» тут означає буквально — підопічні й довірені області, а не все, до чого
+ * є доступ. Адмін бачить усю церкву на сторінці людей; сюди він приходить за
+ * власною роботою, і глобальні цифри тут лише заважали б її побачити.
  */
 @Injectable()
 export class OverviewService {
   constructor(private readonly prismaService: PrismaService) {}
 
   public async forViewer(viewer: Viewer, now = new Date()): Promise<Overview> {
-    const { rows, pastoral } = visibilityFor(viewer);
     const today = toChurchDay(now);
+    // Підопічні — для пасторського, підопічні разом з областями — для решти.
+    const care = careWhere(viewer.personId);
+    const mine = this.mine(viewer);
 
-    const [wards, teams, needsAttention, overdueSteps, birthdays, gaps] = await Promise.all([
+    const [wards, teams, needsAttention, overdueSteps, birthdays] = await Promise.all([
       this.wards(viewer),
       this.teams(viewer),
-      this.people({ careNeeded: true }, pastoral, 20),
-      this.overdueSteps(pastoral, today),
-      this.birthdays(rows, today),
-      this.gaps(viewer, today),
+      this.people({ careNeeded: true }, care ?? NOBODY, 20),
+      this.overdueSteps(care ?? NOBODY, today),
+      this.birthdays(mine, today),
     ]);
 
-    return { wards, teams, needsAttention, overdueSteps, birthdays, gaps };
+    return { wards, teams, needsAttention, overdueSteps, birthdays };
+  }
+
+  /** Свої люди: підопічні плюс ті, що в довірених областях. */
+  private mine(viewer: Viewer): Prisma.PersonWhereInput {
+    const branches = [careWhere(viewer.personId), scopeWhere(viewer.scopes)].filter(
+      (branch): branch is Prisma.PersonWhereInput => branch !== null,
+    );
+
+    if (branches.length === 0) return NOBODY;
+
+    return branches.length === 1 ? branches[0] : { OR: branches };
   }
 
   private async wards(viewer: Viewer): Promise<PersonBrief[]> {
@@ -183,27 +196,6 @@ export class OverviewService {
         lastName,
         birthDate: toDay(birthDate as Date),
       }));
-  }
-
-  private async gaps(viewer: Viewer, today: Date): Promise<Overview['gaps']> {
-    if (!isGlobalAdmin(viewer)) return null;
-
-    const [withoutCaregiver, stuckOnBoard] = await Promise.all([
-      this.prismaService.person.count({ where: { careReceived: { none: { until: null } } } }),
-      this.prismaService.person.count({
-        where: {
-          careReceived: {
-            some: {
-              origin: CareOrigin.CONNECT,
-              until: null,
-              since: { lt: addDays(today, -BOARD_STUCK_DAYS) },
-            },
-          },
-        },
-      }),
-    ]);
-
-    return { withoutCaregiver, stuckOnBoard };
   }
 }
 

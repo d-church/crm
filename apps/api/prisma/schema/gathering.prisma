@@ -1,0 +1,98 @@
+/// Довідник видів зібрань: домашня група, недільне служіння, молитва, конференція.
+/// Окремо від «заходів» конекту: там записують, де познайомились, тут — що за зібрання.
+model GatheringType {
+  id String @id @default(uuid())
+
+  name String @unique
+  /// Порядок у списку — церква сама вирішує, що пропонувати першим.
+  sortOrder Int @default(0) @map("sort_order")
+  /// Архівний вид не пропонують для нових зібрань, але старі лишаються.
+  isArchived Boolean @default(false) @map("is_archived")
+
+  gatherings Gathering[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("gathering_types")
+}
+
+/// Одне зібрання в календарі.
+///
+/// Область має ту саму форму, що й область доступу: рівно одне посилання або
+/// жодного. Жодного означає загальноцерковне — таке бачать усі. Завдяки цьому
+/// видимість календаря рахується тим самим предикатом, що й видимість людей.
+model Gathering {
+  id String @id @default(uuid())
+
+  typeId String        @map("type_id")
+  type   GatheringType @relation(fields: [typeId], references: [id], onDelete: Restrict)
+
+  /// Порожня назва означає «як вид»: щотижнева домашка власного імені не потребує.
+  title    String?
+  startsAt DateTime @map("starts_at")
+  note     String?
+  /// Скільки було гостей без картки — для загальної цифри.
+  guestCount Int @default(0) @map("guest_count")
+
+  communityId String?    @map("community_id")
+  community   Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  homeGroupId String?    @map("home_group_id")
+  homeGroup   HomeGroup? @relation(fields: [homeGroupId], references: [id], onDelete: Cascade)
+
+  ministryId String?   @map("ministry_id")
+  ministry   Ministry? @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  trainingId String?   @map("training_id")
+  training   Training? @relation(fields: [trainingId], references: [id], onDelete: Cascade)
+
+  attendances Attendance[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([startsAt])
+  @@index([typeId])
+  @@index([communityId])
+  @@index([homeGroupId])
+  @@index([ministryId])
+  @@index([trainingId])
+  @@map("gatherings")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+
+  @@map("attendance_statuses")
+}
+
+/// Відмітка про одну людину на одному зібранні.
+///
+/// Рядок створюється і на присутніх, і на відсутніх: інакше не буде знаменника
+/// для метрик. Відсутність рядка — це третій стан, «невідомо», а не «не був».
+model Attendance {
+  id String @id @default(uuid())
+
+  gatheringId String    @map("gathering_id")
+  gathering   Gathering @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
+
+  personId String @map("person_id")
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  status AttendanceStatus
+
+  /// Хто відмітив: на загальноцерковному одну людину можуть відмітити двоє.
+  markedById   String? @map("marked_by_id")
+  markedBy     User?   @relation(fields: [markedById], references: [id], onDelete: SetNull)
+  markedByName String? @map("marked_by_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([gatheringId, personId])
+  @@index([personId])
+  @@index([status])
+  @@map("attendances")
+}

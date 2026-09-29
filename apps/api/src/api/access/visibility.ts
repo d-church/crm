@@ -131,6 +131,39 @@ const or = (branches: Prisma.PersonWhereInput[]): Prisma.PersonWhereInput | null
   return branches.length === 1 ? branches[0] : { OR: branches };
 };
 
+/**
+ * Які зібрання видно. Загальноцерковні — усім: вони й є спільними. Решта —
+ * лише тим, кому довірено відповідну область. Адміну без областей видно все.
+ *
+ * `undefined` означає «весь календар», як і в решті модуля.
+ */
+export const gatheringWhere = (viewer: Viewer): Prisma.GatheringWhereInput | undefined => {
+  if (viewer.roles.length === 0) return { id: { in: [] } };
+  if (isGlobalAdmin(viewer)) return undefined;
+
+  const ids = (key: keyof ViewerScope) =>
+    viewer.scopes.map((scope) => scope[key]).filter((value): value is string => value !== null);
+
+  const branches: Prisma.GatheringWhereInput[] = [
+    // Загальноцерковне зібрання не має області — його бачать усі.
+    { communityId: null, homeGroupId: null, ministryId: null, trainingId: null },
+  ];
+  const targets: [keyof ViewerScope, keyof Prisma.GatheringWhereInput][] = [
+    ['communityId', 'communityId'],
+    ['homeGroupId', 'homeGroupId'],
+    ['ministryId', 'ministryId'],
+    ['trainingId', 'trainingId'],
+  ];
+
+  for (const [scopeKey, column] of targets) {
+    const scoped = ids(scopeKey);
+
+    if (scoped.length > 0) branches.push({ [column]: { in: scoped } });
+  }
+
+  return { OR: branches };
+};
+
 /** Складає видимість з фільтром користувача: обидві умови мають виконатись. */
 export const narrow = (
   where: Prisma.PersonWhereInput,

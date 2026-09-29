@@ -30,7 +30,10 @@ function OverviewPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Огляд" title="Найближче до роботи" />
+      <PageHeader
+        title="Огляд"
+        description="Ваші підопічні, ваші команди, ваші найближчі справи."
+      />
 
       {isPending ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -40,15 +43,6 @@ function OverviewPage() {
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {overview.gaps ? (
-            <Card title="Дірки" icon={<CircleAlert className="size-4" />} className="sm:col-span-2">
-              <div className="flex flex-wrap gap-x-8 gap-y-2">
-                <Gap value={overview.gaps.withoutCaregiver} label="без попечителя" />
-                <Gap value={overview.gaps.stuckOnBoard} label="висять на борді понад два тижні" />
-              </div>
-            </Card>
-          ) : null}
-
           <Card
             title={`Мої підопічні${overview.wards.length > 0 ? ` · ${overview.wards.length}` : ''}`}
             icon={<HeartHandshake className="size-4" />}
@@ -137,16 +131,6 @@ const Card = ({
     </h2>
     {children}
   </section>
-);
-
-/** Дірку показуємо числом: нуль тут — теж відповідь, і добра. */
-const Gap = ({ value, label }: { value: number; label: string }) => (
-  <span className="grid">
-    <span className={value > 0 ? 'text-destructive text-[20px]' : 'text-ink text-[20px]'}>
-      {value}
-    </span>
-    <span className="text-ink-faint text-[11.5px]">{label}</span>
-  </span>
 );
 
 const Empty = ({ children }: { children: ReactNode }) => (
