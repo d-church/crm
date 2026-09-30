@@ -7,19 +7,22 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Адміністратор',
   LEADER: 'Лідер',
   CONNECT: 'Конект',
+  PASTOR: 'Пастор',
 };
 
 /** Що саме роль дозволяє — підказка під галочкою в адмінці. */
 export const USER_ROLE_HINTS: Record<UserRole, string> = {
   SUPERADMIN: 'Уся система: користувачі, доступи, довідники, чистка журналу',
-  ADMIN: 'Повний доступ до людей у своїй області; без областей — до всієї бази',
-  LEADER: 'Веде своїх: командний шар учасників, пасторський — лише підопічних',
+  ADMIN: 'Веде реєстр: створює людей, переставляє в структурі, призначає попечителів',
+  LEADER: 'Веде свої команди: командний шар учасників',
   CONNECT: 'Заводить нових людей у свою спільноту і веде їх до передачі далі',
+  PASTOR: 'Відкриває пасторський шар по всіх, кого видно. Нікого до видимих не додає',
 };
 
 export const USER_ROLES: UserRole[] = [
   UserRole.SUPERADMIN,
   UserRole.ADMIN,
+  UserRole.PASTOR,
   UserRole.LEADER,
   UserRole.CONNECT,
 ];

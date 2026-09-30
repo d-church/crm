@@ -56,6 +56,15 @@ export const personSchema = z.object({
   notes: optionalText(2000),
 });
 
+/**
+ * На створенні гілку треба назвати одразу: людина без спільноти не потрапляє
+ * ні в D.Youth, ні в D.Church і губиться в загальному списку. На редагуванні
+ * порожньо дозволено — у базі є колишні члени без жодної спільноти.
+ */
+export const createPersonSchema = personSchema.extend({
+  communityIds: z.array(databaseUuidSchema).min(1, 'Оберіть хоча б одну спільноту'),
+});
+
 export type PersonValues = z.infer<typeof personSchema>;
 export type PersonField = keyof PersonValues;
 export type PersonPayload = Omit<

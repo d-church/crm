@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  ArrayNotEmpty,
   ArrayUnique,
   IsArray,
   IsDateString,
@@ -189,18 +190,20 @@ export class CreatePersonDto {
   @IsEnum(FollowUpState)
   followUp?: FollowUpState;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: ['00000000-0000-4000-8000-000000000001'],
-    description: 'Повний набір спільнот людини.',
+    description:
+      'Повний набір спільнот людини. Хоча б одна обовʼязкова: людина без спільноти ' +
+      'не потрапляє в жодну гілку церкви і видима лише в загальному списку.',
   })
-  @IsOptional()
   @IsArray()
+  @ArrayNotEmpty({ message: 'Оберіть хоча б одну спільноту' })
   @ArrayUnique()
   @Matches(DATABASE_UUID_PATTERN, {
     each: true,
     message: 'each value in communityIds must be a UUID',
   })
-  communityIds?: string[];
+  communityIds: string[];
 
   @ApiPropertyOptional({
     example: '00000000-0000-4000-8000-000000000001',

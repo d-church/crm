@@ -27,6 +27,24 @@ const STRUCTURE_FIELDS = [
 /** Те, що потрібно, щоб вести команду: навантаження, відвідуваність, звʼязок. */
 const TEAM_FIELDS = [...STRUCTURE_FIELDS, 'phone', 'city', 'birthDate', 'birthMd'] as const;
 
+/**
+ * Дані реєстру: як з людиною звʼязатися, коли прийшла, коли хрестилась. Їх веде
+ * адміністратор, і для цього не треба знати, що з людиною відбувається — саме
+ * тому вони окремо від пасторського шару, а не всередині нього.
+ */
+const REGISTRY_FIELDS = [
+  ...TEAM_FIELDS,
+  'email',
+  'address',
+  'postalCode',
+  'district',
+  'region',
+  'homePhone',
+  'workPhone',
+  'firstVisitAt',
+  'connectedBy',
+] as const;
+
 /** Звʼязки, які лишаються на командному шарі. Решта — пасторські. */
 const TEAM_RELATIONS = [
   'communities',
@@ -41,8 +59,10 @@ const TEAM_RELATIONS = [
 ] as const;
 
 const TEAM_KEYS: ReadonlySet<string> = new Set<string>([...TEAM_FIELDS, ...TEAM_RELATIONS]);
+const REGISTRY_KEYS: ReadonlySet<string> = new Set<string>([...REGISTRY_FIELDS, ...TEAM_RELATIONS]);
 
-export type PersonLayer = 'team' | 'pastoral';
+/** Шари вкладені: кожен наступний містить попередній. */
+export type PersonLayer = 'team' | 'registry' | 'pastoral';
 
 /** Що картка про себе повідомляє: який шар відкритий тому, хто її отримав. */
 export type PersonAccess = { pastoral: boolean };
@@ -60,10 +80,11 @@ export const applyLayer = <T extends { id: string }>(
 ): T & { access: PersonAccess } => {
   if (layer === 'pastoral') return { ...person, access: { pastoral: true } };
 
+  const allowed = layer === 'registry' ? REGISTRY_KEYS : TEAM_KEYS;
   const visible: Record<string, unknown> = { access: { pastoral: false } };
 
   for (const [key, value] of Object.entries(person)) {
-    if (TEAM_KEYS.has(key)) visible[key] = value;
+    if (allowed.has(key)) visible[key] = value;
   }
 
   return visible as T & { access: PersonAccess };

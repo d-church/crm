@@ -29,6 +29,7 @@ import {
   assertBulkActionAllowed,
   assertStructuralAllowed,
   bulkTouchesPastoral,
+  isAdmin,
   touchesPastoral,
 } from '@/api/access/writes';
 
@@ -532,9 +533,11 @@ export class PersonService {
       select: { id: true },
     });
     const openIds = new Set(open.map(({ id }) => id));
+    // Кому пасторський шар закритий, той бачить реєстр (адмін) або команду (решта).
+    const shallow = isAdmin(viewer) ? 'registry' : 'team';
 
     return people.map((person) =>
-      applyLayer(withPartners(person, reachable), openIds.has(person.id) ? 'pastoral' : 'team'),
+      applyLayer(withPartners(person, reachable), openIds.has(person.id) ? 'pastoral' : shallow),
     );
   }
 
