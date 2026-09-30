@@ -35,17 +35,31 @@ const viewer = (patch: Partial<Viewer> = {}): Viewer => ({
 const CARE = { careReceived: { some: { caregiverId: PERSON_ID, until: null } } };
 
 describe('visibilityFor', () => {
-  it('віддає всю базу суперадміну', () => {
+  it('віддає всю базу суперадміну — але не пасторський шар', () => {
     expect(visibilityFor(viewer({ roles: [Role.SUPERADMIN] }))).toEqual({
+      rows: undefined,
+      pastoral: CARE,
+    });
+  });
+
+  it('віддає всю базу адміну без жодної області — без пасторського шару', () => {
+    expect(visibilityFor(viewer({ roles: [Role.ADMIN] }))).toEqual({
+      rows: undefined,
+      pastoral: CARE,
+    });
+  });
+
+  it('відкриває пасторський шар по всій церкві лише з роллю пастора', () => {
+    expect(visibilityFor(viewer({ roles: [Role.ADMIN, Role.PASTOR] }))).toEqual({
       rows: undefined,
       pastoral: undefined,
     });
   });
 
-  it('віддає всю базу адміну без жодної області', () => {
-    expect(visibilityFor(viewer({ roles: [Role.ADMIN] }))).toEqual({
+  it('не лишає пасторського шару адміну без звʼязку з людиною', () => {
+    expect(visibilityFor(viewer({ roles: [Role.ADMIN], personId: null }))).toEqual({
       rows: undefined,
-      pastoral: undefined,
+      pastoral: NOBODY,
     });
   });
 
@@ -53,15 +67,45 @@ describe('visibilityFor', () => {
     expect(visibilityFor(viewer())).toEqual({ rows: NOBODY, pastoral: NOBODY });
   });
 
-  it('замикає адміна спільноти на його спільноту — разом з пасторським шаром', () => {
+  it('замикає адміна спільноти на його спільноту, а пасторський шар — на підопічних', () => {
     const result = visibilityFor(
       viewer({ roles: [Role.ADMIN], scopes: [scope({ communityId: COMMUNITY_ID })] }),
     );
 
     expect(result.rows).toEqual({
-      OR: [{ communities: { some: { id: { in: [COMMUNITY_ID] } } } }, CARE],
+      OR: [CARE, { communities: { some: { id: { in: [COMMUNITY_ID] } } } }],
     });
-    expect(result.pastoral).toEqual(result.rows);
+    expect(result.pastoral).toEqual(CARE);
+  });
+
+  it('відкриває пастору область цілком, нікого до неї не додаючи', () => {
+    const rows = {
+      OR: [CARE, { communities: { some: { id: { in: [COMMUNITY_ID] } } } }],
+    };
+    const result = visibilityFor(
+      viewer({
+        roles: [Role.ADMIN, Role.PASTOR],
+        scopes: [scope({ communityId: COMMUNITY_ID })],
+      }),
+    );
+
+    expect(result.rows).toEqual(rows);
+    expect(result.pastoral).toEqual(rows);
+  });
+
+  it('дає пастору без інших ролей лише підопічних', () => {
+    expect(visibilityFor(viewer({ roles: [Role.PASTOR] }))).toEqual({
+      rows: CARE,
+      pastoral: CARE,
+    });
+  });
+
+  it('не розширює пастором області, яких не давали', () => {
+    expect(
+      visibilityFor(
+        viewer({ roles: [Role.PASTOR], scopes: [scope({ communityId: COMMUNITY_ID })] }),
+      ).rows,
+    ).toEqual(CARE);
   });
 
   it('дає лідеру командний шар за областю, а пасторський — лише над підопічними', () => {
@@ -95,7 +139,9 @@ describe('visibilityFor', () => {
         CARE,
         {
           communities: { some: { id: { in: [COMMUNITY_ID] } } },
-          careReceived: { some: { origin: CareOrigin.CONNECT, until: null } },
+          careReceived: {
+            some: { origin: CareOrigin.CONNECT, caregiverId: PERSON_ID, until: null },
+          },
         },
       ],
     });
@@ -121,7 +167,9 @@ describe('visibilityFor', () => {
         },
         {
           communities: { some: { id: { in: [COMMUNITY_ID] } } },
-          careReceived: { some: { origin: CareOrigin.CONNECT, until: null } },
+          careReceived: {
+            some: { origin: CareOrigin.CONNECT, caregiverId: PERSON_ID, until: null },
+          },
         },
       ],
     });
@@ -142,7 +190,22 @@ describe('scopeWhere', () => {
 
 describe('boardWhere', () => {
   it('тримається лише спільнот: домашня група бордою не є', () => {
-    expect(boardWhere([scope({ homeGroupId: HOME_GROUP_ID })])).toBeNull();
+    expect(boardWhere(viewer({ scopes: [scope({ homeGroupId: HOME_GROUP_ID })] }))).toBeNull();
+  });
+
+  it('лишає служителю лише тих, кого він привів сам', () => {
+    expect(boardWhere(viewer({ scopes: [scope({ communityId: COMMUNITY_ID })] }))).toEqual({
+      communities: { some: { id: { in: [COMMUNITY_ID] } } },
+      careReceived: {
+        some: { origin: CareOrigin.CONNECT, caregiverId: PERSON_ID, until: null },
+      },
+    });
+  });
+
+  it('порожня, поки облікового запису не звʼязано з людиною', () => {
+    expect(
+      boardWhere(viewer({ personId: null, scopes: [scope({ communityId: COMMUNITY_ID })] })),
+    ).toBeNull();
   });
 });
 

@@ -17,6 +17,7 @@ const leader: Viewer = {
   scopes: [],
 };
 const admin: Viewer = { ...leader, roles: [Role.ADMIN] };
+const pastor: Viewer = { ...leader, roles: [Role.ADMIN, Role.PASTOR] };
 
 describe('assertStructuralAllowed', () => {
   it('не дає лідеру перенести людину в іншу домашню групу', () => {
@@ -58,8 +59,22 @@ describe('touchesPastoral', () => {
     expect(touchesPastoral(leader, { phone: '067', lastSeenAt: '2026-09-01' })).toBe(false);
   });
 
-  it('адміну опіка не потрібна', () => {
-    expect(touchesPastoral(admin, { notes: 'x' })).toBe(false);
+  it.each(['membership', 'activity', 'address', 'email', 'baptizedAt'])(
+    'не вимагає опіки від адміна для облікового поля %s',
+    (field) => {
+      expect(touchesPastoral(admin, { [field]: 'x' })).toBe(false);
+    },
+  );
+
+  it.each(['notes', 'careNeeded', 'maritalStatus', 'orphanStatus'])(
+    'вимагає перевірки по людині навіть від адміна: %s',
+    (field) => {
+      expect(touchesPastoral(admin, { [field]: 'x' })).toBe(true);
+    },
+  );
+
+  it('перевіряє пастора так само — ширшим його робить не роль, а видимість', () => {
+    expect(touchesPastoral(pastor, { notes: 'x' })).toBe(true);
   });
 });
 
@@ -76,8 +91,20 @@ describe('масові дії', () => {
     expect(bulkTouchesPastoral(leader, 'careNeeded')).toBe(true);
   });
 
-  it('адміну списком можна все', () => {
+  it('дає адміну переставляти людей списком', () => {
     expect(() => assertBulkActionAllowed(admin, 'homeGroup')).not.toThrow();
-    expect(bulkTouchesPastoral(admin, 'careNeeded')).toBe(false);
+    expect(bulkTouchesPastoral(admin, 'homeGroup')).toBe(false);
+  });
+
+  it.each(['careNeeded', 'step'])(
+    'звужує пасторську дію списком до підопічних навіть адміну: %s',
+    (action) => {
+      expect(bulkTouchesPastoral(admin, action)).toBe(true);
+    },
+  );
+
+  it('лишає адміну облікові дії списком без опіки', () => {
+    expect(bulkTouchesPastoral(admin, 'membership')).toBe(false);
+    expect(bulkTouchesPastoral(admin, 'churchRole')).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { isAdmin, useAuth } from '@/modules/auth';
 import type { Person } from '@/services';
 
 import { useUpdatePerson } from './hooks';
@@ -34,8 +35,12 @@ import { SectionCard } from './section-card';
  * небагато, тож кожна має власний заголовок — шукати поле не доводиться.
  */
 export const PersonDetails = ({ person }: { person: Person }) => {
+  const { user } = useAuth();
   // Сервер сам каже, що віддав. Старі відповіді без цієї позначки вважаємо повними.
   const hasPastoral = person.access?.pastoral !== false;
+  // Адмін веде реєстр і без пасторського шару, тож порожні облікові поля —
+  // контакти, дати, хто привів — йому пропонуємо так само, як попечителю.
+  const canAddFields = hasPastoral || (user ? isAdmin(user) : false);
 
   const groups = (column: 'main' | 'side') =>
     PERSON_FIELD_GROUPS.filter((group) => (group.column ?? 'side') === column).map((group) => (
@@ -44,7 +49,7 @@ export const PersonDetails = ({ person }: { person: Person }) => {
         person={person}
         {...group}
         withChurchRoles={group.title === 'Шлях у церкві'}
-        canAddFields={hasPastoral}
+        canAddFields={canAddFields}
       />
     ));
 

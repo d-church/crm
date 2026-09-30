@@ -41,6 +41,13 @@ export const isGlobalAdmin = (viewer: Viewer): boolean =>
   has(viewer, Role.SUPERADMIN) || (has(viewer, Role.ADMIN) && viewer.scopes.length === 0);
 
 /**
+ * Чи відкритий пасторський шар по всьому, що користувач бачить. Роль `PASTOR`
+ * нікого не додає до видимих — вона міняє глибину, а не обсяг. Адміністрування
+ * системи такою підставою не є: `SUPERADMIN` без цієї ролі нотаток не читає.
+ */
+export const isPastor = (viewer: Viewer): boolean => has(viewer, Role.PASTOR);
+
+/**
  * Люди, повʼязані з областями безпосередньо. Область «спільнота» не відкриває
  * людей усіх служінь усередині неї — лише учасників самої спільноти.
  */
@@ -71,17 +78,22 @@ export const careWhere = (personId: string | null): Prisma.PersonWhereInput | nu
   personId === null ? null : { careReceived: { some: { caregiverId: personId, until: null } } };
 
 /**
- * Борда конекту: нові люди спільноти, яких ще не передали далі. Саме «ще не передали»,
- * а не «колись завели» — інакше за рік команда накопичить видимість пів церкви.
+ * Борда конекту: люди, яких цей служитель привів сам і ще не передав далі.
+ *
+ * Саме «привів сам», а не «борда команди»: чужу нову людину веде колега, і бачити
+ * її картку — не робота служителя. І саме «ще не передав», а не «колись завів» —
+ * інакше за рік команда накопичить видимість пів церкви.
  */
-export const boardWhere = (scopes: ViewerScope[]): Prisma.PersonWhereInput | null => {
-  const communityIds = ids(scopes, 'communityId');
+export const boardWhere = (viewer: Viewer): Prisma.PersonWhereInput | null => {
+  const communityIds = ids(viewer.scopes, 'communityId');
 
-  return communityIds.length === 0
+  return communityIds.length === 0 || viewer.personId === null
     ? null
     : {
         communities: { some: { id: { in: communityIds } } },
-        careReceived: { some: { origin: CareOrigin.CONNECT, until: null } },
+        careReceived: {
+          some: { origin: CareOrigin.CONNECT, caregiverId: viewer.personId, until: null },
+        },
       };
 };
 
@@ -94,28 +106,27 @@ export const visibilityFor = (viewer: Viewer): Visibility => {
   // інакше користувач, у якого забрали всі ролі, лишився б з підопічними.
   if (viewer.roles.length === 0) return { rows: NOBODY, pastoral: NOBODY };
 
-  if (isGlobalAdmin(viewer)) return { rows: undefined, pastoral: undefined };
-
   const care = careWhere(viewer.personId);
-  const scope = scopeWhere(viewer.scopes);
+  // Пасторський шар дає опіка над конкретною людиною або роль `PASTOR` — і більше
+  // ніщо. Роль поширює його рівно на ті рядки, які користувач бачить і так.
+  const deep = isPastor(viewer);
 
-  // Адмін з областю бачить її цілком — і командний шар, і пасторський.
-  if (has(viewer, Role.ADMIN)) {
-    const rows = or(compact([scope, care]));
-
-    return { rows: rows ?? NOBODY, pastoral: rows ?? NOBODY };
+  if (isGlobalAdmin(viewer)) {
+    return { rows: undefined, pastoral: deep ? undefined : (care ?? NOBODY) };
   }
 
   const branches: (Prisma.PersonWhereInput | null)[] = [care];
 
-  if (has(viewer, Role.LEADER)) branches.push(scope);
-  // Конект бачить не всю спільноту, а лише свою борду в ній.
-  if (has(viewer, Role.CONNECT)) branches.push(boardWhere(viewer.scopes));
+  // Адмін і лідер ходять по тих самих областях — різниця між ними не в тому,
+  // кого видно, а в тому, який шар картки відкритий і що можна міняти.
+  if (has(viewer, Role.ADMIN) || has(viewer, Role.LEADER)) branches.push(scopeWhere(viewer.scopes));
+  // Конект бачить не всю спільноту й не борду команди, а лише тих, кого привів сам.
+  // Це підмножина опіки вище — гілка лишається, щоб правило було видно явно.
+  if (has(viewer, Role.CONNECT)) branches.push(boardWhere(viewer));
 
-  return {
-    rows: or(compact(branches)) ?? NOBODY,
-    pastoral: care ?? NOBODY,
-  };
+  const rows = or(compact(branches)) ?? NOBODY;
+
+  return { rows, pastoral: deep ? rows : (care ?? NOBODY) };
 };
 
 const ids = (scopes: ViewerScope[], key: keyof ViewerScope): string[] =>

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { ActivityKind, CareOrigin, Prisma, StepState } from '@generated/prisma/client';
+import { isAdmin } from '@/api/access/writes';
 import type { Viewer } from '@/api/access/visibility';
 import { ActivityService, type Actor } from '@/api/activity/activity.service';
 import { PrismaService } from '@/infra/prisma/prisma.service';
@@ -10,23 +11,34 @@ import { HandoverDto, QuickAddDto } from './dto/connect.dto';
 /** Крок, який конект призначає одразу: далі його або роблять, або передають. */
 const FOLLOW_UP_STEP = 'Фолов-ап';
 
-const BOARD_INCLUDE = {
+/**
+ * Борда перелічує поля поіменно, а не бере картку цілком: `include` віддав би
+ * усі скалярні поля людини — разом з нотатками й адресою, — а борді потрібні
+ * імʼя, звʼязок і стан фолов-апу.
+ */
+const BOARD_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  createdAt: true,
   careReceived: {
     where: { origin: CareOrigin.CONNECT, until: null },
-    include: { caregiver: { select: { id: true, firstName: true, lastName: true } } },
+    select: { id: true, caregiver: { select: { id: true, firstName: true, lastName: true } } },
   },
   events: {
     where: { eventTypeId: { not: null } },
-    include: { eventType: { select: { name: true } } },
+    select: { id: true, occurredAt: true, eventType: { select: { name: true } } },
     orderBy: { occurredAt: 'desc' },
     take: 1,
   },
   steps: {
     where: { stepType: { name: FOLLOW_UP_STEP } },
+    select: { id: true, state: true },
     orderBy: { createdAt: 'desc' },
     take: 1,
   },
-} as const satisfies Prisma.PersonInclude;
+} as const satisfies Prisma.PersonSelect;
 
 /**
  * Конект: не «додати контакт», а відкрити людині шлях. З одного екрана постає
@@ -41,16 +53,36 @@ export class ConnectService {
   ) {}
 
   public async board(viewer: Viewer): Promise<BoardPerson[]> {
-    const communityIds = this.communitiesOf(viewer);
-
     return this.prismaService.person.findMany({
-      where: {
-        communities: { some: { id: { in: communityIds } } },
-        careReceived: { some: { origin: CareOrigin.CONNECT, until: null } },
-      },
-      include: BOARD_INCLUDE,
+      where: this.boardScope(viewer),
+      select: BOARD_SELECT,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Чия це борда. Служитель веде тих, кого привів сам, — чужі нові люди не його
+   * робота, а отже й не його доступ. Адмін дивиться на борду спільноти цілком:
+   * йому потрібно бачити саме тих, хто на ній засидівся.
+   */
+  private boardScope(viewer: Viewer): Prisma.PersonWhereInput {
+    const communityIds = this.communitiesOf(viewer);
+    const open = { origin: CareOrigin.CONNECT, until: null };
+
+    if (isAdmin(viewer)) {
+      return {
+        communities: { some: { id: { in: communityIds } } },
+        careReceived: { some: open },
+      };
+    }
+
+    // Без звʼязку з людиною в базі служитель нікого не привів — і борда порожня.
+    if (viewer.personId === null) return { id: { in: [] } };
+
+    return {
+      communities: { some: { id: { in: communityIds } } },
+      careReceived: { some: { ...open, caregiverId: viewer.personId } },
+    };
   }
 
   public async quickAdd(dto: QuickAddDto, actor: Actor, viewer: Viewer): Promise<BoardPerson> {
@@ -90,7 +122,7 @@ export class ConnectService {
           },
         },
       },
-      include: BOARD_INCLUDE,
+      select: BOARD_SELECT,
     });
 
     await this.activityService.log(
@@ -115,14 +147,10 @@ export class ConnectService {
     actor: Actor,
     viewer: Viewer,
   ): Promise<BoardPerson> {
-    const communityIds = this.communitiesOf(viewer);
+    // Передати можна лише свого: інакше служитель забирав би людей у колег.
     const person = await this.prismaService.person.findFirst({
-      where: {
-        id: personId,
-        communities: { some: { id: { in: communityIds } } },
-        careReceived: { some: { origin: CareOrigin.CONNECT, until: null } },
-      },
-      include: BOARD_INCLUDE,
+      where: { id: personId, ...this.boardScope(viewer) },
+      select: BOARD_SELECT,
     });
 
     if (!person) throw new NotFoundException('Людини немає на вашій борді');
@@ -165,7 +193,7 @@ export class ConnectService {
 
     return this.prismaService.person.findUniqueOrThrow({
       where: { id: personId },
-      include: BOARD_INCLUDE,
+      select: BOARD_SELECT,
     });
   }
 
@@ -183,4 +211,4 @@ export class ConnectService {
   }
 }
 
-export type BoardPerson = Prisma.PersonGetPayload<{ include: typeof BOARD_INCLUDE }>;
+export type BoardPerson = Prisma.PersonGetPayload<{ select: typeof BOARD_SELECT }>;

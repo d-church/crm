@@ -32,6 +32,7 @@ import { TrainingCheckboxes } from './training-checkboxes';
 import { PERSON_GENDERS, PERSON_GENDER_LABELS } from './gender';
 import {
   EMPTY_PERSON_VALUES,
+  createPersonSchema,
   personSchema,
   toPersonPayload,
   toPersonValues,
@@ -74,7 +75,7 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
     reset,
     formState: { errors },
   } = useForm<PersonValues>({
-    resolver: zodResolver(personSchema),
+    resolver: zodResolver(isEdit ? personSchema : createPersonSchema),
     defaultValues: initial,
   });
 

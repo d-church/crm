@@ -8,8 +8,11 @@ export const ALL_SEGMENT = 'all';
 export const REST_SEGMENT = 'rest';
 
 /**
- * D.Youth — фактично церква в церкві: своя структура, свої адміни, свої цифри.
- * Тому база дивиться трьома способами — уся церква, лише відгалуження, решта.
+ * Гілки церкви — D.Youth і D.Church — це фактично церква в церкві: своя структура,
+ * свої адміни, свої цифри. Перемикач дає подивитися на базу цілком або однією гілкою.
+ *
+ * «Решта» лишається тільки для однієї гілки, де вона й читається як «без неї».
+ * Коли гілок кілька, кожна має свою кнопку, і заперечення вже нічого не називає.
  * Перемикач зникає сам, якщо жодної спільноти не позначено відгалуженням.
  */
 export const PeopleSegment = ({
@@ -27,7 +30,7 @@ export const PeopleSegment = ({
   const options = [
     { value: ALL_SEGMENT, label: 'Усі' },
     ...branches.map((branch) => ({ value: branch.id, label: branch.name })),
-    { value: REST_SEGMENT, label: branches.length === 1 ? `Без ${branches[0].name}` : 'Решта' },
+    ...(branches.length === 1 ? [{ value: REST_SEGMENT, label: `Без ${branches[0].name}` }] : []),
   ];
 
   return (
