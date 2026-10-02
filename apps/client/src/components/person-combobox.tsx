@@ -204,7 +204,10 @@ export const PersonCombobox = ({
                 // Для діалогу клік у body — клік «зовні», і вибір людини закривав би
                 // сам діалог. Подія далі не йде, тож діалог її не бачить.
                 onPointerDown={(event) => event.stopPropagation()}
-                className="bg-popover border-input-border fixed z-60 flex flex-col overflow-hidden rounded-md border py-1 shadow-lg"
+                // `pointer-events-auto` обовʼязковий: поки відкритий діалог, Radix
+                // гасить вказівник на всьому `body`, а список висить саме там —
+                // без цього він видимий, але не клікається взагалі.
+                className="bg-popover border-input-border pointer-events-auto fixed z-60 flex flex-col overflow-hidden rounded-md border py-1 shadow-lg"
               >
                 <button
                   type="button"
