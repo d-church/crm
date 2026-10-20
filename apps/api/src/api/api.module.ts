@@ -15,6 +15,7 @@ import { MinistryModule } from '@/api/ministry/ministry.module';
 import { OverviewModule } from '@/api/overview/overview.module';
 import { PersonEventModule } from '@/api/person-event/person-event.module';
 import { PersonModule } from '@/api/person/person.module';
+import { StatisticsModule } from '@/api/statistics/statistics.module';
 import { StepModule } from '@/api/step/step.module';
 import { StructureModule } from '@/api/structure/structure.module';
 import { TrainingModule } from '@/api/training/training.module';
@@ -37,6 +38,7 @@ import { UserModule } from '@/api/user/user.module';
     OverviewModule,
     PersonEventModule,
     PersonModule,
+    StatisticsModule,
     StepModule,
     StructureModule,
     TrainingModule,

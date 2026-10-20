@@ -17,6 +17,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConnectRouteImport } from './routes/_app/connect'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
+import { Route as AppStatisticsRouteImport } from './routes/_app/statistics'
 import { Route as AppStructureRouteImport } from './routes/_app/structure'
 import { Route as AppUsersRouteImport } from './routes/_app/users'
 import { Route as AppCommunitiesIndexRouteImport } from './routes/_app/communities/index'
@@ -68,6 +69,11 @@ const AppOverviewRoute = AppOverviewRouteImport.update({
 const AppProfileRoute = AppProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStatisticsRoute = AppStatisticsRouteImport.update({
+  id: '/statistics',
+  path: '/statistics',
   getParentRoute: () => AppRoute,
 } as any)
 const AppStructureRoute = AppStructureRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/connect': typeof AppConnectRoute
   '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
+  '/statistics': typeof AppStatisticsRoute
   '/structure': typeof AppStructureRoute
   '/users': typeof AppUsersRoute
   '/communities/$communityId': typeof AppCommunitiesCommunityIdRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/connect': typeof AppConnectRoute
   '/overview': typeof AppOverviewRoute
   '/profile': typeof AppProfileRoute
+  '/statistics': typeof AppStatisticsRoute
   '/structure': typeof AppStructureRoute
   '/users': typeof AppUsersRoute
   '/': typeof AppIndexRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/_app/connect': typeof AppConnectRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/profile': typeof AppProfileRoute
+  '/_app/statistics': typeof AppStatisticsRoute
   '/_app/structure': typeof AppStructureRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/': typeof AppIndexRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/overview'
     | '/profile'
+    | '/statistics'
     | '/structure'
     | '/users'
     | '/communities/$communityId'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/overview'
     | '/profile'
+    | '/statistics'
     | '/structure'
     | '/users'
     | '/'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/_app/connect'
     | '/_app/overview'
     | '/_app/profile'
+    | '/_app/statistics'
     | '/_app/structure'
     | '/_app/users'
     | '/_app/'
@@ -338,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/statistics': {
+      id: '/_app/statistics'
+      path: '/statistics'
+      fullPath: '/statistics'
+      preLoaderRoute: typeof AppStatisticsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/structure': {
@@ -440,6 +459,7 @@ interface AppRouteChildren {
   AppConnectRoute: typeof AppConnectRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppStatisticsRoute: typeof AppStatisticsRoute
   AppStructureRoute: typeof AppStructureRoute
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -462,6 +482,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConnectRoute: AppConnectRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppProfileRoute: AppProfileRoute,
+  AppStatisticsRoute: AppStatisticsRoute,
   AppStructureRoute: AppStructureRoute,
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,

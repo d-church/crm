@@ -12,6 +12,7 @@ export * from './ministry-service';
 export * from './overview-service';
 export * from './person-event-service';
 export * from './person-service';
+export * from './statistics-service';
 export * from './step-service';
 export * from './structure-service';
 export * from './system-actor';
