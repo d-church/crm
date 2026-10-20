@@ -13,6 +13,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { label: 'Домашні групи', to: '/home-groups' },
   { label: 'Служіння', to: '/ministries' },
   { label: 'Навчання', to: '/trainings' },
+  { label: 'Статистика', to: '/statistics' },
 ];
 
 const ADMIN_NAV_ITEM: NavItem = { label: 'Адміністрування', to: '/admin' };

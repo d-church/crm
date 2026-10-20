@@ -34,6 +34,7 @@ import {
 } from '@/api/access/writes';
 
 import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
+import { segmentWhere } from './filter/segment';
 
 const PERSON_INCLUDE = {
   communities: true,
@@ -96,7 +97,7 @@ export class PersonService {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
     const where = narrow(
-      narrow(buildPeopleWhere(query), await this.segmentWhere(query.segment)),
+      narrow(buildPeopleWhere(query), await segmentWhere(this.prismaService, query.segment)),
       visibilityFor(viewer).rows,
     );
 
@@ -136,7 +137,7 @@ export class PersonService {
     const visiblePeople = narrow(
       narrow(
         includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } },
-        await this.segmentWhere(segment),
+        await segmentWhere(this.prismaService, segment),
       ),
       visibilityFor(viewer).rows,
     );
@@ -171,7 +172,7 @@ export class PersonService {
   public async findIds(query: FindPeopleDto, viewer: Viewer): Promise<string[]> {
     const people = await this.prismaService.person.findMany({
       where: narrow(
-        narrow(buildPeopleWhere(query), await this.segmentWhere(query.segment)),
+        narrow(buildPeopleWhere(query), await segmentWhere(this.prismaService, query.segment)),
         visibilityFor(viewer).rows,
       ),
       select: { id: true },
@@ -227,23 +228,6 @@ export class PersonService {
    * D.Youth — фактично церква в церкві, і її цифри заважають тим, хто працює
    * з рештою, так само як цифри решти заважають молодіжним адмінам.
    */
-  private async segmentWhere(segment?: string): Promise<Prisma.PersonWhereInput | undefined> {
-    if (segment === undefined || segment === 'all') return undefined;
-
-    if (segment === 'rest') {
-      const branches = await this.prismaService.community.findMany({
-        where: { isBranch: true },
-        select: { id: true },
-      });
-
-      return branches.length === 0
-        ? undefined
-        : { NOT: { communities: { some: { id: { in: branches.map(({ id }) => id) } } } } };
-    }
-
-    return { communities: { some: { id: segment } } };
-  }
-
   /** Перетин переданих ідентифікаторів з тим, що користувачу видно. */
   private async visibleIds(personIds: string[], viewer: Viewer): Promise<string[]> {
     const { rows } = visibilityFor(viewer);
