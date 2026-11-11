@@ -12,7 +12,7 @@ import type { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { PasswordResetService } from './password-reset.service';
 
-const passphrase = 'test recovery passphrase with spaces';
+const passphrase = 'test reset phrase';
 const publicUrl = 'https://crm.example.com';
 const key = scryptSync(passphrase, `dchurch-crm:password-reset:v1:${publicUrl}`, 32);
 const email = 'member@example.com';

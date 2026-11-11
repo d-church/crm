@@ -56,7 +56,7 @@ export class PasswordResetService {
     private readonly config: ConfigService,
   ) {
     const passphrase = config.get<string>('PASSWORD_RESET_KEY');
-    if (passphrase && passphrase.trim().length >= 24) {
+    if (passphrase && passphrase.trim()) {
       const salt = `dchurch-crm:password-reset:v1:${config.get<string>('APP_PUBLIC_URL') ?? ''}`;
       this.encrypter = new Encrypter(scryptSync(passphrase, salt, 32));
     }
