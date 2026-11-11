@@ -36,6 +36,7 @@ RUN pnpm install --prod --frozen-lockfile --filter api
 COPY --from=builder /usr/src/app/apps/api/dist ./apps/api/dist
 COPY --from=builder /usr/src/app/apps/api/generated ./apps/api/generated
 COPY --from=builder /usr/src/app/apps/client/dist ./apps/client/dist
+COPY --from=builder /usr/src/app/email-templates ./email-templates
 
 WORKDIR /usr/src/app/apps/api
 

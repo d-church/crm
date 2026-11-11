@@ -7,13 +7,21 @@ export interface SendEmailOptions {
   text: string;
   html?: string;
   disableTracking?: boolean;
+  inline?: { name: string; data: Blob };
 }
 
 @Injectable()
 export class EmailService {
   constructor(private readonly configService: ConfigService) {}
 
-  public async send({ to, subject, text, html, disableTracking }: SendEmailOptions): Promise<void> {
+  public async send({
+    to,
+    subject,
+    text,
+    html,
+    disableTracking,
+    inline,
+  }: SendEmailOptions): Promise<void> {
     const apiKey = this.configService.getOrThrow<string>('MAILGUN_SENDING_API_KEY');
     const domain = this.configService.getOrThrow<string>('MAILGUN_DOMAIN');
     const baseUrl = this.configService.getOrThrow<string>('MAILGUN_BASE_URL').replace(/\/$/, '');
@@ -27,6 +35,9 @@ export class EmailService {
 
     if (html) {
       body.set('html', html);
+    }
+    if (inline) {
+      body.set('inline', inline.data, inline.name);
     }
     if (disableTracking) {
       body.set('o:tracking', 'no');

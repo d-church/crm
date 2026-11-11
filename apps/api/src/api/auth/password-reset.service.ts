@@ -15,8 +15,9 @@ import { PrismaService } from '@/infra/prisma/prisma.service';
 import { RedisService } from '@/infra/redis/redis.service';
 
 import { ResetPasswordDto } from './dto/password-reset.dto';
+import { passwordResetEmail } from './password-reset-email';
 
-const RESET_TTL_MS = 30 * 60_000;
+const RESET_TTL_MINUTES = 30;
 const INVALID_LINK = 'Посилання недійсне або його термін дії минув';
 
 const RESERVE_REQUEST = `
@@ -131,15 +132,13 @@ export class PasswordResetService {
     const token = this.getEncrypter().encrypt({
       userId: user.id,
       sessionVersion: user.sessionVersion,
-      expiresAt: Date.now() + RESET_TTL_MS,
+      expiresAt: Date.now() + RESET_TTL_MINUTES * 60_000,
     } satisfies ResetClaims);
     url.hash = `token=${token}`;
 
     await this.email.send({
       to: user.email,
-      subject: 'Відновлення пароля D.Church CRM',
-      text: `Щоб встановити новий пароль, перейдіть за посиланням:\n\n${url}\n\nПосилання діє 30 хвилин. Якщо ви не запитували відновлення пароля, проігноруйте цей лист.`,
-      disableTracking: true,
+      ...(await passwordResetEmail(url, RESET_TTL_MINUTES)),
     });
   }
 

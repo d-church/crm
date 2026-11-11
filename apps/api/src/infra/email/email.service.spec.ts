@@ -59,4 +59,25 @@ describe('EmailService', () => {
       service.send({ to: 'person@example.com', subject: 'Test subject', text: 'Test message' }),
     ).rejects.toThrow('Mailgun rejected the email (401): Forbidden');
   });
+
+  it('uploads the inline image under the filename referenced by the HTML', async () => {
+    let body: FormData | undefined;
+    jest.spyOn(global, 'fetch').mockImplementation((_input, init) => {
+      body = init?.body as FormData;
+      return Promise.resolve(new Response(null, { status: 200 }));
+    });
+
+    await service.send({
+      to: 'person@example.com',
+      subject: 'Test subject',
+      text: 'Test message',
+      html: '<img src="cid:icon.png" alt="">',
+      inline: { name: 'icon.png', data: new Blob(['image'], { type: 'image/png' }) },
+    });
+
+    const icon = body?.get('inline');
+    expect(icon).toBeInstanceOf(File);
+    expect((icon as File).name).toBe('icon.png');
+    expect((icon as File).type).toBe('image/png');
+  });
 });

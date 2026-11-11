@@ -1,5 +1,7 @@
 import { scryptSync } from 'node:crypto';
+import { join } from 'node:path';
 
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { verify } from 'argon2';
 
@@ -42,16 +44,31 @@ describe('PasswordResetService', () => {
     service.reset({ token, newPassword: 'next-password', confirmPassword: 'next-password' });
 
   beforeEach(() => jest.resetAllMocks());
+  afterEach(() => jest.restoreAllMocks());
 
   it('returns the same response while mailing only a known account', async () => {
+    jest.replaceProperty(process, 'env', {
+      ...process.env,
+      CLIENT_DIST_PATH: join(__dirname, '__missing_client_build__'),
+    });
     reserve.mockResolvedValue(1);
     findUnique.mockResolvedValueOnce({ id, email, sessionVersion: 0 }).mockResolvedValueOnce(null);
-    send.mockResolvedValue(undefined);
+    const sent = new Promise<void>((resolve, reject) => {
+      jest.spyOn(Logger.prototype, 'error').mockImplementation((message: unknown) => {
+        reject(new Error(String(message)));
+      });
+      send.mockImplementation(() => {
+        resolve();
+        return Promise.resolve();
+      });
+    });
 
-    const known = await controller.forgotPassword({ email });
-    await expect(controller.forgotPassword({ email: 'unknown@example.com' })).resolves.toEqual(
-      known,
-    );
+    const [known, unknown] = await Promise.all([
+      controller.forgotPassword({ email }),
+      controller.forgotPassword({ email: 'unknown@example.com' }),
+      sent,
+    ]);
+    expect(unknown).toEqual(known);
     expect(send).toHaveBeenCalledTimes(1);
     const [message] = send.mock.calls[0];
     expect(message.to).toBe(email);
@@ -60,6 +77,9 @@ describe('PasswordResetService', () => {
       message.text,
     )?.[1];
     expect(token).toBeDefined();
+    expect(message.html).toContain(`href="https://crm.example.com/reset-password#token=${token}"`);
+    expect(message.html).toContain('cid:apple-touch-icon.png');
+    expect(message.inline?.name).toBe('apple-touch-icon.png');
     expect(new Encrypter(key).decrypt(token ?? '')).toMatchObject({
       userId: id,
       sessionVersion: 0,
