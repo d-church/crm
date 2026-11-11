@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import type { StringValue } from 'ms';
 
-import { UserService, toSafeUser, type User } from '@/api/user/user.service';
+import { UserService, toSafeUser } from '@/api/user/user.service';
 
 import { LoginDto } from './dto/login.dto';
 
@@ -37,9 +37,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.generateTokens(user);
+    const { sessionVersion, ...userWithPassword } = user;
+    const tokens = await this.generateTokens(user.id, sessionVersion);
 
-    return { user: toSafeUser(user), ...tokens };
+    return { user: toSafeUser(userWithPassword), ...tokens };
   }
 
   public async refresh(refreshToken: string) {
@@ -54,21 +55,22 @@ export class AuthService {
       throw new UnauthorizedException('Invalid token type');
     }
 
-    const user = await this.userService.findByIdForAuth(payload.userId);
+    const sessionVersion = payload.sessionVersion ?? 0;
+    await this.userService.assertSessionVersion(payload.userId, sessionVersion);
 
-    return this.generateTokens(user);
+    return this.generateTokens(payload.userId, sessionVersion);
   }
 
-  private async generateTokens(user: User) {
+  private async generateTokens(userId: string, sessionVersion: number) {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        { userId: user.id, tokenType: 'access' } satisfies JWTAccessTokenPayload,
+        { userId, tokenType: 'access', sessionVersion } satisfies JWTAccessTokenPayload,
         {
           expiresIn: this.JWT_EXPIRATION_TIME,
         },
       ),
       this.jwtService.signAsync(
-        { userId: user.id, tokenType: 'refresh' } satisfies JWTAccessTokenPayload,
+        { userId, tokenType: 'refresh', sessionVersion } satisfies JWTAccessTokenPayload,
         {
           expiresIn: this.JWT_REFRESH_EXPIRATION_TIME,
         },

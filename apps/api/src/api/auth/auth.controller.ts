@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -6,12 +6,30 @@ import { Authorization } from '@/common/decorators/authorization.decorator';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { PasswordResetService } from './password-reset.service';
 
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordResetService: PasswordResetService,
+  ) {}
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.ACCEPTED)
+  public async forgotPassword(@Body() { email }: ForgotPasswordDto) {
+    await this.passwordResetService.request(email);
+    return { message: 'Якщо акаунт існує, на цю адресу надійде лист' };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    await this.passwordResetService.reset(dto);
+  }
 
   @ApiOperation({ summary: 'Login' })
   @Post('login')

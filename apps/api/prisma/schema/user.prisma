@@ -17,6 +17,7 @@ model User {
 
   email    String @unique
   password String
+  sessionVersion Int @default(0) @map("session_version")
 
   firstName String @map("first_name")
   lastName  String @map("last_name")

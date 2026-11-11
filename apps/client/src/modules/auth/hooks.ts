@@ -30,7 +30,11 @@ export const useLogin = () => {
 export const useLogout = () => {
   const queryClient = useQueryClient();
 
-  const { mutate: logout, isPending } = useMutation({
+  const {
+    mutate: logout,
+    mutateAsync: logoutAsync,
+    isPending,
+  } = useMutation({
     mutationFn: () => Promise.resolve(AuthService.logout()),
     onSuccess: () => {
       queryClient.setQueryData(ME_QUERY_KEY, null);
@@ -38,5 +42,5 @@ export const useLogout = () => {
     },
   });
 
-  return { logout, isPending };
+  return { logout, logoutAsync, isPending };
 };

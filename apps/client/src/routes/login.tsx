@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -89,6 +89,13 @@ function LoginPage() {
               error={errors.password?.message}
               {...register('password')}
             />
+
+            <Link
+              to="/forgot-password"
+              className="text-primary justify-self-end text-sm hover:underline"
+            >
+              Забули пароль?
+            </Link>
 
             <Button type="submit" disabled={isPending}>
               {isPending ? 'Входимо…' : 'Увійти'}

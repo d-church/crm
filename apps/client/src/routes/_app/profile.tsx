@@ -20,7 +20,7 @@ import {
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { formatDateTime, getFullName, getInitials } from '@/lib/format';
-import { ME_QUERY_KEY, useAuth } from '@/modules/auth';
+import { ME_QUERY_KEY, useAuth, useLogout } from '@/modules/auth';
 import { UserService, type User } from '@/services';
 
 const profileSchema = z.object({
@@ -192,6 +192,8 @@ function ProfileForm({ user }: { user: User }) {
 }
 
 function PasswordForm() {
+  const { logoutAsync } = useLogout();
+  const navigate = Route.useNavigate();
   const {
     register,
     handleSubmit,
@@ -204,9 +206,11 @@ function PasswordForm() {
 
   const { mutateAsync: changePassword, isPending } = useMutation({
     mutationFn: (values: PasswordValues) => UserService.changePassword(values),
-    onSuccess: () => {
+    onSuccess: async () => {
       reset();
       toast.success('Пароль змінено');
+      await logoutAsync();
+      await navigate({ to: '/login', replace: true });
     },
   });
 

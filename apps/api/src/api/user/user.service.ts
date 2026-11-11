@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { hash, verify } from 'argon2';
 
@@ -64,12 +65,13 @@ export class UserService {
     });
   }
 
-  public async findByEmail(email: string): Promise<UserWithPassword | null> {
+  public async findByEmail(email: string) {
     return this.prismaService.user.findUnique({
       where: { email },
       select: {
         ...userSelect,
         password: true,
+        sessionVersion: true,
       },
     });
   }
@@ -122,13 +124,25 @@ export class UserService {
       throw new BadRequestException('Поточний пароль неправильний');
     }
 
-    await this.prismaService.user.update({
-      where: { id },
-      data: { password: await hash(newPassword) },
-      select: { id: true },
+    const { count } = await this.prismaService.user.updateMany({
+      where: { id, password: user.password },
+      data: { password: await hash(newPassword), sessionVersion: { increment: 1 } },
     });
 
-    await this.redisService.del(`user:id:${id}`);
+    if (count !== 1) {
+      throw new BadRequestException('Поточний пароль неправильний');
+    }
+  }
+
+  public async assertSessionVersion(id: string, version: number): Promise<void> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      select: { sessionVersion: true },
+    });
+
+    if (!user || user.sessionVersion !== version) {
+      throw new UnauthorizedException('Invalid session');
+    }
   }
 
   public async updateRole(

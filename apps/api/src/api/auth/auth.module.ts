@@ -7,6 +7,7 @@ import { UserModule } from '@/api/user/user.module';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { PasswordResetService } from './password-reset.service';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
 
@@ -25,6 +26,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, PasswordResetService],
 })
 export class AuthModule {}

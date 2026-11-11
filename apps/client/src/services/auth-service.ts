@@ -1,7 +1,24 @@
-import { ApiService } from './abstracts/api-service';
+import axios from 'axios';
+
+import { API_URL, ApiService } from './abstracts/api-service';
 import type { User } from './user-service';
 
 class AuthServiceClass extends ApiService {
+  public async forgotPassword(email: string): Promise<{ message: string }> {
+    const { data } = await axios.post<{ message: string }>(`${API_URL}/auth/forgot-password`, {
+      email,
+    });
+    return data;
+  }
+
+  public async resetPassword(values: {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<void> {
+    await axios.post(`${API_URL}/auth/reset-password`, values);
+  }
+
   public async login(credentials: LoginCredentials): Promise<User> {
     const response = await this.api.post<AuthResponse>('/auth/login', credentials);
 
