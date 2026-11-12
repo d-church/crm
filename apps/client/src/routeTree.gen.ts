@@ -31,6 +31,7 @@ import { Route as AppMinistriesIndexRouteImport } from './routes/_app/ministries
 import { Route as AppMinistriesMinistryIdRouteImport } from './routes/_app/ministries/$ministryId'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppPeoplePersonIdRouteImport } from './routes/_app/people/$personId'
+import { Route as AppToolsQrCodeRouteImport } from './routes/_app/tools/qr-code'
 import { Route as AppTrainingsIndexRouteImport } from './routes/_app/trainings/index'
 import { Route as AppTrainingsTrainingIdRouteImport } from './routes/_app/trainings/$trainingId'
 
@@ -146,6 +147,11 @@ const AppPeoplePersonIdRoute = AppPeoplePersonIdRouteImport.update({
   path: '/people/$personId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppToolsQrCodeRoute = AppToolsQrCodeRouteImport.update({
+  id: '/tools/qr-code',
+  path: '/tools/qr-code',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTrainingsIndexRoute = AppTrainingsIndexRouteImport.update({
   id: '/trainings/',
   path: '/trainings/',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
+  '/tools/qr-code': typeof AppToolsQrCodeRoute
   '/trainings/$trainingId': typeof AppTrainingsTrainingIdRoute
   '/communities/': typeof AppCommunitiesIndexRoute
   '/home-groups/': typeof AppHomeGroupsIndexRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/people/$personId': typeof AppPeoplePersonIdRoute
+  '/tools/qr-code': typeof AppToolsQrCodeRoute
   '/trainings/$trainingId': typeof AppTrainingsTrainingIdRoute
   '/communities': typeof AppCommunitiesIndexRoute
   '/home-groups': typeof AppHomeGroupsIndexRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/_app/home-groups/$homeGroupId': typeof AppHomeGroupsHomeGroupIdRoute
   '/_app/ministries/$ministryId': typeof AppMinistriesMinistryIdRoute
   '/_app/people/$personId': typeof AppPeoplePersonIdRoute
+  '/_app/tools/qr-code': typeof AppToolsQrCodeRoute
   '/_app/trainings/$trainingId': typeof AppTrainingsTrainingIdRoute
   '/_app/communities/': typeof AppCommunitiesIndexRoute
   '/_app/home-groups/': typeof AppHomeGroupsIndexRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/home-groups/$homeGroupId'
     | '/ministries/$ministryId'
     | '/people/$personId'
+    | '/tools/qr-code'
     | '/trainings/$trainingId'
     | '/communities/'
     | '/home-groups/'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/home-groups/$homeGroupId'
     | '/ministries/$ministryId'
     | '/people/$personId'
+    | '/tools/qr-code'
     | '/trainings/$trainingId'
     | '/communities'
     | '/home-groups'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/_app/home-groups/$homeGroupId'
     | '/_app/ministries/$ministryId'
     | '/_app/people/$personId'
+    | '/_app/tools/qr-code'
     | '/_app/trainings/$trainingId'
     | '/_app/communities/'
     | '/_app/home-groups/'
@@ -476,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPeoplePersonIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/tools/qr-code': {
+      id: '/_app/tools/qr-code'
+      path: '/tools/qr-code'
+      fullPath: '/tools/qr-code'
+      preLoaderRoute: typeof AppToolsQrCodeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/trainings/': {
       id: '/_app/trainings/'
       path: '/trainings'
@@ -508,6 +527,7 @@ interface AppRouteChildren {
   AppHomeGroupsHomeGroupIdRoute: typeof AppHomeGroupsHomeGroupIdRoute
   AppMinistriesMinistryIdRoute: typeof AppMinistriesMinistryIdRoute
   AppPeoplePersonIdRoute: typeof AppPeoplePersonIdRoute
+  AppToolsQrCodeRoute: typeof AppToolsQrCodeRoute
   AppTrainingsTrainingIdRoute: typeof AppTrainingsTrainingIdRoute
   AppCommunitiesIndexRoute: typeof AppCommunitiesIndexRoute
   AppHomeGroupsIndexRoute: typeof AppHomeGroupsIndexRoute
@@ -531,6 +551,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHomeGroupsHomeGroupIdRoute: AppHomeGroupsHomeGroupIdRoute,
   AppMinistriesMinistryIdRoute: AppMinistriesMinistryIdRoute,
   AppPeoplePersonIdRoute: AppPeoplePersonIdRoute,
+  AppToolsQrCodeRoute: AppToolsQrCodeRoute,
   AppTrainingsTrainingIdRoute: AppTrainingsTrainingIdRoute,
   AppCommunitiesIndexRoute: AppCommunitiesIndexRoute,
   AppHomeGroupsIndexRoute: AppHomeGroupsIndexRoute,

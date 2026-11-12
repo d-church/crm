@@ -2,6 +2,7 @@ export type NavItem = {
   label: string;
   to: string;
   count?: number | string;
+  section?: 'tools';
 };
 
 /** Only sections that actually exist. New ones land here as they are built. */
@@ -14,6 +15,7 @@ const BASE_NAV_ITEMS: NavItem[] = [
   { label: 'Служіння', to: '/ministries' },
   { label: 'Навчання', to: '/trainings' },
   { label: 'Статистика', to: '/statistics' },
+  { label: 'QR-коди', to: '/tools/qr-code', section: 'tools' },
 ];
 
 const ADMIN_NAV_ITEM: NavItem = { label: 'Адміністрування', to: '/admin' };
