@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
 
-import type { Prisma } from '@generated/prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 import { AvatarStorage } from './avatar-storage.service';
@@ -20,8 +19,6 @@ export class AvatarCleanupService implements OnApplicationBootstrap, OnModuleDes
   private worker?: Worker<string>;
   private producerConnection?: Redis;
   private workerConnection?: Redis;
-  private timer?: ReturnType<typeof setInterval>;
-  private dispatch?: Promise<void>;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -29,13 +26,23 @@ export class AvatarCleanupService implements OnApplicationBootstrap, OnModuleDes
     private readonly config: ConfigService,
   ) {}
 
-  public async record(tx: Prisma.TransactionClient, key?: string | null) {
+  public async enqueue(key?: string | null, delay = 0): Promise<void> {
     if (!this.storage.owns(key)) return;
-    await tx.avatarCleanup.upsert({
-      where: { key },
-      create: { key, notBefore: new Date() },
-      update: {},
-    });
+    try {
+      if (!this.queue || this.producerConnection?.status !== 'ready') {
+        throw new Error('Avatar cleanup queue unavailable');
+      }
+      await this.queue.add('delete', key, {
+        jobId: createHash('sha256').update(key).digest('hex'),
+        delay,
+        attempts: 5,
+        backoff: { type: 'exponential', delay: MINUTE },
+        removeOnComplete: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 1000 },
+      });
+    } catch {
+      this.logger.warn('Не вдалося поставити видалення аватарки в чергу');
+    }
   }
 
   public onApplicationBootstrap() {
@@ -60,76 +67,21 @@ export class AvatarCleanupService implements OnApplicationBootstrap, OnModuleDes
     this.queue.on('error', () => this.logger.warn('Не вдалося підключитися до черги аватарок'));
     this.worker.on('error', () => this.logger.warn('Помилка воркера аватарок'));
     this.worker.on('failed', () =>
-      this.logger.warn('Не вдалося очистити аватарку; завдання збережено'),
+      this.logger.warn('Не вдалося очистити аватарку; див. стан завдання в BullMQ'),
     );
-    this.timer = setInterval(() => this.schedule(), MINUTE);
-    this.timer.unref();
-    this.producerConnection.once('ready', () => this.schedule());
-  }
-
-  private schedule() {
-    if (this.dispatch) return;
-    this.dispatch = this.enqueueDue()
-      .catch(() => {
-        this.logger.warn('Не вдалося передати очищення аватарок у BullMQ');
-      })
-      .finally(() => {
-        this.dispatch = undefined;
-      });
-  }
-
-  private async enqueueDue() {
-    if (!this.queue || this.producerConnection?.status !== 'ready') return;
-    let after: string | undefined;
-    const now = new Date();
-    for (;;) {
-      const tasks = await this.prisma.avatarCleanup.findMany({
-        where: {
-          key: { startsWith: this.storage.prefix, gt: after },
-          notBefore: { lte: now },
-        },
-        select: { key: true },
-        orderBy: { key: 'asc' },
-        take: 100,
-      });
-      if (!tasks.length) return;
-      await this.queue.addBulk(
-        tasks.map(({ key }) => ({
-          name: 'delete',
-          data: key,
-          opts: {
-            jobId: createHash('sha256').update(key).digest('hex'),
-            attempts: 5,
-            backoff: { type: 'exponential', delay: MINUTE },
-            removeOnComplete: true,
-            removeOnFail: true,
-          },
-        })),
-      );
-      after = tasks.at(-1)?.key;
-    }
   }
 
   public async process(key: string): Promise<void> {
     if (!this.storage.owns(key)) return;
-    const { count } = await this.prisma.avatarCleanup.updateMany({
-      where: { key, notBefore: { lte: new Date() } },
-      data: { claimed: true },
-    });
-    if (count === 0) return;
-
     const active = await this.prisma.person.findUnique({
       where: { avatarKey: key },
       select: { id: true },
     });
     if (!active) await this.storage.delete(key);
-    await this.prisma.avatarCleanup.deleteMany({ where: { key } });
   }
 
   public async onModuleDestroy() {
-    clearInterval(this.timer);
     try {
-      await this.dispatch;
       await this.worker?.close();
       await this.queue?.close();
     } finally {

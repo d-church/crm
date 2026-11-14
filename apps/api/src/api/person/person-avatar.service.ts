@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 
 import { narrow, visibilityFor, type Viewer } from '@/api/access/visibility';
-import type { Prisma } from '@generated/prisma/client';
 import { PrismaService } from '@/infra/prisma/prisma.service';
 
 import { AvatarCleanupService } from './avatar-cleanup.service';
@@ -44,22 +43,21 @@ export class PersonAvatarService {
     }
     const data = await encodeAvatar(input);
     const key = this.storage.newKey(id);
-    await this.prisma.avatarCleanup.create({
-      data: { key, notBefore: new Date(Date.now() + 15 * 60_000) },
-    });
+    const avatarUrl = await this.storage.url(key);
     try {
       await this.storage.put(key, data);
     } catch {
+      // A timed-out PUT can still finish on the storage side.
+      await this.cleanup.enqueue(key, 15 * 60_000);
       throw new ServiceUnavailableException('Не вдалося завантажити фото. Спробуйте ще раз');
     }
-    const avatarUrl = await this.storage.url(key);
-    await this.prisma.$transaction(async (tx) => {
-      const reservation = await tx.avatarCleanup.deleteMany({
-        where: { key, claimed: false, notBefore: { gt: new Date() } },
-      });
-      if (!reservation.count) throw new ConflictException('Повторіть завантаження фото');
-      await this.updateKey(tx, id, viewer, previous, key);
-    });
+    try {
+      await this.updateKey(id, viewer, previous, key);
+    } catch (error) {
+      await this.cleanup.enqueue(key);
+      throw error;
+    }
+    await this.cleanup.enqueue(previous);
 
     return { avatarUrl };
   }
@@ -67,21 +65,20 @@ export class PersonAvatarService {
   public async remove(id: string, viewer: Viewer) {
     const previous = await this.current(id, viewer);
     if (!previous) return;
-    await this.prisma.$transaction((tx) => this.updateKey(tx, id, viewer, previous, null));
+    await this.updateKey(id, viewer, previous, null);
+    await this.cleanup.enqueue(previous);
   }
 
   private async updateKey(
-    tx: Prisma.TransactionClient,
     id: string,
     viewer: Viewer,
     previous: string | null,
     avatarKey: string | null,
   ) {
-    const { count } = await tx.person.updateMany({
+    const { count } = await this.prisma.person.updateMany({
       where: { AND: [this.visible(id, viewer), { avatarKey: previous }] },
       data: { avatarKey },
     });
     if (!count) throw new ConflictException('Фото вже змінилося. Оновіть картку');
-    await this.cleanup.record(tx, previous);
   }
 }

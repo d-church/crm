@@ -716,11 +716,12 @@ export class PersonService {
   public async remove(id: string, viewer: Viewer): Promise<Person> {
     await this.findOne(id, viewer);
 
-    return this.prismaService.$transaction(async (tx) => {
-      const person = await tx.person.delete({ where: { id }, include: PERSON_INCLUDE });
-      await this.avatarCleanup.record(tx, person.avatarKey);
-      return person;
+    const person = await this.prismaService.person.delete({
+      where: { id },
+      include: PERSON_INCLUDE,
     });
+    await this.avatarCleanup.enqueue(person.avatarKey);
+    return person;
   }
 }
 

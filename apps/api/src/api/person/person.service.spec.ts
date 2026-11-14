@@ -16,7 +16,7 @@ const accessService = {
   assertVisible: jest.fn(),
   assertPastoral: jest.fn(),
 } as unknown as AccessService;
-const avatarCleanup = { record: jest.fn() } as unknown as AvatarCleanupService;
+const avatarCleanup = { enqueue: jest.fn() } as unknown as AvatarCleanupService;
 
 /** Глобальний адмін бачить усю базу — саме те, що ці тести перевіряли досі. */
 const GLOBAL_ADMIN: Viewer = { id: 'admin', personId: null, roles: [Role.SUPERADMIN], scopes: [] };
