@@ -25,7 +25,14 @@ const STRUCTURE_FIELDS = [
 ] as const;
 
 /** Те, що потрібно, щоб вести команду: навантаження, відвідуваність, звʼязок. */
-const TEAM_FIELDS = [...STRUCTURE_FIELDS, 'phone', 'city', 'birthDate', 'birthMd'] as const;
+const TEAM_FIELDS = [
+  ...STRUCTURE_FIELDS,
+  'phone',
+  'city',
+  'birthDate',
+  'birthMd',
+  'avatarKey',
+] as const;
 
 /**
  * Дані реєстру: як з людиною звʼязатися, коли прийшла, коли хрестилась. Їх веде

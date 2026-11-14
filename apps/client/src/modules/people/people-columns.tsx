@@ -4,7 +4,8 @@ import { z } from 'zod';
 
 import { createLocalStore } from '@/lib/local-store';
 import { cn } from '@/lib/utils';
-import { formatDate, formatDayMonth, getAge, getInitials } from '@/lib/format';
+import { formatDate, formatDayMonth, getAge } from '@/lib/format';
+import { PersonAvatar } from './person-avatar';
 import { useAuth } from '@/modules/auth';
 import { MinistryRole, getPersonName, type PeopleSort, type Person } from '@/services';
 
@@ -50,9 +51,7 @@ export const PERSON_COLUMNS: PersonColumn[] = [
 
       return (
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-8 flex-none place-items-center rounded-full bg-[#e6ece5] text-[11.5px] text-[#3f4a43]">
-            {getInitials(name)}
-          </span>
+          <PersonAvatar name={name} url={person.avatarUrl} />
 
           <span className="flex min-w-0 flex-col">
             <Link

@@ -14,6 +14,7 @@ import { ExceptionsFilter } from '@/common/filters/exceptions.filter';
 async function bootstrap() {
   const port = getPort();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.enableShutdownHooks();
 
   app.useGlobalPipes(
     new ValidationPipe({

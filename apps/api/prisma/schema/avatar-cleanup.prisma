@@ -1,0 +1,8 @@
+model AvatarCleanup {
+  key       String   @id
+  notBefore DateTime @map("not_before")
+  claimed   Boolean  @default(false)
+
+  @@index([notBefore])
+  @@map("avatar_cleanup")
+}

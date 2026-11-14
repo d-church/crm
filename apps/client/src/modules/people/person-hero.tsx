@@ -12,7 +12,8 @@ import {
 } from '@/components/ui';
 import { Input } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
-import { getAge, getInitials } from '@/lib/format';
+import { getAge } from '@/lib/format';
+import { PersonAvatarActions } from './person-avatar-actions';
 import { cn } from '@/lib/utils';
 import { ActivityState, getPersonName, MinistryRole, type Person } from '@/services';
 
@@ -68,9 +69,7 @@ export const PersonHero = ({ person, onDeleted, view, onViewChange }: PersonHero
   return (
     <div className="bg-card border-border grid gap-3 rounded-xl border px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start sm:gap-x-4">
       <div className="flex items-start gap-3 sm:contents">
-        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#e6ece5] text-[14px] text-[#3f4a43]">
-          {getInitials(name)}
-        </span>
+        <PersonAvatarActions key={person.id} person={person} name={name} />
 
         <div className="min-w-0 flex-1 sm:hidden">
           <PersonNameField

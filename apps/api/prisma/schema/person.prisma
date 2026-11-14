@@ -70,6 +70,7 @@ model Person {
   firstName String  @map("first_name")
   lastName  String? @map("last_name")
   gender    PersonGender?
+  avatarKey String? @unique @map("avatar_key")
 
   email     String?
   phone     String?

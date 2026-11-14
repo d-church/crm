@@ -13,6 +13,9 @@ export const peopleQueryOptions = (query: PeopleQuery) =>
   queryOptions({
     queryKey: [...PEOPLE_LIST_KEY, query],
     queryFn: () => PersonService.list(query),
+    refetchInterval: ({ state }) =>
+      state.data?.items.some((person) => person.avatarUrl) ? 600_000 : false,
+    refetchOnWindowFocus: true,
     // Keeps the previous page on screen while the next one loads, instead of
     // collapsing the table into a skeleton on every page change.
     placeholderData: keepPreviousData,
@@ -41,6 +44,8 @@ export const personQueryOptions = (id: string) =>
   queryOptions({
     queryKey: [...PERSON_KEY, id],
     queryFn: () => PersonService.get(id),
+    refetchInterval: ({ state }) => (state.data?.avatarUrl ? 600_000 : false),
+    refetchOnWindowFocus: true,
   });
 
 export const personCaresQueryOptions = (id: string) =>

@@ -8,9 +8,13 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AccessService } from '@/api/access/access.service';
 import { ActivityService } from '@/api/activity/activity.service';
@@ -26,6 +30,9 @@ import { PeopleStatsDto } from './dto/people-stats.dto';
 import { SignalDto } from './dto/signal.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { PersonService } from './person.service';
+import { PersonAvatarService } from './person-avatar.service';
+import { AVATAR_UPLOAD_LIMIT } from './avatar-image';
+import { AvatarStorage } from './avatar-storage.service';
 
 @ApiTags('People')
 @Controller('people')
@@ -34,21 +41,27 @@ export class PersonController {
     private readonly personService: PersonService,
     private readonly activityService: ActivityService,
     private readonly accessService: AccessService,
+    private readonly avatarService: PersonAvatarService,
+    private readonly avatarStorage: AvatarStorage,
   ) {}
 
   @Authorization()
   @ApiOperation({ summary: 'List people — filtered, sorted and paginated' })
   @Get()
-  public findAll(@Query() query: FindPeopleDto, @CurrentViewer() viewer: Viewer) {
-    return this.personService.findAll(query, viewer);
+  public async findAll(@Query() query: FindPeopleDto, @CurrentViewer() viewer: Viewer) {
+    const page = await this.personService.findAll(query, viewer);
+    return {
+      ...page,
+      items: await Promise.all(page.items.map((person) => this.withAvatar(person))),
+    };
   }
 
   /** Лідер людей не заводить: це рідка операція, для неї є адмін і команда конекту. */
   @Authorization(Role.SUPERADMIN, Role.ADMIN, Role.CONNECT)
   @ApiOperation({ summary: 'Add a person' })
   @Post()
-  public create(@Body() createPersonDto: CreatePersonDto, @CurrentActor() actor: Actor) {
-    return this.personService.create(createPersonDto, actor);
+  public async create(@Body() createPersonDto: CreatePersonDto, @CurrentActor() actor: Actor) {
+    return this.withAvatar(await this.personService.create(createPersonDto, actor));
   }
 
   @Authorization()
@@ -111,27 +124,53 @@ export class PersonController {
   @Authorization()
   @ApiOperation({ summary: 'Get a single person by id' })
   @Get(':id')
-  public findOne(@Param('id') id: string, @CurrentViewer() viewer: Viewer) {
-    return this.personService.findOne(id, viewer);
+  public async findOne(@Param('id') id: string, @CurrentViewer() viewer: Viewer) {
+    return this.withAvatar(await this.personService.findOne(id, viewer));
+  }
+
+  @Authorization()
+  @Put(':id/avatar')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: AVATAR_UPLOAD_LIMIT, files: 1, fields: 0 } }),
+  )
+  public replaceAvatar(
+    @Param('id') id: string,
+    @CurrentViewer() viewer: Viewer,
+    @UploadedFile() file?: { buffer: Buffer },
+  ) {
+    return this.avatarService.replace(id, viewer, file?.buffer);
+  }
+
+  @Authorization()
+  @Delete(':id/avatar')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public removeAvatar(@Param('id') id: string, @CurrentViewer() viewer: Viewer) {
+    return this.avatarService.remove(id, viewer);
   }
 
   @Authorization()
   @ApiOperation({ summary: 'Update a person' })
   @Patch(':id')
-  public update(
+  public async update(
     @Param('id') id: string,
     @Body() updatePersonDto: UpdatePersonDto,
     @CurrentActor() actor: Actor,
     @CurrentViewer() viewer: Viewer,
   ) {
-    return this.personService.update(id, updatePersonDto, actor, viewer);
+    return this.withAvatar(await this.personService.update(id, updatePersonDto, actor, viewer));
   }
 
   /** Видалення людини лишається за адмінами — лідер картку не прибирає. */
   @Authorization(Role.SUPERADMIN, Role.ADMIN)
   @ApiOperation({ summary: 'Remove a person' })
   @Delete(':id')
-  public remove(@Param('id') id: string, @CurrentViewer() viewer: Viewer) {
-    return this.personService.remove(id, viewer);
+  public async remove(@Param('id') id: string, @CurrentViewer() viewer: Viewer) {
+    const person = await this.personService.remove(id, viewer);
+    return this.withAvatar({ ...person, avatarKey: null });
+  }
+
+  private async withAvatar<T extends { avatarKey?: string | null }>({ avatarKey, ...person }: T) {
+    return { ...person, avatarUrl: await this.avatarStorage.url(avatarKey) };
   }
 }

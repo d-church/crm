@@ -9,12 +9,14 @@ import {
 } from '@/infra/prisma/prisma.service';
 
 import { PersonService } from './person.service';
+import type { AvatarCleanupService } from './avatar-cleanup.service';
 import { buildPeopleOrderBy, buildPeopleWhere, toPersonData } from './person.service';
 
 const accessService = {
   assertVisible: jest.fn(),
   assertPastoral: jest.fn(),
 } as unknown as AccessService;
+const avatarCleanup = { record: jest.fn() } as unknown as AvatarCleanupService;
 
 /** Глобальний адмін бачить усю базу — саме те, що ці тести перевіряли досі. */
 const GLOBAL_ADMIN: Viewer = { id: 'admin', personId: null, roles: [Role.SUPERADMIN], scopes: [] };
@@ -266,6 +268,7 @@ describe('PersonService stats', () => {
       { person: { count } } as unknown as PrismaService,
       activityService,
       accessService,
+      avatarCleanup,
     );
 
     try {
@@ -316,6 +319,7 @@ describe('PersonService stats', () => {
       { person: { count } } as unknown as PrismaService,
       activityService,
       accessService,
+      avatarCleanup,
     );
 
     await service.stats(true, GLOBAL_ADMIN);

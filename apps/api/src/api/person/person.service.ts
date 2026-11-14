@@ -35,6 +35,7 @@ import {
 
 import { buildPeopleFilterWhere, toAgeWhere } from './filter/people-filter';
 import { segmentWhere } from './filter/segment';
+import { AvatarCleanupService } from './avatar-cleanup.service';
 
 const PERSON_INCLUDE = {
   communities: true,
@@ -76,6 +77,7 @@ export class PersonService {
     private readonly prismaService: PrismaService,
     private readonly activityService: ActivityService,
     private readonly accessService: AccessService,
+    private readonly avatarCleanup: AvatarCleanupService,
   ) {}
 
   public async create(createPersonDto: CreatePersonDto, actor: Actor): Promise<Person> {
@@ -714,7 +716,11 @@ export class PersonService {
   public async remove(id: string, viewer: Viewer): Promise<Person> {
     await this.findOne(id, viewer);
 
-    return this.prismaService.person.delete({ where: { id }, include: PERSON_INCLUDE });
+    return this.prismaService.$transaction(async (tx) => {
+      const person = await tx.person.delete({ where: { id }, include: PERSON_INCLUDE });
+      await this.avatarCleanup.record(tx, person.avatarKey);
+      return person;
+    });
   }
 }
 

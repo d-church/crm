@@ -177,6 +177,16 @@ export const MAX_PAGE_SIZE = 200;
 class PersonServiceClass extends RestService<Person> {
   protected anchor = 'people';
 
+  public async replaceAvatar(id: string, file: Blob): Promise<void> {
+    const body = new FormData();
+    body.append('file', file, 'avatar.webp');
+    await this.api.put(`${this.anchor}/${id}/avatar`, body);
+  }
+
+  public async removeAvatar(id: string): Promise<void> {
+    await this.api.delete(`${this.anchor}/${id}/avatar`);
+  }
+
   public async list({ filter, ...query }: PeopleQuery = {}): Promise<Paginated<Person>> {
     const response = await this.api.get<Paginated<Person>>(this.anchor, {
       // Axios would flatten a nested object into `filter[conditions][0]…`; the API reads JSON.
@@ -317,6 +327,7 @@ export type PersonGender = (typeof PersonGender)[keyof typeof PersonGender];
 
 export interface Person {
   id: string;
+  avatarUrl?: string | null;
   firstName: string;
   lastName: string | null;
   gender: PersonGender | null;
