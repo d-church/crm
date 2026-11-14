@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Camera, Image, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { Camera, ImagePlus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { toast } from 'sonner';
@@ -13,12 +13,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DialogTrigger,
 } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { cn } from '@/lib/utils';
 import { PersonService, type Person } from '@/services';
 
 import { PersonAvatar } from './person-avatar';
@@ -54,13 +52,15 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
   const { id, avatarUrl } = person;
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const [mode, setMode] = useState<'view' | 'crop' | 'delete' | null>(null);
+  const dropZone = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<'upload' | 'crop' | 'delete' | null>(null);
   const [source, setSource] = useState<string>();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<Area>();
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(
     () => () => {
@@ -69,10 +69,16 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
     [source],
   );
 
-  function closeDialog() {
-    setMode(null);
+  useEffect(() => {
+    if (mode === 'upload') dropZone.current?.focus();
+    if (mode === 'crop' || mode === 'delete') dialog.current?.focus();
+  }, [mode]);
+
+  function resetDialog(nextMode: 'upload' | null = null) {
+    setMode(nextMode);
     setSource(undefined);
     setPreviewFailed(false);
+    setDragging(false);
   }
 
   const changeAvatar = useMutation({
@@ -87,15 +93,12 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
         queryClient.invalidateQueries({ queryKey: [...PERSON_KEY, id] }),
       ]);
       toast.success(operation === 'delete' ? 'Фото видалено' : 'Фото збережено');
-      closeDialog();
+      resetDialog();
     },
     onError: (error) => toast.error(getApiErrorMessage(error, 'Не вдалося змінити фото')),
   });
 
-  function pickFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
+  function openCrop(file: Blob) {
     if (!INPUT_FORMATS.includes(file.type) || file.size > 10 * 1024 * 1024) {
       toast.error('Оберіть фото JPEG, PNG або WebP до 10 МБ');
       return;
@@ -107,87 +110,118 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
     setMode('crop');
   }
 
-  return (
-    <div className="shrink-0">
-      <input
-        ref={input}
-        type="file"
-        accept={INPUT_FORMATS.join(',')}
-        className="hidden"
-        onChange={pickFile}
-      />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            ref={trigger}
-            type="button"
-            aria-label={avatarUrl ? 'Дії з фото' : 'Додати фото'}
-            className="focus-visible:ring-ring relative block rounded-full focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            <PersonAvatar name={name} url={avatarUrl} className="size-11 text-sm" />
-            <span className="bg-card border-border absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full border">
-              <Camera className="size-3" />
-            </span>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          {avatarUrl && (
-            <DropdownMenuItem onSelect={() => setMode('view')}>
-              <Image />
-              Переглянути фото
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onSelect={() => input.current?.click()}>
-            <Camera />
-            {avatarUrl ? 'Замінити фото' : 'Додати фото'}
-          </DropdownMenuItem>
-          {avatarUrl && (
-            <DropdownMenuItem onSelect={() => setMode('delete')}>
-              <Trash2 />
-              Видалити фото
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+  function pickFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) openCrop(file);
+  }
 
-      <Dialog
-        open={mode !== null}
-        onOpenChange={(open) => {
-          if (!open && !changeAvatar.isPending) closeDialog();
-        }}
+  function pasteFile(event: ClipboardEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const file = Array.from(event.clipboardData.files).find(({ type }) =>
+      INPUT_FORMATS.includes(type),
+    );
+    if (file) openCrop(file);
+    else toast.error('Скопіюйте зображення JPEG, PNG або WebP');
+  }
+
+  return (
+    <Dialog
+      open={mode !== null}
+      onOpenChange={(open) => {
+        if (open) setMode('upload');
+        else if (!changeAvatar.isPending) resetDialog();
+      }}
+    >
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          aria-label={avatarUrl ? 'Дії з фото' : 'Додати фото'}
+          className="focus-visible:ring-ring relative block w-fit shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
+          <PersonAvatar name={name} url={avatarUrl} className="size-11 text-sm" />
+          <span className="bg-card border-border absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full border">
+            <Camera className="size-3" />
+          </span>
+        </button>
+      </DialogTrigger>
+
+      <DialogContent
+        ref={dialog}
+        onPaste={mode === 'upload' ? pasteFile : undefined}
+        className={mode === 'crop' ? 'data-[state=open]:animate-none' : undefined}
       >
-        {mode === 'view' && (
-          <DialogContent
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              trigger.current?.focus();
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>Фото · {name}</DialogTitle>
-              <DialogDescription>Аватарка людини</DialogDescription>
+        {mode === 'upload' && (
+          <>
+            <DialogHeader className="pr-6">
+              <DialogTitle>{avatarUrl ? `Фото · ${name}` : 'Додати фото'}</DialogTitle>
+              <DialogDescription>JPEG, PNG або WebP до 10 МБ.</DialogDescription>
             </DialogHeader>
-            {avatarUrl && !previewFailed ? (
-              <img
-                src={avatarUrl}
-                alt={name}
-                referrerPolicy="no-referrer"
-                onError={() => setPreviewFailed(true)}
-                className="bg-muted mx-auto aspect-square w-full max-w-sm rounded-lg object-cover"
-              />
-            ) : (
-              <p role="status">Не вдалося завантажити фото.</p>
+            {avatarUrl &&
+              (previewFailed ? (
+                <p role="status">Не вдалося завантажити фото.</p>
+              ) : (
+                <img
+                  src={avatarUrl}
+                  alt={name}
+                  referrerPolicy="no-referrer"
+                  onError={() => setPreviewFailed(true)}
+                  className="bg-muted mx-auto aspect-square w-full max-w-64 rounded-lg object-cover"
+                />
+              ))}
+            <input
+              ref={input}
+              type="file"
+              accept={INPUT_FORMATS.join(',')}
+              className="hidden"
+              onChange={pickFile}
+            />
+            <button
+              ref={dropZone}
+              type="button"
+              onClick={() => input.current?.click()}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes('Files')) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setDragging(false);
+                const file = event.dataTransfer.files[0];
+                if (file) openCrop(file);
+              }}
+              className={cn(
+                'border-input-border bg-input hover:border-primary hover:bg-accent focus-visible:ring-ring grid w-full cursor-pointer justify-items-center gap-2 rounded-lg border border-dashed px-4 py-6 text-center transition-colors focus-visible:ring-2 focus-visible:ring-offset-2',
+                dragging && 'border-primary bg-accent',
+              )}
+            >
+              <ImagePlus aria-hidden="true" className="text-primary pointer-events-none size-6" />
+              <span className="pointer-events-none text-sm font-medium">
+                Перетягніть фото або виберіть файл
+              </span>
+              <span className="text-ink-faint pointer-events-none text-xs">
+                Вставити з буфера можна через Ctrl+V або ⌘V
+              </span>
+            </button>
+            {avatarUrl && (
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => setMode('delete')}
+                >
+                  <Trash2 />
+                  Видалити фото
+                </Button>
+              </DialogFooter>
             )}
-          </DialogContent>
+          </>
         )}
         {mode === 'crop' && source && (
-          <DialogContent
-            className="data-[state=open]:animate-none"
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              trigger.current?.focus();
-            }}
-          >
+          <>
             <DialogHeader>
               <DialogTitle>Обрізати фото</DialogTitle>
               <DialogDescription>
@@ -211,7 +245,7 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
                   alt: 'Фото для обрізання',
                   onError: () => {
                     toast.error('Не вдалося відкрити фото');
-                    closeDialog();
+                    resetDialog('upload');
                   },
                 }}
               />
@@ -229,7 +263,11 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
               />
             </label>
             <DialogFooter>
-              <Button variant="outline" onClick={closeDialog} disabled={changeAvatar.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => resetDialog('upload')}
+                disabled={changeAvatar.isPending}
+              >
                 Скасувати
               </Button>
               <Button
@@ -239,15 +277,10 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
                 {changeAvatar.isPending ? 'Зберігаємо…' : 'Зберегти фото'}
               </Button>
             </DialogFooter>
-          </DialogContent>
+          </>
         )}
         {mode === 'delete' && (
-          <DialogContent
-            onCloseAutoFocus={(event) => {
-              event.preventDefault();
-              trigger.current?.focus();
-            }}
-          >
+          <>
             <DialogHeader>
               <DialogTitle>Видалити фото?</DialogTitle>
               <DialogDescription>
@@ -255,7 +288,11 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={closeDialog} disabled={changeAvatar.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => resetDialog('upload')}
+                disabled={changeAvatar.isPending}
+              >
                 Скасувати
               </Button>
               <Button
@@ -266,9 +303,9 @@ export function PersonAvatarActions({ person, name }: { person: Person; name: st
                 {changeAvatar.isPending ? 'Видаляємо…' : 'Видалити фото'}
               </Button>
             </DialogFooter>
-          </DialogContent>
+          </>
         )}
-      </Dialog>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,3 +1,4 @@
+import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createRootRouteWithContext,
@@ -23,14 +24,14 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   return (
-    <>
+    <TooltipProvider delayDuration={350}>
       <Outlet />
       <Toaster />
 
       <Suspense fallback={null}>
         <Devtools />
       </Suspense>
-    </>
+    </TooltipProvider>
   );
 }
 

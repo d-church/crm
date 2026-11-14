@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { createLocalStore } from '@/lib/local-store';
 import { cn } from '@/lib/utils';
 import { formatDate, formatDayMonth, getAge } from '@/lib/format';
-import { PersonAvatar } from './person-avatar';
+import { PersonAvatar, PersonAvatarPreview } from './person-avatar';
 import { useAuth } from '@/modules/auth';
 import { MinistryRole, getPersonName, type PeopleSort, type Person } from '@/services';
 
@@ -51,7 +51,20 @@ export const PERSON_COLUMNS: PersonColumn[] = [
 
       return (
         <div className="flex min-w-0 items-center gap-3">
-          <PersonAvatar name={name} url={person.avatarUrl} />
+          {person.avatarUrl ? (
+            <PersonAvatarPreview name={name} url={person.avatarUrl}>
+              <span
+                tabIndex={0}
+                role="img"
+                aria-label={`Фото · ${name}`}
+                className="focus-visible:ring-ring shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <PersonAvatar name={name} url={person.avatarUrl} />
+              </span>
+            </PersonAvatarPreview>
+          ) : (
+            <PersonAvatar name={name} />
+          )}
 
           <span className="flex min-w-0 flex-col">
             <Link
