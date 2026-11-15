@@ -64,24 +64,27 @@ export function PersonAvatar({
       )}
     >
       {getInitials(name)}
-      {url && <AvatarPhoto key={url} url={url} />}
+      {url && <AvatarPhoto url={url} />}
     </span>
   );
 }
 
 function AvatarPhoto({ url }: { url: string }) {
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
-  if (status === 'error') return null;
-  return (
+  const [loadedUrl, setLoadedUrl] = useState<string>();
+  // A renewed signed URL can take time to load even when the photo itself is unchanged.
+  const sources = loadedUrl && loadedUrl !== url ? [loadedUrl, url] : [url];
+
+  return sources.map((src) => (
     <img
-      src={url}
+      key={src}
+      src={src}
       alt=""
       loading="lazy"
-      decoding="async"
       referrerPolicy="no-referrer"
-      onLoad={() => setStatus('loaded')}
-      onError={() => setStatus('error')}
-      className={cn('absolute inset-0 size-full object-cover', status !== 'loaded' && 'opacity-0')}
+      onLoad={() => {
+        if (src === url) setLoadedUrl(src);
+      }}
+      className={cn('absolute inset-0 size-full object-cover', src !== loadedUrl && 'opacity-0')}
     />
-  );
+  ));
 }
