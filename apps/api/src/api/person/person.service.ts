@@ -19,6 +19,7 @@ import {
   DEFAULT_SORT_ORDER,
   FindPeopleDto,
   type PeopleSort,
+  type PeopleStatFilter,
   type SortOrder,
 } from './dto/find-people.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
@@ -98,10 +99,7 @@ export class PersonService {
   public async findAll(query: FindPeopleDto, viewer: Viewer): Promise<PaginatedPeople> {
     const page = query.page ?? DEFAULT_PAGE;
     const limit = query.limit ?? DEFAULT_PAGE_SIZE;
-    const where = narrow(
-      narrow(buildPeopleWhere(query), await segmentWhere(this.prismaService, query.segment)),
-      visibilityFor(viewer).rows,
-    );
+    const where = await this.peopleWhere(query, viewer);
 
     const [items, total] = await Promise.all([
       this.prismaService.person.findMany({
@@ -135,19 +133,7 @@ export class PersonService {
     segment?: string,
   ): Promise<PeopleStats> {
     const now = new Date();
-    const monthAgo = new Date(now.getTime() - MONTH_MS);
-    const visiblePeople = narrow(
-      narrow(
-        includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } },
-        await segmentWhere(this.prismaService, segment),
-      ),
-      visibilityFor(viewer).rows,
-    );
-    // Крок, який мав бути зроблений до сьогодні й досі в роботі.
-    const overdueStep = {
-      state: { in: [StepState.PLANNED, StepState.IN_PROGRESS] },
-      dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
-    };
+    const visiblePeople = await this.peopleWhere({ includeInactive, segment }, viewer, now);
 
     const [total, inCommunity, newThisMonth, needsAction] = await Promise.all([
       this.prismaService.person.count({ where: visiblePeople }),
@@ -155,12 +141,10 @@ export class PersonService {
         where: { AND: [visiblePeople, { communities: { some: {} } }] },
       }),
       this.prismaService.person.count({
-        where: { AND: [visiblePeople, { createdAt: { gte: monthAgo } }] },
+        where: narrow(visiblePeople, peopleStatWhere('newThisMonth', now)),
       }),
       this.prismaService.person.count({
-        where: {
-          AND: [visiblePeople, { OR: [{ careNeeded: true }, { steps: { some: overdueStep } }] }],
-        },
+        where: narrow(visiblePeople, peopleStatWhere('needsAction', now)),
       }),
     ]);
 
@@ -173,14 +157,24 @@ export class PersonService {
    */
   public async findIds(query: FindPeopleDto, viewer: Viewer): Promise<string[]> {
     const people = await this.prismaService.person.findMany({
-      where: narrow(
-        narrow(buildPeopleWhere(query), await segmentWhere(this.prismaService, query.segment)),
-        visibilityFor(viewer).rows,
-      ),
+      where: await this.peopleWhere(query, viewer),
       select: { id: true },
     });
 
     return people.map(({ id }) => id);
+  }
+
+  private async peopleWhere(
+    query: FindPeopleDto,
+    viewer: Viewer,
+    now = new Date(),
+  ): Promise<Prisma.PersonWhereInput> {
+    const visiblePeople = narrow(
+      narrow(buildPeopleWhere(query, now), await segmentWhere(this.prismaService, query.segment)),
+      visibilityFor(viewer).rows,
+    );
+
+    return narrow(visiblePeople, query.stat ? peopleStatWhere(query.stat, now) : undefined);
   }
 
   /**
@@ -967,6 +961,24 @@ const requireTarget = ({ action, targetId }: BulkPeopleDto): string => {
 };
 
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+const peopleStatWhere = (stat: PeopleStatFilter, now: Date): Prisma.PersonWhereInput => {
+  if (stat === 'newThisMonth') return { createdAt: { gte: new Date(now.getTime() - MONTH_MS) } };
+
+  return {
+    OR: [
+      { careNeeded: true },
+      {
+        steps: {
+          some: {
+            state: { in: [StepState.PLANNED, StepState.IN_PROGRESS] },
+            dueAt: { lt: new Date(now.toISOString().slice(0, 10)) },
+          },
+        },
+      },
+    ],
+  };
+};
 
 /** Fields the free-text search looks at, in the order a person would guess. */
 const SEARCH_FIELDS = [

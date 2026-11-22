@@ -39,6 +39,10 @@ export type PeopleSort = (typeof PEOPLE_SORTS)[number];
 
 export type SortOrder = 'asc' | 'desc';
 
+/** Mirrors the API's supported people statistic filters. */
+export const PEOPLE_STAT_FILTERS = ['newThisMonth', 'needsAction'] as const;
+export type PeopleStatFilter = (typeof PEOPLE_STAT_FILTERS)[number];
+
 /**
  * Mirrors the API's people filter (`apps/api/src/api/person/filter/people-filter.ts`):
  * a flat list of conditions where all must match, or any one is enough.
@@ -115,6 +119,7 @@ export type PeopleFilterOperator =
 /** Mirrors the API's FindPeopleDto — every field is optional. */
 export type PeopleQuery = {
   includeInactive?: boolean;
+  stat?: PeopleStatFilter;
   /** «all», «rest» або ідентифікатор спільноти-відгалуження. */
   segment?: string;
   page?: number;

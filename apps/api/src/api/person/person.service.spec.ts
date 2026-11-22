@@ -1,3 +1,4 @@
+import type { Prisma } from '@generated/prisma/client';
 import type { AccessService } from '@/api/access/access.service';
 import type { Viewer } from '@/api/access/visibility';
 import type { ActivityService } from '@/api/activity/activity.service';
@@ -329,4 +330,73 @@ describe('PersonService stats', () => {
       where: { AND: [{}, { communities: { some: {} } }] },
     });
   });
+
+  const branch = 'youth';
+  const leader: Viewer = {
+    id: 'leader',
+    personId: null,
+    roles: [Role.LEADER],
+    scopes: [{ communityId: branch, homeGroupId: null, ministryId: null, trainingId: null }],
+  };
+
+  it.each([
+    { viewer: GLOBAL_ADMIN, includeInactive: false, segment: undefined },
+    { viewer: GLOBAL_ADMIN, includeInactive: true, segment: 'rest' },
+    { viewer: leader, includeInactive: false, segment: branch },
+    { viewer: leader, includeInactive: true, segment: branch },
+  ])(
+    'uses the same scope for stats, rows and IDs ($viewer.id, $includeInactive, $segment)',
+    async ({ viewer, includeInactive, segment }) => {
+      const now = new Date('2026-09-21T12:00:00.000Z');
+      jest.useFakeTimers().setSystemTime(now);
+      const count = jest
+        .fn<Promise<number>, [{ where: Prisma.PersonWhereInput }]>()
+        .mockResolvedValue(0);
+      const findMany = jest.fn().mockResolvedValue([]);
+      const service = new PersonService(
+        {
+          person: { count, findMany },
+          community: { findMany: jest.fn().mockResolvedValue([{ id: branch }]) },
+        } as unknown as PrismaService,
+        activityService,
+        accessService,
+        avatarCleanup,
+      );
+
+      try {
+        await service.stats(includeInactive, viewer, segment);
+        const [newPeopleWhere, needsActionWhere] = count.mock.calls.slice(2).map(([args]) => args);
+
+        const base = includeInactive ? {} : { activity: { not: ActivityState.INACTIVE } };
+        const segmentFilter =
+          segment === 'rest'
+            ? { NOT: { communities: { some: { id: { in: [branch] } } } } }
+            : { communities: { some: { id: branch } } };
+        const segmentScope = segment ? { AND: [base, segmentFilter] } : base;
+        const visible =
+          viewer === leader
+            ? { AND: [segmentScope, { communities: { some: { id: { in: [branch] } } } }] }
+            : segmentScope;
+        expect(count).toHaveBeenNthCalledWith(1, { where: visible });
+
+        for (const [stat, expected] of [
+          ['newThisMonth', newPeopleWhere],
+          ['needsAction', needsActionWhere],
+        ] as const) {
+          count.mockClear();
+          findMany.mockClear();
+          const query = { includeInactive, segment, stat };
+
+          await service.findAll(query, viewer);
+          expect(count).toHaveBeenCalledWith(expected);
+          expect(findMany).toHaveBeenNthCalledWith(1, expect.objectContaining(expected));
+
+          await service.findIds(query, viewer);
+          expect(findMany).toHaveBeenLastCalledWith({ ...expected, select: { id: true } });
+        }
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
 });

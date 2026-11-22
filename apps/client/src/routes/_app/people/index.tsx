@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { createFileRoute, useLocation, useNavigate } from '@tanstack/react-router';
+import { X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { PageHeader } from '@/components/layout';
@@ -26,6 +27,8 @@ import {
   PersonDialog,
   exportPeopleToCsv,
   PEOPLE_QUERY_KEY,
+  PEOPLE_RESULTS_ID,
+  PEOPLE_STAT_LABELS,
   peopleQueryOptions,
   peopleSearchSchema,
   toPeopleQuery,
@@ -63,11 +66,12 @@ export const Route = createFileRoute('/_app/people/')({
 
 function PeoplePage() {
   const search = Route.useSearch();
+  const href = useLocation({ select: (location) => location.href });
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
 
   const query = toPeopleQuery(search);
-  const { data: page, isPending, isFetching, error } = usePeople(query);
+  const { data: page, isPending, isFetching, isPlaceholderData, error } = usePeople(query);
   const includeInactive = search.includeInactive ?? false;
   const segment = search.segment ?? ALL_SEGMENT;
   const { data: stats } = usePeopleStats(includeInactive, segment);
@@ -78,9 +82,11 @@ function PeoplePage() {
   const { data: churchRoleTypes = [] } = useChurchRoleTypes();
   const { data: trainings = [] } = useTrainings();
 
-  // The input is local and the request is debounced, so typing stays smooth.
-  const [queryText, setQueryText] = useState(search.q ?? '');
-  const debouncedQuery = useDebouncedValue(queryText);
+  const [queryDraft, setQueryDraft] = useState<{ href: string; text: string } | null>(null);
+  // A pending search belongs to the view in which it was typed.
+  if (queryDraft && queryDraft.href !== href) setQueryDraft(null);
+  const debouncedDraft = useDebouncedValue(queryDraft);
+  const queryText = queryDraft?.text ?? search.q ?? '';
 
   const [isExporting, setIsExporting] = useState(false);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -108,29 +114,31 @@ function PeoplePage() {
     trainings,
   };
 
-  const patchSearch = (patch: Partial<PeopleSearch>) =>
-    void navigate({
-      search: (current) => {
-        const next = { ...current, ...patch };
+  const patchSearch = useCallback(
+    (patch: Partial<PeopleSearch>) =>
+      void navigate({
+        search: (current) => {
+          const next = { ...current, ...patch };
 
-        // Any filter change invalidates the current page number.
-        if (!('page' in patch)) delete next.page;
+          // Any filter change invalidates the current page number.
+          if (!('page' in patch)) delete next.page;
 
-        return next;
-      },
-      replace: true,
-    });
+          return next;
+        },
+        replace: true,
+        resetScroll: search.stat ? false : undefined,
+      }),
+    [navigate, search.stat],
+  );
 
   useEffect(() => {
-    const next = (debouncedQuery ?? '').trim();
+    if (!debouncedDraft || debouncedDraft !== queryDraft || debouncedDraft.href !== href) return;
 
-    if (next === (search.q ?? '')) return;
+    const next = debouncedDraft.text.trim();
+    if (next !== (search.q ?? '')) patchSearch({ q: next || undefined });
+  }, [debouncedDraft, href, patchSearch, queryDraft, search.q]);
 
-    patchSearch({ q: next || undefined });
-    // patchSearch is recreated every render; the debounced value is the trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQuery]);
-
+  const statLabel = search.stat && PEOPLE_STAT_LABELS[search.stat];
   const conditionCount = search.filter?.conditions.length ?? 0;
   const filterSummary =
     conditionCount === 0
@@ -184,19 +192,19 @@ function PeoplePage() {
         />
       </div>
 
-      <PeopleStats stats={stats} includeInactive={includeInactive} />
+      <PeopleStats stats={stats} search={search} />
 
       <section className="bg-card border-border overflow-hidden rounded-xl border">
         <PeopleFilters
           filters={search}
           query={queryText}
           sources={filterSources}
-          onQueryChange={setQueryText}
+          onQueryChange={(text) => setQueryDraft({ href, text })}
           onChange={patchSearch}
           onOpenBuilder={() => setIsBuilderOpen(true)}
           onOpenColumns={() => setIsColumnsOpen(true)}
           onReset={() => {
-            setQueryText('');
+            setQueryDraft(null);
             void navigate({ search: {}, replace: true });
           }}
         />
@@ -211,7 +219,10 @@ function PeoplePage() {
 
         <PeopleColumnsDialog open={isColumnsOpen} onOpenChange={setIsColumnsOpen} />
 
-        <div className="bg-secondary border-border-muted flex items-center justify-between gap-4 border-b px-5 py-2.75">
+        <div
+          id={PEOPLE_RESULTS_ID}
+          className="bg-secondary border-border-muted flex scroll-mt-28 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b px-5 py-2.75 md:scroll-mt-4"
+        >
           {/* The total comes from the previous page while the next one loads, so it
               is dimmed alongside the rows rather than posing as the new count. */}
           <span
@@ -223,7 +234,20 @@ function PeoplePage() {
             {page ? `${page.total} ${page.total === 1 ? 'людина' : 'людей'}` : '…'}
             {isFetching && !isPending ? ' · оновлюємо' : ''}
           </span>
-          <span className="text-ink-faint text-xs">{filterSummary}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {statLabel && (
+              <button
+                type="button"
+                aria-label={`Прибрати фільтр «${statLabel}»`}
+                onClick={() => patchSearch({ stat: undefined })}
+                className="border-primary/30 bg-card text-primary hover:bg-primary/5 focus-visible:outline-primary inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors"
+              >
+                {statLabel}
+                <X aria-hidden="true" className="size-3.5" />
+              </button>
+            )}
+            <span className="text-ink-faint text-xs">{filterSummary}</span>
+          </div>
         </div>
 
         {selectedIds.size > 0 ? (
@@ -241,7 +265,7 @@ function PeoplePage() {
 
         {error ? (
           <p className="text-destructive p-6 text-sm">{getApiErrorMessage(error)}</p>
-        ) : isPending ? (
+        ) : isPending || (isPlaceholderData && page.items.length === 0) ? (
           <div className="grid gap-2 p-5">
             {Array.from({ length: 6 }, (_, index) => (
               <Skeleton key={index} className="h-10" />
@@ -251,9 +275,11 @@ function PeoplePage() {
           <div className="flex flex-col gap-2 px-5 py-13.5 text-center">
             <span className="text-[15px]">Нікого не знайдено</span>
             <span className="text-ink-faint text-[13px]">
-              {page.total === 0 && !search.q && !search.filter
-                ? 'Додайте першу людину — і вона зʼявиться в цьому списку.'
-                : 'Спробуйте змінити фільтри або пошуковий запит.'}
+              {statLabel
+                ? `Немає результатів для зрізу «${statLabel}» з поточними фільтрами.`
+                : page.total === 0 && !search.q && !search.filter
+                  ? 'Додайте першу людину — і вона зʼявиться в цьому списку.'
+                  : 'Спробуйте змінити фільтри або пошуковий запит.'}
             </span>
           </div>
         ) : (

@@ -3,11 +3,13 @@ import { z } from 'zod';
 import { getAge } from '@/lib/format';
 import {
   PEOPLE_SORTS,
+  PEOPLE_STAT_FILTERS,
   type PeopleFilter,
   type PeopleFilterField,
   type PeopleFilterOperator,
   type PeopleQuery,
   type PeopleSort,
+  type PeopleStatFilter,
   type Person,
   type SortOrder,
 } from '@/services';
@@ -15,6 +17,11 @@ import {
 import { FILTER_FIELDS, getOperators, MAX_FILTER_CONDITIONS } from './filter-fields';
 
 export const PAGE_SIZE = 25;
+export const PEOPLE_RESULTS_ID = 'people-results';
+export const PEOPLE_STAT_LABELS = {
+  newThisMonth: 'Нові за місяць',
+  needsAction: 'Потребують дії',
+} satisfies Record<PeopleStatFilter, string>;
 
 export const DEFAULT_SORT: PeopleSort = 'createdAt';
 /** Newest additions first — what the default view means. */
@@ -78,6 +85,7 @@ export const peopleSearchSchema = z.object({
   q: z.string().trim().max(100).optional(),
   // A broken filter is dropped on its own instead of resetting the search and page.
   filter: peopleFilterSchema.optional().catch(undefined),
+  stat: z.enum(PEOPLE_STAT_FILTERS).optional().catch(undefined),
   sort: z.enum([...PEOPLE_SORTS]).optional(),
   order: z.enum(['asc', 'desc']).optional(),
   /** Якою частиною церкви дивимось: усією, відгалуженням чи рештою. */
@@ -100,6 +108,7 @@ export const toPeopleQuery = (search: PeopleQueryInput): PeopleQuery => ({
   ...(search.q ? { search: search.q } : {}),
   ...(search.segment && search.segment !== 'all' ? { segment: search.segment } : {}),
   ...(search.filter ? { filter: search.filter } : {}),
+  ...(search.stat ? { stat: search.stat } : {}),
   ...(search.communityId ? { communityId: search.communityId } : {}),
   ...(search.homeGroupId ? { homeGroupId: search.homeGroupId } : {}),
   ...(search.ministryId ? { ministryId: search.ministryId } : {}),

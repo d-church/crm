@@ -77,7 +77,15 @@ const parseBoolean = ({ value }: TransformFnParams): unknown => {
  */
 export const PEOPLE_SEGMENTS = ['all', 'rest'] as const;
 
+export const PEOPLE_STAT_FILTERS = ['newThisMonth', 'needsAction'] as const;
+export type PeopleStatFilter = (typeof PEOPLE_STAT_FILTERS)[number];
+
 export class FindPeopleDto {
+  @ApiPropertyOptional({ enum: PEOPLE_STAT_FILTERS })
+  @IsOptional()
+  @IsIn(PEOPLE_STAT_FILTERS)
+  stat?: PeopleStatFilter;
+
   @ApiPropertyOptional({
     description: '«all», «rest» або ідентифікатор спільноти-відгалуження.',
     default: 'all',
