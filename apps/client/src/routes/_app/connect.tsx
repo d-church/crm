@@ -10,7 +10,8 @@ import { Button, Input, Select, Skeleton } from '@/components/ui';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { formatDate } from '@/lib/format';
 import { usePersonChoices } from '@/modules/people';
-import { ConnectService, getPersonName, type BoardPerson } from '@/services';
+import { PERSON_GENDERS, PERSON_GENDER_LABELS } from '@/modules/people/gender';
+import { ConnectService, getPersonName, type BoardPerson, type PersonGender } from '@/services';
 
 const BOARD_KEY = ['connect', 'board'] as const;
 
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/_app/connect')({
 
 /**
  * Борда конекту. Задача команди — не губити нових людей у телеграмі й нотатках
- * телефону, тому додавання має бути коротшим за розмову: імʼя і захід.
+ * телефону, тому для додавання досить імені, статі й заходу.
  */
 function ConnectPage() {
   const queryClient = useQueryClient();
@@ -74,21 +75,26 @@ const QuickAdd = ({ onAdded }: { onAdded: () => void }) => {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [gender, setGender] = useState<PersonGender | ''>('');
   const [phone, setPhone] = useState('');
   const [eventTypeId, setEventTypeId] = useState('');
 
-  const isReady = firstName.trim().length >= 2 && eventTypeId !== '';
+  const isReady = firstName.trim().length >= 2 && gender !== '' && eventTypeId !== '';
 
   const add = async () => {
+    if (!isReady) return;
+
     try {
       await mutation.mutateAsync({
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
+        gender,
         phone: phone.trim() || undefined,
         eventTypeId,
       });
       setFirstName('');
       setLastName('');
+      setGender('');
       setPhone('');
       toast.success('Людину заведено, фолов-ап на вас');
       onAdded();
@@ -121,6 +127,24 @@ const QuickAdd = ({ onAdded }: { onAdded: () => void }) => {
           className="h-10"
           onChange={(event) => setLastName(event.target.value)}
         />
+        <Select
+          value={gender}
+          required
+          aria-label="Стать"
+          className="h-10"
+          onChange={(event) =>
+            setGender(PERSON_GENDERS.find((option) => option === event.target.value) ?? '')
+          }
+        >
+          <option value="" disabled>
+            Оберіть стать
+          </option>
+          {PERSON_GENDERS.map((option) => (
+            <option key={option} value={option}>
+              {PERSON_GENDER_LABELS[option]}
+            </option>
+          ))}
+        </Select>
         <Select
           value={eventTypeId}
           aria-label="Де познайомились"

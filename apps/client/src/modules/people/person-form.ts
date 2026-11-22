@@ -62,6 +62,7 @@ export const personSchema = z.object({
  * порожньо дозволено — у базі є колишні члени без жодної спільноти.
  */
 export const createPersonSchema = personSchema.extend({
+  gender: personSchema.shape.gender.refine((gender) => gender !== '', 'Оберіть стать'),
   communityIds: z.array(databaseUuidSchema).min(1, 'Оберіть хоча б одну спільноту'),
 });
 

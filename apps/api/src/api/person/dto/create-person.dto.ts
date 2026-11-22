@@ -54,10 +54,9 @@ export class CreatePersonDto {
   @MaxLength(50)
   lastName?: string;
 
-  @ApiPropertyOptional({ enum: PersonGender, description: 'Стать людини.' })
-  @IsOptional()
-  @IsEnum(PersonGender)
-  gender?: PersonGender;
+  @ApiProperty({ enum: PersonGender, description: 'Стать людини.' })
+  @IsEnum(PersonGender, { message: 'Оберіть стать' })
+  gender: PersonGender;
 
   @ApiPropertyOptional({ example: 'ihor@example.com' })
   @IsOptional()

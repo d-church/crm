@@ -1,5 +1,5 @@
 import { ApiService } from './abstracts/api-service';
-import type { PersonChoice } from './person-service';
+import type { PersonChoice, PersonGender } from './person-service';
 
 export interface EventType {
   id: string;
@@ -24,6 +24,7 @@ export interface BoardPerson {
 export interface QuickAddPayload {
   firstName: string;
   lastName?: string;
+  gender: PersonGender;
   eventTypeId: string;
   phone?: string;
 }

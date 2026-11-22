@@ -1,13 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, type TransformFnParams } from 'class-transformer';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 import { DATABASE_UUID_PATTERN } from '@/common/validation/database-uuid';
+import { PersonGender } from '@/infra/prisma/prisma.service';
 
 const trim = ({ value }: TransformFnParams): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
-/** Два обовʼязкові поля — імʼя і захід. Дата й служитель підтягуються самі. */
+/** Обовʼязкові імʼя, стать і захід. Дата й служитель підтягуються самі. */
 export class QuickAddDto {
   @ApiProperty({ example: 'Марія' })
   @Transform(trim)
@@ -22,6 +23,10 @@ export class QuickAddDto {
   @IsString()
   @MaxLength(50)
   lastName?: string;
+
+  @ApiProperty({ enum: PersonGender, description: 'Стать людини.' })
+  @IsEnum(PersonGender, { message: 'Оберіть стать' })
+  gender: PersonGender;
 
   @ApiProperty({ description: 'Захід, на якому познайомились.' })
   @Matches(DATABASE_UUID_PATTERN, { message: 'eventTypeId must be a UUID' })

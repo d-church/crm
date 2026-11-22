@@ -138,14 +138,27 @@ export const PersonDialog = ({ person, children }: PersonDialogProps) => {
 
             <div className="grid gap-1.5">
               <Label htmlFor="gender">Стать</Label>
-              <Select id="gender" {...register('gender')}>
-                <option value="">Не вказано</option>
+              <Select
+                id="gender"
+                required={!isEdit}
+                aria-invalid={!!errors.gender}
+                aria-describedby={errors.gender ? 'gender-error' : undefined}
+                {...register('gender')}
+              >
+                <option value="" disabled={!isEdit}>
+                  {isEdit ? 'Не вказано' : 'Оберіть стать'}
+                </option>
                 {PERSON_GENDERS.map((gender) => (
                   <option key={gender} value={gender}>
                     {PERSON_GENDER_LABELS[gender]}
                   </option>
                 ))}
               </Select>
+              {errors.gender && (
+                <p id="gender-error" className="text-destructive text-xs">
+                  {errors.gender.message}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-1.5">

@@ -106,6 +106,7 @@ export class ConnectService {
       data: {
         firstName: dto.firstName,
         lastName: dto.lastName ?? null,
+        gender: dto.gender,
         phone: dto.phone ?? null,
         communities: { connect: { id: communityId } },
         events: {
