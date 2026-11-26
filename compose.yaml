@@ -1,6 +1,27 @@
 name: dchurch-crm
 
 services:
+  redis:
+    image: redis:7.4-alpine
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--appendfsync',
+        'everysec',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   migrate:
     build:
       context: .
@@ -24,9 +45,12 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      REDIS_URL: redis://redis:6379
     depends_on:
       migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     volumes:
       - uploads:/usr/src/app/apps/api/uploads
     restart: unless-stopped
@@ -46,3 +70,4 @@ services:
 
 volumes:
   uploads:
+  redis-data:

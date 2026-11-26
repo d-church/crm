@@ -24,7 +24,7 @@
     "db:migrate": "pnpm --filter api db:migrate",
     "db:deploy": "pnpm --filter api db:deploy",
     "db:view": "pnpm --filter api db:view",
-    "db:dev:up": "docker compose --project-name dchurch-crm-dev --file compose.dev-db.yaml up -d postgres",
+    "db:dev:up": "docker compose --project-name dchurch-crm-dev --file compose.dev-db.yaml up -d postgres redis",
     "db:dev:down": "docker compose --project-name dchurch-crm-dev --file compose.dev-db.yaml down",
     "db:sync-prod": "bash scripts/sync-dev-db.sh",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",

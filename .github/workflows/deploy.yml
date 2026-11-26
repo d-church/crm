@@ -46,6 +46,12 @@ jobs:
       - name: Build Docker Image
         run: docker build --target production -t dchurch-crm:ci .
 
+      - name: Validate Docker Compose
+        run: |
+          touch .env
+          docker compose config --quiet
+          docker compose --project-name dchurch-crm-dev --file compose.dev-db.yaml config --quiet
+
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
